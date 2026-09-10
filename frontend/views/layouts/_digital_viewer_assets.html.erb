@@ -1,0 +1,25 @@
+<%#
+  Plugin layout override — injects OpenSeadragon + digital_viewer assets into
+  every PUI page.  ASpace merges plugin view overrides with the core views, so
+  this partial is appended to the <head> automatically when the plugin is active.
+
+  To activate the plugin add to /archivesspace/config/config.rb:
+    AppConfig[:plugins] = ['digital_viewer']
+
+  Cantaloupe base URL is written into window.DigitalViewer so the JS knows
+  where to build info.json URLs.  Adjust CANTALOUPE_PUBLIC_URL at deploy time.
+-%>
+<%
+  cantaloupe_url = ENV.fetch('CANTALOUPE_PUBLIC_URL', '/iiif/2')
+%>
+<script>
+  window.DigitalViewer = {
+    cantaloupeBaseUrl: <%= cantaloupe_url.to_json.html_safe %>,
+    compassHost: 'compass.fivecolleges.edu'
+  };
+</script>
+
+<%# OpenSeadragon — loaded from the plugin's own assets so no CDN dependency %>
+<%= javascript_include_tag 'openseadragon.min', plugin: 'digital_viewer' %>
+<%= javascript_include_tag 'digital_viewer',    plugin: 'digital_viewer' %>
+<%= stylesheet_link_tag    'digital_viewer',    plugin: 'digital_viewer' %>

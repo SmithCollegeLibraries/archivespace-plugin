@@ -1,0 +1,20 @@
+<%#
+  digital_viewer — asset injection
+  Loaded automatically by ASpace PUI layout for every page.
+  window.DigitalViewer is read by digital_viewer.js at init time.
+%>
+<%
+  digital_viewer_asset_version = File.mtime(File.expand_path('../assets/digital_viewer.js', __dir__)).to_i
+%>
+<script>
+  window.DigitalViewer = {
+    cantaloupeBaseUrl: '<%= j ENV.fetch("CANTALOUPE_PUBLIC_URL", "http://localhost:8080/iiif/2") %>',
+    compassHost: 'compass.fivecolleges.edu',
+    compassBaseUrl: '<%= j ENV.fetch("COMPASS_BASE_URL", "https://compass.fivecolleges.edu") %>',
+    compassProxyUrl: '<%= j ENV.fetch("COMPASS_PROXY_URL", "http://localhost:8080/compass-resolve") %>',
+    preservicaApiBase: '<%= j ENV.fetch("PRESERVICA_API_BASE", "http://localhost:8080") %>'
+  };
+</script>
+<script src="/assets/openseadragon.min.js"></script>
+<script src="/assets/digital_viewer.js?v=<%= digital_viewer_asset_version %>"></script>
+<link rel="stylesheet" href="/assets/digital_viewer.css?v=<%= digital_viewer_asset_version %>">
