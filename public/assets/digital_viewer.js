@@ -83,6 +83,13 @@
   var warmedResourceUrls = {};
   var viewerControlInstanceCount = 0;
   var sourceGroupCount = 0;
+  var activeMountStates = [];
+  var UNAVAILABLE_TILE_SOURCE = {
+    type: 'image',
+    url: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+    width: 1,
+    height: 1,
+  };
 
   function sanitizeUrl(url) {
     var trimmed = typeof url === 'string' ? url.trim() : '';
@@ -863,10 +870,15 @@
     return tileSource;
   }
 
+  function isUnavailableTileSource(tileSource) {
+    return !!(tileSource && tileSource.unavailable);
+  }
+
   function buildThumbnailUrl(tileSource) {
     var infoUrl;
 
     if (!tileSource) return '';
+    if (tileSource.unavailable) return '';
 
     if (tileSource.thumbnailUrl) {
       return tileSource.thumbnailUrl;
@@ -1304,11 +1316,11 @@
     var openPromise;
     var mountOptions = options || {};
     var tileTimerId = null;
-    var firstTileDrawn = false;
+    var firstTileReady = false;
     var attempt = mountOptions.attempt;
     var activePageIndex = 0;
     var pageErrorMessage = null;
-    container.innerHTML = '';
+    resetContainer(container);
     container.classList.add('dv-active');
 
     var osdEl = document.createElement('div');
@@ -1359,9 +1371,12 @@
         if (timeoutId !== null) clearTimeout(timeoutId);
         clearLoadingNotice(container);
         resolve(viewer);
-        if (!firstTileDrawn) {
+        if (isUnavailableTileSource(tileSources[activePageIndex])) {
+          showPageError({ page: activePageIndex });
+        }
+        if (!firstTileReady) {
           tileTimerId = setTimeout(function () {
-            if (!firstTileDrawn) showLoadingNotice(container);
+            if (!firstTileReady) showLoadingNotice(container);
           }, getLoadingTimeout(mountOptions));
         }
       }
@@ -1375,9 +1390,26 @@
       }
 
       function eventPageIndex(data) {
+        var tiledImage = data && data.tiledImage;
         var source = data && (data.source || data.tileSource);
         var index;
 
+        if (tiledImage) {
+          if (viewer.world && typeof viewer.world.getIndexOfItem === 'function') {
+            index = viewer.world.getIndexOfItem(tiledImage);
+            if (index !== -1) return index;
+          }
+          if (viewer.world && typeof viewer.world.getItemAt === 'function') {
+            for (index = 0; index < tileSources.length; index += 1) {
+              if (viewer.world.getItemAt(index) === tiledImage) return index;
+            }
+          }
+          if (tiledImage.source) {
+            index = osdTileSources.indexOf(tiledImage.source);
+            if (index !== -1) return index;
+          }
+          return null;
+        }
         if (data && typeof data.page === 'number') return data.page;
         if (data && data.source && typeof data.source.index === 'number') return data.source.index;
         if (data && data.item && typeof data.item.index === 'number') return data.item.index;
@@ -1387,6 +1419,7 @@
         if (source) {
           index = osdTileSources.indexOf(source);
           if (index !== -1) return index;
+          return null;
         }
         return activePageIndex;
       }
@@ -1401,7 +1434,7 @@
         var pageIndex = eventPageIndex(data);
         var message;
 
-        if (pageIndex !== activePageIndex || pageErrorMessage) return;
+        if (pageIndex === null || pageIndex !== activePageIndex || pageErrorMessage) return;
         message = document.createElement('p');
         message.className = 'dv-tile-error-msg';
         message.setAttribute('data-page-index', String(pageIndex));
@@ -1427,13 +1460,18 @@
           pageErrorMessage.parentNode.removeChild(pageErrorMessage);
         }
         pageErrorMessage = null;
+        if (isUnavailableTileSource(tileSources[activePageIndex])) {
+          showPageError({ page: activePageIndex });
+        }
       });
-      viewer.addHandler('tile-drawn', function (data) {
+      viewer.addHandler('tile-ready', function (data) {
         if (!isAttemptActive(attempt)) return;
-        firstTileDrawn = true;
+        var pageIndex = eventPageIndex(data);
+        if (pageIndex === null) return;
+        firstTileReady = true;
         if (tileTimerId !== null) clearTimeout(tileTimerId);
         clearLoadingNotice(container);
-        clearPageError(eventPageIndex(data));
+        if (!isUnavailableTileSource(tileSources[pageIndex])) clearPageError(pageIndex);
       });
       viewer.addHandler('tile-load-failed', function (data) {
         if (!isAttemptActive(attempt)) return;
@@ -1596,6 +1634,7 @@
   function showLoadingNotice(container) {
     var notice;
 
+    if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = true;
     if (!container || container.querySelector('.dv-loading-msg')) return;
     notice = document.createElement('p');
     notice.className = 'dv-loading-msg';
@@ -1606,6 +1645,7 @@
   function clearLoadingNotice(container) {
     var notice = container && container.querySelector('.dv-loading-msg');
 
+    if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = false;
     if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
   }
 
@@ -1668,7 +1708,9 @@
     }, timeout);
   }
 
-  function disposeMountState(state) {
+  function disposeMountState(state, options) {
+    var activeIndex;
+
     if (!state || state.disposed) return;
     state.disposed = true;
     disposeAttempt(state.attempt);
@@ -1678,6 +1720,10 @@
         state.container.parentNode.removeChild(state.container);
       }
     }
+    if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
+    activeIndex = activeMountStates.indexOf(state);
+    if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
+    if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
   }
 
   function mountStaticImage(container, descriptor) {
@@ -1689,7 +1735,7 @@
     }
 
     container.classList.add('dv-active');
-    container.innerHTML = '';
+    resetContainer(container);
 
     var wrap = document.createElement('div');
     wrap.className = 'dv-static-image';
@@ -1990,26 +2036,23 @@
       var resource = img && img.resource;
       var seeAlso = canvas && canvas.seeAlso;
       var imageUrl = getManifestNodeId(resource);
-      if (!img) return;
       var svc = resource && resource.service;
-      if (svc) {
-        var serviceId = (svc['@id'] || svc.id || '').replace(/\/$/, '');
-        if (serviceId) {
-          var tileSource = toLocalCantaloupeInfoUrl(serviceId);
-          if (!tileSource) return;
-          tileSources.push({
-            tileSource: tileSource,
-            thumbnailUrl: thumbnailUrl || '',
-            pageIndex: index,
-            pageLabel: canvas.label || '',
-            canvasId: getManifestNodeId(canvas),
-            pageIdentifier: getCanvasMetadataValue(canvas, 'Identifier'),
-            imageUrl: imageUrl || (serviceId + '/full/full/0/default.jpg'),
-            ocrUrl: getManifestNodeId(seeAlso),
-            ocrFormat: seeAlso && seeAlso.format || '',
-          });
-        }
-      }
+      var serviceId = svc ? (svc['@id'] || svc.id || '').replace(/\/$/, '') : '';
+      var tileSource = serviceId ? toLocalCantaloupeInfoUrl(serviceId) : '';
+      var page = {
+        tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
+        thumbnailUrl: thumbnailUrl || '',
+        pageIndex: index,
+        pageLabel: canvas.label || '',
+        canvasId: getManifestNodeId(canvas),
+        pageIdentifier: getCanvasMetadataValue(canvas, 'Identifier'),
+        imageUrl: imageUrl || (serviceId ? serviceId + '/full/full/0/default.jpg' : ''),
+        ocrUrl: getManifestNodeId(seeAlso),
+        ocrFormat: seeAlso && seeAlso.format || '',
+      };
+
+      if (!img || !serviceId || !tileSource) page.unavailable = true;
+      tileSources.push(page);
     });
 
     return tileSources;
@@ -2107,8 +2150,12 @@
   }
 
   function resetContainer(container) {
+    var preserveLoading = !!(container && container.querySelector && container.querySelector('.dv-loading-msg')) ||
+      !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
+
     container.className = 'digital-viewer-container';
     container.innerHTML = '';
+    if (preserveLoading) showLoadingNotice(container);
   }
 
   function mountDescriptor(container, descriptor) {
@@ -2122,6 +2169,7 @@
     }
     if (descriptor.type === 'static-pdf') {
       mountPdfViewer(container, { url: descriptor.url });
+      clearLoadingNotice(container);
       return Promise.resolve();
     }
     if (descriptor.type === 'compass') {
@@ -2267,7 +2315,12 @@
     var metadataColumn;
     var viewerColumn;
 
-    if (!pane || !pane.children || pane.querySelector('#dv-viewer-column')) return null;
+    if (!pane || !pane.children) return null;
+    viewerColumn = pane.querySelector('#dv-viewer-column');
+    if (viewerColumn) {
+      pane.classList.add('dv-enhanced-pane');
+      return viewerColumn;
+    }
 
     metadataColumn = document.createElement('div');
     metadataColumn.className = 'dv-metadata-column';
@@ -2281,7 +2334,42 @@
     pane.appendChild(metadataColumn);
     pane.appendChild(viewerColumn);
     pane.classList.add('dv-enhanced-pane');
+    pane.__dvLeafLayoutState = {
+      pane: pane,
+      metadataColumn: metadataColumn,
+      viewerColumn: viewerColumn,
+    };
     return viewerColumn;
+  }
+
+  function restoreLeafLayoutIfUnused(pane) {
+    var layoutState;
+    var metadataColumn;
+    var viewerColumn;
+    var hasActiveMount = false;
+
+    if (!pane) return;
+    activeMountStates.some(function (state) {
+      if (state && !state.disposed && state.layoutPane === pane) {
+        hasActiveMount = true;
+        return true;
+      }
+      return false;
+    });
+    if (hasActiveMount) return;
+
+    layoutState = pane.__dvLeafLayoutState;
+    metadataColumn = (layoutState && layoutState.metadataColumn) || pane.querySelector('.dv-metadata-column');
+    viewerColumn = (layoutState && layoutState.viewerColumn) || pane.querySelector('#dv-viewer-column');
+    if (!metadataColumn && !viewerColumn) return;
+
+    if (metadataColumn) {
+      while (metadataColumn.firstChild) pane.appendChild(metadataColumn.firstChild);
+      if (metadataColumn.parentNode) metadataColumn.parentNode.removeChild(metadataColumn);
+    }
+    if (viewerColumn && viewerColumn.parentNode) viewerColumn.parentNode.removeChild(viewerColumn);
+    pane.classList.remove('dv-enhanced-pane');
+    pane.__dvLeafLayoutState = null;
   }
 
   // ── Initialization ────────────────────────────────────────────────────────
@@ -2293,7 +2381,12 @@
     }
 
     var fileUris = collectFileUris();
-    if (fileUris.length === 0) return;
+    if (fileUris.length === 0) {
+      activeMountStates.slice().forEach(disposeMountState);
+      return;
+    }
+
+    activeMountStates.forEach(function (state) { state.seenInInit = false; });
 
     var pageContext = getPageContext();
     var pageLayout = classifyPageContext(pageContext);
@@ -2340,7 +2433,11 @@
         candidates.push({ item: item, descriptor: candidateDescriptor });
       });
 
-      if (candidates.length === 0) return;
+      existingState = group.root && group.root.__dvMountState;
+      if (candidates.length === 0) {
+        if (existingState) disposeMountState(existingState);
+        return;
+      }
 
       if (!viewerColumn && pageLayout === 'leaf-digital-object') {
         viewerColumn = prepareLeafLayout();
@@ -2355,12 +2452,12 @@
       signature = candidates.map(function (candidate) {
         return candidate.item.uri;
       }).join('\u0000');
-      existingState = group.root && group.root.__dvMountState;
       if (existingState && !existingState.disposed && existingState.signature === signature &&
           existingState.container && existingState.container.parentNode) {
+        existingState.seenInInit = true;
         return;
       }
-      if (existingState) disposeMountState(existingState);
+      if (existingState) disposeMountState(existingState, { preserveLayout: true });
 
       container = document.createElement('div');
       container.className = 'digital-viewer-container';
@@ -2375,8 +2472,11 @@
         signature: signature,
         attempt: null,
         disposed: false,
+        seenInInit: true,
+        layoutPane: viewerColumn ? viewerColumn.parentNode : null,
       };
       if (group.root) group.root.__dvMountState = container.__dvMountState;
+      activeMountStates.push(container.__dvMountState);
 
       if (viewerColumn) {
         // Two-column layout: append directly into the right column.
@@ -2437,6 +2537,10 @@
             }
           });
       })(0);
+    });
+
+    activeMountStates.slice().forEach(function (state) {
+      if (!state.seenInInit) disposeMountState(state);
     });
   }
 

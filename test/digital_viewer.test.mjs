@@ -187,7 +187,7 @@ function normalize(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function makeInitDocument(uris = ['https://example.org/image.jpg']) {
+function makeInitDocument(uris = ['https://example.org/image.jpg'], leaf = false) {
   const nodes = [];
 
   function makeNode(tagName) {
@@ -202,6 +202,7 @@ function makeInitDocument(uris = ['https://example.org/image.jpg']) {
       attributes: {},
       parentNode: null,
       appendChild(child) {
+        if (child.parentNode && child.parentNode !== this) child.parentNode.removeChild(child);
         child.parentNode = this;
         this.children.push(child);
         return child;
@@ -239,6 +240,7 @@ function makeInitDocument(uris = ['https://example.org/image.jpg']) {
         function visit(current) {
           current.children.forEach(function (child) {
             if (selector === child.tagName ||
+                (selector.charAt(0) === '#' && child.id === selector.slice(1)) ||
                 (selector.charAt(0) === '.' && child.className.split(/\s+/).indexOf(selector.slice(1)) !== -1)) {
               result.push(child);
             }
@@ -249,6 +251,16 @@ function makeInitDocument(uris = ['https://example.org/image.jpg']) {
         return result;
       },
     };
+    Object.defineProperty(node, 'firstChild', {
+      get() { return this.children[0] || null; },
+    });
+    Object.defineProperty(node, 'nextSibling', {
+      get() {
+        if (!this.parentNode) return null;
+        const index = this.parentNode.children.indexOf(this);
+        return index === -1 ? null : this.parentNode.children[index + 1] || null;
+      },
+    });
     node.classList = {
       add(...tokens) {
         const current = node.className ? node.className.split(/\s+/) : [];
@@ -294,15 +306,36 @@ function makeInitDocument(uris = ['https://example.org/image.jpg']) {
   };
   const host = makeNode('section');
   const sourceGroup = makeNode('div');
+  let pane;
+  let stockContent;
   uris.forEach(function (uri) {
     const anchor = makeNode('a');
     anchor.href = uri;
     sourceGroup.appendChild(anchor);
     nodes.push(anchor);
   });
-  host.appendChild(sourceGroup);
+  if (leaf) {
+    pane = makeNode('section');
+    pane.className = 'resizable-content-pane';
+    stockContent = makeNode('div');
+    stockContent.className = 'stock-content';
+    pane.appendChild(stockContent);
+    pane.appendChild(sourceGroup);
+    host.appendChild(pane);
+    documentStub.querySelector = function (selector) {
+      if (selector === '[data-dv-page-context]') {
+        return { dataset: { recordType: 'DigitalObject', hasChildren: 'false' } };
+      }
+      if (selector === '#notes_row > .resizable-content-pane') return pane;
+      return null;
+    };
+  } else {
+    host.appendChild(sourceGroup);
+  }
   documentStub.sourceGroup = sourceGroup;
   documentStub.host = host;
+  documentStub.pane = pane;
+  documentStub.stockContent = stockContent;
   return documentStub;
 }
 
@@ -442,6 +475,8 @@ test('mountOsdViewer attaches open handlers before opening without a tileSources
   assert.equal(constructedOptions.tileSources, undefined);
   assert.ok(calls.indexOf('open') !== -1);
   assert.ok(calls.indexOf('open-failed') !== -1);
+  assert.ok(calls.indexOf('tile-ready') !== -1);
+  assert.equal(calls.indexOf('tile-drawn'), -1);
   assert.ok(calls.indexOf('open') < calls.findIndex(call => Array.isArray(call) && call[0] === 'open'));
   assert.deepEqual(calls.find(call => Array.isArray(call) && call[0] === 'open'), [
     'open',
@@ -498,6 +533,49 @@ test('init reuses an unchanged source-group mount instead of duplicating it', as
 
   assert.equal(documentStub.host.children.length, 2);
   assert.equal(documentStub.host.children[1], firstContainer);
+});
+
+test('init removes an obsolete mount when the replacement source is unsupported', async function () {
+  const documentStub = makeInitDocument();
+  const hooks = loadHooks({ document: documentStub });
+
+  hooks.init();
+  await Promise.resolve();
+  documentStub.host.children[1].querySelector('img').onload();
+  await Promise.resolve();
+
+  documentStub.sourceGroup.children[0].href = 'https://example.org/unsupported.txt';
+  hooks.init();
+
+  assert.equal(documentStub.host.querySelector('.digital-viewer-container'), null);
+  assert.equal(documentStub.host.children.length, 1);
+  assert.equal(documentStub.sourceGroup.children.length, 1);
+});
+
+test('leaf replacement reuses the enhanced viewer column and explicit disposal restores stock layout', async function () {
+  const documentStub = makeInitDocument(['https://example.org/first.jpg'], true);
+  const hooks = loadHooks({ document: documentStub });
+
+  hooks.init();
+  await Promise.resolve();
+  const firstColumn = documentStub.pane.querySelector('#dv-viewer-column');
+  const firstContainer = firstColumn.querySelector('.digital-viewer-container');
+  firstContainer.querySelector('img').onload();
+  await Promise.resolve();
+
+  documentStub.sourceGroup.children[0].href = 'https://example.org/second.jpg';
+  hooks.init();
+  await Promise.resolve();
+
+  assert.equal(documentStub.pane.querySelector('#dv-viewer-column'), firstColumn);
+  assert.equal(firstColumn.querySelector('.digital-viewer-container').querySelector('img').src, 'https://example.org/second.jpg');
+
+  hooks.disposeMountState(documentStub.pane.__dvMountState);
+
+  assert.equal(documentStub.pane.querySelector('#dv-viewer-column'), null);
+  assert.equal(documentStub.pane.querySelector('.dv-metadata-column'), null);
+  assert.equal(documentStub.pane.classList.contains('dv-enhanced-pane'), false);
+  assert.equal(documentStub.sourceGroup.parentNode, documentStub.pane);
 });
 
 test('disposing a pending mount clears owned work and is idempotent', async function () {
@@ -696,7 +774,7 @@ test('final pending manifest shows one loading note and accepts late OSD success
   });
   for (let i = 0; i < 10; i += 1) await Promise.resolve();
   viewer.handlers.open.forEach(handler => handler());
-  viewer.handlers['tile-drawn'].forEach(handler => handler({ page: 0 }));
+  viewer.handlers['tile-ready'].forEach(handler => handler({ page: 0 }));
   for (let i = 0; i < 10; i += 1) await Promise.resolve();
 
   assert.equal(container.querySelector('.dv-loading-msg'), null);
@@ -746,7 +824,7 @@ test('mountOsdViewer advances timed-out alternatives but retains a slow final vi
   assert.equal(container.querySelector('.dv-loading-msg').textContent, 'Still loading');
 
   viewers[0].handlers.open.forEach(handler => handler());
-  viewers[0].handlers['tile-drawn'].forEach(handler => handler());
+  viewers[0].handlers['tile-ready'].forEach(handler => handler());
   await finalAttempt;
   assert.equal(container.querySelector('.dv-loading-msg'), null);
 
@@ -796,7 +874,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
   );
 
   viewer.handlers.open.forEach(handler => handler());
-  viewer.handlers['tile-drawn'].forEach(handler => handler());
+  viewer.handlers['tile-ready'].forEach(handler => handler());
   await mounting;
   viewer.handlers['tile-load-failed'].forEach(handler => handler({}));
   viewer.handlers['tile-load-failed'].forEach(handler => handler({}));
@@ -807,6 +885,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
 
 test('later page failures stay page-scoped and clear after recovery', async function () {
   let viewer;
+  const pageItems = [{}, {}];
   const fakeOpenSeadragon = () => {
     const handlers = {};
     viewer = {
@@ -818,6 +897,9 @@ test('later page failures stay page-scoped and clear after recovery', async func
       isFullPage() { return false; },
       setFullPage() {},
       forceRedraw() {},
+      world: {
+        getIndexOfItem(item) { return pageItems.indexOf(item); },
+      },
       addHandler(name, handler) {
         if (!handlers[name]) handlers[name] = [];
         handlers[name].push(handler);
@@ -836,19 +918,29 @@ test('later page failures stay page-scoped and clear after recovery', async func
 
   viewer.handlers.open.forEach(handler => handler());
   viewer.handlers.page.forEach(handler => handler({ page: 1 }));
-  viewer.handlers['open-failed'].forEach(handler => handler({ page: 1 }));
   await mounting;
 
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({
+    tile: {},
+    tiledImage: pageItems[0],
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({
+    tile: {},
+    tiledImage: pageItems[1],
+  }));
   assert.equal(container.querySelector('.dv-tile-error-msg').textContent, 'This page is unavailable.');
-  viewer.handlers.page.forEach(handler => handler({ page: 0 }));
-  viewer.handlers['tile-drawn'].forEach(handler => handler({ page: 0 }));
-  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 
-  viewer.handlers['tile-load-failed'].forEach(handler => handler({ source: 'page-2' }));
-  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
-  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
-  viewer.handlers['tile-load-failed'].forEach(handler => handler({ page: 1 }));
+  viewer.handlers['tile-ready'].forEach(handler => handler({
+    tile: {},
+    tiledImage: pageItems[0],
+  }));
   assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+  viewer.handlers['tile-ready'].forEach(handler => handler({
+    tile: {},
+    tiledImage: pageItems[1],
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
 
 test('source failure diagnostics omit raw errors, URLs, and query strings', async function () {
@@ -974,8 +1066,31 @@ test('toLocalCantaloupeInfoUrl disables legacy key rewriting without a usable ba
   ['', '  ', null, 'javascript:alert(1)'].forEach(function (baseUrl) {
     const hooks = loadHooks({ config: { cantaloupeBaseUrl: baseUrl } });
     assert.equal(hooks.toLocalCantaloupeInfoUrl(serviceId), '');
-    assert.deepEqual(normalize(hooks.extractCompassTileSources(manifest)), []);
+    assert.equal(hooks.extractCompassTileSources(manifest).length, 1);
+    assert.equal(hooks.extractCompassTileSources(manifest)[0].unavailable, true);
   });
+});
+
+test('extractCompassTileSources preserves unavailable canvases and original page positions', function () {
+  const hooks = loadHooks({ config: { cantaloupeBaseUrl: '' } });
+  const service = (id) => ({ images: [{ resource: { service: { id } } }] });
+  const manifest = {
+    sequences: [{
+      canvases: [
+        service('https://delivery.example.org/iiif/2/page-1'),
+        service('https://compass.fivecolleges.edu/cantaloupe/iiif/2/https%3A%2F%2Fcompass.fivecolleges.edu%2Fsystem%2Ffiles%2Fpage-2.tif'),
+        service('https://delivery.example.org/iiif/2/page-3'),
+      ],
+    }],
+  };
+
+  const pages = hooks.extractCompassTileSources(manifest);
+
+  assert.equal(pages.length, 3);
+  assert.deepEqual(normalize(pages.map(page => page.pageIndex)), [0, 1, 2]);
+  assert.equal(pages[0].unavailable, undefined);
+  assert.equal(pages[1].unavailable, true);
+  assert.equal(pages[2].unavailable, undefined);
 });
 
 test('getPreloadPageIndexes prioritizes the current page and nearby sequence pages', function () {
