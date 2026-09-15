@@ -42,7 +42,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Status: IN PROGRESS; all six correction regression groups pass locally, while hosted and full fixture acceptance remain open.
 
-Correction commits: lifecycle/source corrections `cb1df3cf46cfe463b23fa782544a07d0c46f9421`; content-hashed asset version `8f980cebe08468b6fd79b34941b833bdd93ee54d`; documentation/evidence updates follow in later commits.
+Correction commits: lifecycle/source corrections `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, stale-callback guards `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`; content-hashed asset version `8f980cebe08468b6fd79b34941b833bdd93ee54d`; documentation/evidence updates follow in later commits.
 
 | Correction | Observed local evidence | Remaining gap |
 |---|---|---|
@@ -51,7 +51,7 @@ Correction commits: lifecycle/source corrections `cb1df3cf46cfe463b23fa782544a07
 | LYR-R03 | Initial open settlement is separate from later page failures; page-scoped open/tile errors clear after page recovery and stale source events do not alter the active page. | Vendored OSD browser payload coverage and rapid real navigation remain. |
 | LYR-R04 | Mount state is owned per source group; unchanged `init()` calls reuse the mount, disposal is idempotent, owned timers/abort/viewer cleanup run, and pending outcomes are guarded. | Replacement during thumbnail loading, full observer/queue teardown and leaf-layout restoration remain. |
 | LYR-R05 | `mountDescriptor()` is invoked inside a promise boundary; a throwing primary OSD constructor falls back once to a working static image, with safe terminal behavior covered. | Separate multi-group final-failure and browser exception checks remain. |
-| LYR-R06 | `DigitalViewerAssetVersion.for_plugin_root()` hashes the ordered served filenames and bytes with SHA-256. `test/asset_version_test.rb` proves JS-only changes alter the version despite fixed mtimes and copied bytes retain it across changed mtimes. Actual ASpace 4.2.0 PUI rendering served all three assets with matching content version `ca4aacc58b64c50dcfd8872db364300d2d8d8fc47b1c74f8c95b8898ecbb505d`. | Root/non-root browser cache update/rollback checks remain. |
+| LYR-R06 | `DigitalViewerAssetVersion.for_plugin_root()` hashes the ordered served filenames and bytes with SHA-256. `test/asset_version_test.rb` proves JS-only changes alter the version despite fixed mtimes and copied bytes retain it across changed mtimes. Actual ASpace 4.2.0 PUI rendering served all three assets with matching content version `dcd526e12081d8cb487f9dda067d323d2eb5d66f3e15f51cba0db6340b426f36`. | Root/non-root browser cache update/rollback checks remain. |
 
 Evidence commands: `node --test test/*.mjs`; `ruby test/asset_version_test.rb`; `node --check public/assets/digital_viewer.js`; `ruby -c public/views/digital_viewer_asset_version.rb`; `erb -x -T - public/views/layout_head.html.erb | ruby -c`; `erb -x -T - public/views/shared/_digital.html.erb | ruby -c`. Result: 47 Node tests, asset digest test and parser checks pass in standalone and parent copies; runtime/test/helper bytes match.
 
@@ -95,7 +95,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-06 / M01-M18 local portion
 Status: IN PROGRESS
-Standalone commit: `8fb37647a87a34b18c8535dfe563fed4b0584088` (runtime candidate); evidence recorded in `0a0de32f7195d91678961b43100f38f639ff183f`
+Standalone commits: `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `8f980cebe08468b6fd79b34941b833bdd93ee54d`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719` (runtime corrections); evidence recorded in `0a0de32f7195d91678961b43100f38f639ff183f`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN; candidate asset SHA-256 recorded below
 Environment / ASpace / browser / OS: macOS local workstation; Node 47-test DOM suite, Ruby asset-version test and Ruby/ERB parser checks completed; browser checks NOT RUN
@@ -149,7 +149,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-05 / M14-M16
 Status: IN PROGRESS
-Standalone commits: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`, `8fb37647a87a34b18c8535dfe563fed4b0584088`
+Standalone commits: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`, `8fb37647a87a34b18c8535dfe563fed4b0584088`, `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN
 Environment / ASpace / browser / OS: Node DOM harness and Ruby/ERB parser checks on macOS; actual ArchivesSpace/PUI/browser checks NOT RUN
