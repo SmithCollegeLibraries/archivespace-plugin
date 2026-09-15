@@ -10,7 +10,7 @@ function loadHooks(options = {}) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const instrumented = source.replace(
     /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, makeElement: document.createElement };\n})();"
+    "window.__digitalViewerTestHooks = { detectSource: detectSource, parseCompassHost: parseCompassHost, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, mountDescriptor: mountDescriptor, makeElement: document.createElement };\n})();"
   );
 
   function makeElement(tagName) {
@@ -195,6 +195,36 @@ test('detectSource normalizes bare Compass node URLs to direct manifest descript
   );
 });
 
+test('detectSource requires strict configured Compass host equality', function () {
+  const hooks = loadHooks();
+
+  assert.equal(
+    hooks.detectSource('https://compass.fivecolleges.edu.example.org/islandora/object/item-1'),
+    null
+  );
+
+  const unconfiguredHooks = loadHooks({
+    config: {
+      compassBaseUrl: '',
+      compassHost: '',
+    },
+  });
+
+  assert.equal(
+    unconfiguredHooks.detectSource('https://example.org/system/files/page.tif'),
+    null
+  );
+});
+
+test('parseCompassHost accepts only HTTP(S) hostnames and normalizes them', function () {
+  const hooks = loadHooks();
+
+  assert.equal(hooks.parseCompassHost(' HTTPS://Compass.Example.org/base/ '), 'compass.example.org');
+  assert.equal(hooks.parseCompassHost(''), '');
+  assert.equal(hooks.parseCompassHost('localhost:8080'), '');
+  assert.equal(hooks.parseCompassHost('javascript:alert(1)'), '');
+});
+
 test('classifyPageContext enhances only an explicit leaf Digital Object page', function () {
   const hooks = loadHooks();
 
@@ -304,6 +334,19 @@ test('mountStaticImage waits for image load before resolving and rejects on imag
   const failed = hooks.mountStaticImage(failedContainer, { imageUrl: 'https://example.org/broken.jpg' });
   failedContainer.querySelector('img').onerror();
   await assert.rejects(failed, /STATIC_IMAGE_FAILED/);
+});
+
+test('mountDescriptor propagates static-image load failures for source fallback', async function () {
+  const hooks = loadHooks();
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountDescriptor(container, {
+    type: 'static-image',
+    imageUrl: 'https://example.org/broken.jpg',
+  });
+
+  assert.equal(typeof mounting.then, 'function');
+  container.querySelector('img').onerror();
+  await assert.rejects(mounting, /STATIC_IMAGE_FAILED/);
 });
 
 test('mountOsdViewer advances timed-out alternatives but retains a slow final viewer', async function () {

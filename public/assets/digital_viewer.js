@@ -11,9 +11,9 @@
  * Configuration (injected by layout_head.html.erb before this script):
  *
  *   window.DigitalViewer = {
- *     cantaloupeBaseUrl: 'http://localhost:8080/iiif/2',  // required for S3 TIFFs
- *     compassHost: 'compass.fivecolleges.edu',            // default
- *     preservicaApiBase: 'https://smith.preservica.com',  // optional, for Preservica
+ *     cantaloupeBaseUrl: 'https://digital.smith.edu/iiif/2', // optional for complete manifests
+ *     compassBaseUrl: 'https://compass.fivecolleges.edu',    // optional for legacy Compass
+ *     preservicaApiBase: 'https://aspace.example/api',       // optional, for Preservica
  *   };
  */
 
@@ -23,13 +23,31 @@
   // ── Config ────────────────────────────────────────────────────────────────
   var cfg = Object.assign({
     cantaloupeBaseUrl: '/iiif/2',
+    compassBaseUrl: '',
     compassHost: 'compass.fivecolleges.edu',
     preservicaApiBase: null,
     loadingTimeoutMs: 30000,
   }, window.DigitalViewer || {});
 
   // Strip trailing slash from base URL
-  cfg.cantaloupeBaseUrl = cfg.cantaloupeBaseUrl.replace(/\/$/, '');
+  cfg.cantaloupeBaseUrl = typeof cfg.cantaloupeBaseUrl === 'string'
+    ? cfg.cantaloupeBaseUrl.replace(/\/$/, '')
+    : '';
+
+  function parseCompassHost(baseUrl) {
+    var parsed;
+
+    if (typeof baseUrl !== 'string' || !baseUrl.trim()) return '';
+    try {
+      parsed = new URL(baseUrl.trim());
+    } catch (err) {
+      return '';
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.hostname ? parsed.hostname.toLowerCase() : '';
+  }
+
+  cfg.compassHost = parseCompassHost(cfg.compassBaseUrl);
 
   // Regex for a UUID in a URI (used to detect Preservica assets)
   var UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -85,17 +103,24 @@
    *   null
    */
   function detectSource(fileUri) {
+    var uriUrl;
+
     if (!fileUri) return null;
 
     var normalizedUri = fileUri.replace(/^\/\//, 'https://');
-    var isCompassHost = normalizedUri.indexOf(cfg.compassHost) !== -1;
+    try {
+      uriUrl = new URL(normalizedUri);
+    } catch (err) {
+      uriUrl = null;
+    }
+    var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
 
     if (/^https?:\/\//i.test(normalizedUri) && PDF_RE.test(normalizedUri)) {
       return { type: 'static-pdf', url: normalizedUri };
     }
 
     // Compass S3 TIFF — strip host + /system/files/ to get the S3 path key
-    if (normalizedUri.indexOf(cfg.compassHost + '/system/files/') !== -1) {
+    if (isCompassHost && normalizedUri.indexOf('/system/files/') !== -1) {
       var marker = '/system/files/';
       var pos = normalizedUri.indexOf(marker);
       if (pos !== -1) {
@@ -115,7 +140,7 @@
     }
 
     // Compass Islandora object URL — needs IIIF manifest lookup via redirect-follow
-    if (normalizedUri.indexOf(cfg.compassHost) !== -1 &&
+    if (isCompassHost &&
         (normalizedUri.indexOf('/islandora/object/') !== -1 || normalizedUri.indexOf('/object/') !== -1)) {
       var compassObjectUrl = normalizedUri;
       if (normalizedUri.indexOf('/islandora/object/') === -1) {
@@ -128,13 +153,13 @@
     }
 
     // Compass direct manifest URL — already resolved to a Drupal node
-    if (normalizedUri.indexOf(cfg.compassHost) !== -1 &&
+    if (isCompassHost &&
         normalizedUri.indexOf('/node/') !== -1 &&
         /\/manifest(?:-single)?(?:\?.*)?$/i.test(normalizedUri)) {
       return { type: 'compass-manifest', manifestUrl: normalizedUri.replace(/^http:\/\//i, 'https://') };
     }
 
-    if (normalizedUri.indexOf(cfg.compassHost) !== -1 &&
+    if (isCompassHost &&
         /\/node\/\d+(?:\?.*)?$/i.test(normalizedUri)) {
       return {
         type: 'compass-manifest',
@@ -1923,8 +1948,7 @@
       return mountCantaloupe(container, descriptor);
     }
     if (descriptor.type === 'static-image') {
-      mountStaticImage(container, descriptor);
-      return Promise.resolve();
+      return mountStaticImage(container, descriptor);
     }
     if (descriptor.type === 'static-pdf') {
       mountPdfViewer(container, { url: descriptor.url });

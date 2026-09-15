@@ -4,17 +4,33 @@
   window.DigitalViewer is read by digital_viewer.js at init time.
 %>
 <%
-  digital_viewer_asset_version = File.mtime(File.expand_path('../assets/digital_viewer.js', __dir__)).to_i
+  digital_viewer_env = lambda do |name|
+    ENV.key?(name) ? ENV[name].to_s : ''
+  end
+  digital_viewer_cantaloupe_url = digital_viewer_env.call('CANTALOUPE_PUBLIC_URL')
+  digital_viewer_compass_base_url = digital_viewer_env.call('COMPASS_BASE_URL')
+  digital_viewer_compass_host_match = digital_viewer_compass_base_url.match(/\Ahttps?:\/\/([A-Za-z0-9.-]+)/i)
+  digital_viewer_compass_host = digital_viewer_compass_host_match ? digital_viewer_compass_host_match[1].downcase : ''
+  digital_viewer_asset_version = [
+    File.mtime(File.expand_path('../assets/digital_viewer.js', __dir__)).to_i,
+    File.mtime(File.expand_path('../assets/digital_viewer.css', __dir__)).to_i,
+    File.mtime(File.expand_path('../assets/openseadragon.min.js', __dir__)).to_i
+  ].max
+  digital_viewer_asset_path = lambda do |filename|
+    path = "/assets/#{filename}"
+    respond_to?(:app_prefix) ? app_prefix(path) : path
+  end
 %>
 <script>
   window.DigitalViewer = {
-    cantaloupeBaseUrl: '<%= j ENV.fetch("CANTALOUPE_PUBLIC_URL", "http://localhost:8080/iiif/2") %>',
-    compassHost: 'compass.fivecolleges.edu',
-    compassBaseUrl: '<%= j ENV.fetch("COMPASS_BASE_URL", "https://compass.fivecolleges.edu") %>',
-    compassProxyUrl: '<%= j ENV.fetch("COMPASS_PROXY_URL", "http://localhost:8080/compass-resolve") %>',
-    preservicaApiBase: '<%= j ENV.fetch("PRESERVICA_API_BASE", "http://localhost:8080") %>'
+    cantaloupeBaseUrl: '<%= j digital_viewer_cantaloupe_url %>',
+    compassHost: '<%= j digital_viewer_compass_host %>',
+    compassBaseUrl: '<%= j digital_viewer_compass_base_url %>',
+    compassProxyUrl: '<%= j digital_viewer_env.call("COMPASS_PROXY_URL") %>',
+    preservicaApiBase: '<%= j digital_viewer_env.call("PRESERVICA_API_BASE") %>',
+    loadingTimeoutMs: '<%= j digital_viewer_env.call("DIGITAL_VIEWER_LOADING_TIMEOUT_MS") %>'
   };
 </script>
-<script src="/assets/openseadragon.min.js"></script>
-<script src="/assets/digital_viewer.js?v=<%= digital_viewer_asset_version %>"></script>
-<link rel="stylesheet" href="/assets/digital_viewer.css?v=<%= digital_viewer_asset_version %>">
+<script src="<%= j digital_viewer_asset_path.call('openseadragon.min.js') %>?v=<%= digital_viewer_asset_version %>"></script>
+<script src="<%= j digital_viewer_asset_path.call('digital_viewer.js') %>?v=<%= digital_viewer_asset_version %>"></script>
+<link rel="stylesheet" href="<%= j digital_viewer_asset_path.call('digital_viewer.css') %>?v=<%= digital_viewer_asset_version %>">
