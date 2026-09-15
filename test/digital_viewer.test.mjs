@@ -10,7 +10,7 @@ function loadHooks(options = {}) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const instrumented = source.replace(
     /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, parseCompassHost: parseCompassHost, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, mountDescriptor: mountDescriptor, makeElement: document.createElement };\n})();"
+    "window.__digitalViewerTestHooks = { detectSource: detectSource, parseCompassHost: parseCompassHost, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, mountDescriptor: mountDescriptor, disposeMountState: disposeMountState, init: init, makeElement: document.createElement };\n})();"
   );
 
   function makeElement(tagName) {
@@ -52,6 +52,9 @@ function loadHooks(options = {}) {
       },
       getAttribute(name) {
         return this.attributes[name];
+      },
+      removeAttribute(name) {
+        delete this.attributes[name];
       },
       querySelector(selector) {
         return this.querySelectorAll(selector)[0] || null;
@@ -155,7 +158,7 @@ function loadHooks(options = {}) {
         ...options.config,
       },
     },
-    document: documentStub,
+    document: options.document || documentStub,
     console: options.console || console,
     fetch: options.fetch || function () {
       throw new Error('fetch should not be called in unit tests');
@@ -166,6 +169,7 @@ function loadHooks(options = {}) {
     IntersectionObserver: options.IntersectionObserver,
     Image: options.Image,
     URL,
+    AbortController,
     Array,
     Object,
     setTimeout,
@@ -181,6 +185,125 @@ function loadHooks(options = {}) {
 
 function normalize(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function makeInitDocument(uris = ['https://example.org/image.jpg']) {
+  const nodes = [];
+
+  function makeNode(tagName) {
+    const node = {
+      tagName,
+      className: '',
+      textContent: '',
+      innerHTML: '',
+      style: {},
+      children: [],
+      dataset: {},
+      attributes: {},
+      parentNode: null,
+      appendChild(child) {
+        child.parentNode = this;
+        this.children.push(child);
+        return child;
+      },
+      insertBefore(child, reference) {
+        child.parentNode = this;
+        const index = reference ? this.children.indexOf(reference) : -1;
+        if (index === -1) this.children.push(child);
+        else this.children.splice(index, 0, child);
+        return child;
+      },
+      removeChild(child) {
+        const index = this.children.indexOf(child);
+        if (index !== -1) this.children.splice(index, 1);
+        child.parentNode = null;
+        return child;
+      },
+      addEventListener(name, handler) {
+        this['on' + name] = handler;
+      },
+      setAttribute(name, value) {
+        this.attributes[name] = String(value);
+      },
+      getAttribute(name) {
+        return this.attributes[name];
+      },
+      removeAttribute(name) {
+        delete this.attributes[name];
+      },
+      querySelector(selector) {
+        return this.querySelectorAll(selector)[0] || null;
+      },
+      querySelectorAll(selector) {
+        const result = [];
+        function visit(current) {
+          current.children.forEach(function (child) {
+            if (selector === child.tagName ||
+                (selector.charAt(0) === '.' && child.className.split(/\s+/).indexOf(selector.slice(1)) !== -1)) {
+              result.push(child);
+            }
+            visit(child);
+          });
+        }
+        visit(this);
+        return result;
+      },
+    };
+    node.classList = {
+      add(...tokens) {
+        const current = node.className ? node.className.split(/\s+/) : [];
+        tokens.forEach(function (token) {
+          if (current.indexOf(token) === -1) current.push(token);
+        });
+        node.className = current.join(' ');
+      },
+      remove(...tokens) {
+        node.className = node.className.split(/\s+/).filter(function (token) {
+          return tokens.indexOf(token) === -1;
+        }).join(' ');
+      },
+      contains(token) {
+        return node.className.split(/\s+/).indexOf(token) !== -1;
+      },
+      toggle(token, force) {
+        const shouldAdd = typeof force === 'boolean' ? force : !this.contains(token);
+        if (shouldAdd) this.add(token);
+        else this.remove(token);
+        return shouldAdd;
+      },
+    };
+    return node;
+  }
+
+  const documentStub = {
+    readyState: 'loading',
+    addEventListener() {},
+    createElement(tagName) {
+      return makeNode(tagName);
+    },
+    querySelector(selector) {
+      if (selector === '[data-dv-page-context]') return null;
+      if (selector === '#notes_row > .resizable-content-pane') return null;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === 'dt') return [];
+      if (selector.indexOf('a[href]') !== -1) return nodes;
+      return [];
+    },
+  };
+  const host = makeNode('section');
+  const sourceGroup = makeNode('div');
+  uris.forEach(function (uri) {
+    const anchor = makeNode('a');
+    anchor.href = uri;
+    sourceGroup.appendChild(anchor);
+    nodes.push(anchor);
+  });
+  host.appendChild(sourceGroup);
+  documentStub.sourceGroup = sourceGroup;
+  documentStub.host = host;
+  return documentStub;
 }
 
 test('detectSource normalizes bare Compass node URLs to direct manifest descriptors', function () {
@@ -361,6 +484,225 @@ test('mountDescriptor propagates static-image load failures for source fallback'
   await assert.rejects(mounting, /STATIC_IMAGE_FAILED/);
 });
 
+test('init reuses an unchanged source-group mount instead of duplicating it', async function () {
+  const documentStub = makeInitDocument();
+  const hooks = loadHooks({ document: documentStub });
+
+  hooks.init();
+  await Promise.resolve();
+  const firstContainer = documentStub.host.children[1];
+  firstContainer.querySelector('img').onload();
+  await Promise.resolve();
+
+  hooks.init();
+
+  assert.equal(documentStub.host.children.length, 2);
+  assert.equal(documentStub.host.children[1], firstContainer);
+});
+
+test('disposing a pending mount clears owned work and is idempotent', async function () {
+  const documentStub = makeInitDocument(['https://compass.fivecolleges.edu/system/files/page.tif']);
+  let viewer;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; }, setFullPage() {}, forceRedraw() {},
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      destroy() {
+        this.destroyed = true;
+        (handlers['before-destroy'] || []).forEach(handler => handler());
+      },
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ document: documentStub, OpenSeadragon: fakeOpenSeadragon });
+
+  hooks.init();
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  const state = documentStub.sourceGroup.__dvMountState;
+  assert.ok(state);
+  assert.equal(viewer.destroyed, undefined);
+
+  hooks.disposeMountState(state);
+  hooks.disposeMountState(state);
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  assert.equal(viewer.destroyed, true);
+  assert.equal(documentStub.host.children.length, 1);
+  assert.equal(documentStub.host.querySelector('.dv-loading-msg'), null);
+});
+
+test('init catches synchronous primary mount errors and falls back once', async function () {
+  const documentStub = makeInitDocument([
+    'https://compass.fivecolleges.edu/system/files/page.tif',
+    'https://example.org/fallback.jpg',
+  ]);
+  const hooks = loadHooks({
+    document: documentStub,
+    OpenSeadragon() {
+      throw new Error('constructor failure');
+    },
+  });
+
+  hooks.init();
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+
+  const container = documentStub.host.children[1];
+  assert.ok(container);
+  assert.equal(documentStub.host.children.length, 2);
+  assert.equal(container.querySelectorAll('img').length, 1);
+  container.querySelector('img').onload();
+  await Promise.resolve();
+  assert.equal(container.querySelector('.dv-error-msg'), null);
+});
+
+test('init times out a pending manifest fetch and mounts the next source once', async function () {
+  const documentStub = makeInitDocument([
+    'https://libtools2.smith.edu/manifests/pending.json',
+    'https://example.org/fallback.jpg',
+  ]);
+  let abortCount = 0;
+  const hooks = loadHooks({
+    document: documentStub,
+    config: { loadingTimeoutMs: 5 },
+    fetch(url, options) {
+      assert.match(url, /pending\.json$/);
+      return new Promise(function (resolve, reject) {
+        options.signal.addEventListener('abort', function () {
+          abortCount += 1;
+          reject(new Error('AbortError'));
+        });
+      });
+    },
+  });
+
+  hooks.init();
+  await new Promise(resolve => setTimeout(resolve, 15));
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+
+  const container = documentStub.host.children[1];
+  assert.equal(abortCount, 1);
+  assert.equal(documentStub.host.children.length, 2);
+  assert.equal(container.querySelectorAll('img').length, 1);
+  container.querySelector('img').onload();
+  await Promise.resolve();
+});
+
+test('init ignores a late manifest body after timed-out fallback', async function () {
+  const documentStub = makeInitDocument([
+    'https://libtools2.smith.edu/manifests/body-pending.json',
+    'https://example.org/fallback.jpg',
+  ]);
+  let bodyResolve;
+  let abortCount = 0;
+  const hooks = loadHooks({
+    document: documentStub,
+    config: { loadingTimeoutMs: 5 },
+    fetch(url, options) {
+      assert.match(url, /body-pending\.json$/);
+      options.signal.addEventListener('abort', function () {
+        abortCount += 1;
+      });
+      return Promise.resolve({
+        ok: true,
+        json() {
+          return new Promise(function (resolve) {
+            bodyResolve = resolve;
+          });
+        },
+      });
+    },
+  });
+
+  hooks.init();
+  await new Promise(resolve => setTimeout(resolve, 15));
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  const container = documentStub.host.children[1];
+
+  assert.equal(abortCount, 1);
+  assert.equal(container.querySelectorAll('img').length, 1);
+  container.querySelector('img').onload();
+  bodyResolve({ items: [] });
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+
+  assert.equal(documentStub.host.children.length, 2);
+  assert.equal(container.querySelector('.dv-error-msg'), null);
+});
+
+test('final pending manifest shows one loading note and accepts late OSD success', async function () {
+  const documentStub = makeInitDocument(['https://libtools2.smith.edu/manifests/final.json']);
+  let manifestResolve;
+  let viewer;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; }, setFullPage() {}, forceRedraw() {},
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({
+    document: documentStub,
+    config: { loadingTimeoutMs: 5 },
+    OpenSeadragon: fakeOpenSeadragon,
+    fetch() {
+      return new Promise(function (resolve) {
+        manifestResolve = resolve;
+      });
+    },
+  });
+
+  hooks.init();
+  await new Promise(resolve => setTimeout(resolve, 15));
+  const container = documentStub.host.children[1];
+  assert.equal(container.querySelectorAll('.dv-loading-msg').length, 1);
+
+  manifestResolve({
+    ok: true,
+    json() {
+      return Promise.resolve({
+        sequences: [{
+          canvases: [{
+            images: [{
+              resource: {
+                id: 'https://digital.smith.edu/images/page-1.jpg',
+                service: { id: 'https://digital.smith.edu/iiif/2/page-1' },
+              },
+            }],
+          }],
+        }],
+      });
+    },
+  });
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+  viewer.handlers.open.forEach(handler => handler());
+  viewer.handlers['tile-drawn'].forEach(handler => handler({ page: 0 }));
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+
+  assert.equal(container.querySelector('.dv-loading-msg'), null);
+  assert.equal(container.querySelector('.dv-error-msg'), null);
+});
+
 test('mountOsdViewer advances timed-out alternatives but retains a slow final viewer', async function () {
   const viewers = [];
   const fakeOpenSeadragon = (options) => {
@@ -461,6 +803,52 @@ test('tile-load-failed reports the unavailable page without replacing the active
 
   assert.equal(container.querySelector('.dv-tile-error-msg').textContent, 'This page is unavailable.');
   assert.equal(viewer.destroyed, undefined);
+});
+
+test('later page failures stay page-scoped and clear after recovery', async function () {
+  let viewer;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(container, [
+    { tileSource: 'page-1', imageUrl: 'https://example.org/page-1.jpg' },
+    { tileSource: 'page-2', imageUrl: 'https://example.org/page-2.jpg' },
+  ], { loadingTimeoutMs: 20 });
+
+  viewer.handlers.open.forEach(handler => handler());
+  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
+  viewer.handlers['open-failed'].forEach(handler => handler({ page: 1 }));
+  await mounting;
+
+  assert.equal(container.querySelector('.dv-tile-error-msg').textContent, 'This page is unavailable.');
+  viewer.handlers.page.forEach(handler => handler({ page: 0 }));
+  viewer.handlers['tile-drawn'].forEach(handler => handler({ page: 0 }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({ source: 'page-2' }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({ page: 1 }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
 });
 
 test('source failure diagnostics omit raw errors, URLs, and query strings', async function () {
@@ -571,6 +959,23 @@ test('toLocalCantaloupeInfoUrl decodes doubly-encoded Compass TIFF identifiers o
     hooks.toLocalCantaloupeInfoUrl('https://compass.fivecolleges.edu/cantaloupe/iiif/2/https%3A%2F%2Fcompass.fivecolleges.edu%2Fsystem%2Ffiles%2F2023-08%2Fsmith%253A1358443.tif'),
     'http://localhost:8080/iiif/2/2023-08%2Fsmith%3A1358443.tif/info.json'
   );
+});
+
+test('toLocalCantaloupeInfoUrl disables legacy key rewriting without a usable base', function () {
+  const serviceId = 'https://compass.fivecolleges.edu/cantaloupe/iiif/2/https%3A%2F%2Fcompass.fivecolleges.edu%2Fsystem%2Ffiles%2F2023-08%2Fsmith%253A1358443.tif';
+  const manifest = {
+    sequences: [{
+      canvases: [{
+        images: [{ resource: { service: { id: serviceId } } }],
+      }],
+    }],
+  };
+
+  ['', '  ', null, 'javascript:alert(1)'].forEach(function (baseUrl) {
+    const hooks = loadHooks({ config: { cantaloupeBaseUrl: baseUrl } });
+    assert.equal(hooks.toLocalCantaloupeInfoUrl(serviceId), '');
+    assert.deepEqual(normalize(hooks.extractCompassTileSources(manifest)), []);
+  });
 });
 
 test('getPreloadPageIndexes prioritizes the current page and nearby sequence pages', function () {

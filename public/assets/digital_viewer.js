@@ -29,10 +29,24 @@
     loadingTimeoutMs: 30000,
   }, window.DigitalViewer || {});
 
-  // Strip trailing slash from base URL
-  cfg.cantaloupeBaseUrl = typeof cfg.cantaloupeBaseUrl === 'string'
-    ? cfg.cantaloupeBaseUrl.replace(/\/$/, '')
-    : '';
+  function parseCantaloupeBase(baseUrl) {
+    var parsed;
+    var trimmed;
+
+    if (typeof baseUrl !== 'string') return '';
+    trimmed = baseUrl.trim();
+    if (!trimmed) return '';
+    if (/^\/(?!\/)/.test(trimmed)) return trimmed.replace(/\/$/, '');
+    try {
+      parsed = new URL(trimmed);
+    } catch (err) {
+      return '';
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return trimmed.replace(/\/$/, '');
+  }
+
+  cfg.cantaloupeBaseUrl = parseCantaloupeBase(cfg.cantaloupeBaseUrl);
 
   function parseCompassHost(baseUrl) {
     var parsed;
@@ -926,11 +940,14 @@
 
   function getContainerViewerOptions(container) {
     var mountOptions = container && container.__dvMountOptions || {};
+    var attempt = mountOptions.attempt;
 
     return {
       objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
       loadingTimeoutMs: mountOptions.loadingTimeoutMs,
       allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
+      attempt: attempt,
+      signal: attempt && attempt.controller ? attempt.controller.signal : undefined,
     };
   }
 
@@ -1282,6 +1299,9 @@
     var mountOptions = options || {};
     var tileTimerId = null;
     var firstTileDrawn = false;
+    var attempt = mountOptions.attempt;
+    var activePageIndex = 0;
+    var pageErrorMessage = null;
     container.innerHTML = '';
     container.classList.add('dv-active');
 
@@ -1308,24 +1328,29 @@
       gestureSettingsMouse: { scrollToZoom: true, dblClickToZoom: true },
       crossOriginPolicy: 'Anonymous',
     });
+    if (attempt) attempt.viewer = viewer;
 
     openPromise = new Promise(function (resolve, reject) {
       var settled = false;
-      var timeoutId = setTimeout(function () {
-        if (settled) return;
-        if (mountOptions.allowFallbackOnTimeout) {
-          settled = true;
-          disposeViewer(viewer);
-          reject(new Error('OSD_TIMEOUT'));
-        } else {
-          showLoadingNotice(container);
-        }
-      }, getLoadingTimeout(mountOptions));
+      var timeoutId = null;
+
+      if (!attempt) {
+        timeoutId = setTimeout(function () {
+          if (settled) return;
+          if (mountOptions.allowFallbackOnTimeout) {
+            settled = true;
+            disposeViewer(viewer);
+            reject(new Error('OSD_TIMEOUT'));
+          } else {
+            showLoadingNotice(container);
+          }
+        }, getLoadingTimeout(mountOptions));
+      }
 
       function settleOpen() {
         if (settled) return;
         settled = true;
-        clearTimeout(timeoutId);
+        if (timeoutId !== null) clearTimeout(timeoutId);
         clearLoadingNotice(container);
         resolve(viewer);
         if (!firstTileDrawn) {
@@ -1338,33 +1363,76 @@
       function settleOpenFailure(error) {
         if (settled) return;
         settled = true;
-        clearTimeout(timeoutId);
+        if (timeoutId !== null) clearTimeout(timeoutId);
         disposeViewer(viewer);
         reject(error || new Error('OSD_OPEN_FAILED'));
+      }
+
+      function eventPageIndex(data) {
+        var source = data && (data.source || data.tileSource);
+        var index;
+
+        if (data && typeof data.page === 'number') return data.page;
+        if (data && data.source && typeof data.source.index === 'number') return data.source.index;
+        if (data && data.item && typeof data.item.index === 'number') return data.item.index;
+        if (data && data.item && data.item.source && typeof data.item.source.index === 'number') {
+          return data.item.source.index;
+        }
+        if (source) {
+          index = osdTileSources.indexOf(source);
+          if (index !== -1) return index;
+        }
+        return activePageIndex;
+      }
+
+      function clearPageError(pageIndex) {
+        if (!pageErrorMessage || Number(pageErrorMessage.getAttribute('data-page-index')) !== pageIndex) return;
+        if (pageErrorMessage.parentNode) pageErrorMessage.parentNode.removeChild(pageErrorMessage);
+        pageErrorMessage = null;
+      }
+
+      function showPageError(data) {
+        var pageIndex = eventPageIndex(data);
+        var message;
+
+        if (pageIndex !== activePageIndex || pageErrorMessage) return;
+        message = document.createElement('p');
+        message.className = 'dv-tile-error-msg';
+        message.setAttribute('data-page-index', String(pageIndex));
+        message.textContent = 'This page is unavailable.';
+        container.appendChild(message);
+        pageErrorMessage = message;
       }
 
       viewer.addHandler('open', function () {
         settleOpen();
       });
-      viewer.addHandler('open-failed', function () {
-        settleOpenFailure(new Error('OSD_OPEN_FAILED'));
+      viewer.addHandler('open-failed', function (data) {
+        if (settled) showPageError(data);
+        else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
       });
-      viewer.addHandler('tile-drawn', function () {
+      viewer.addHandler('page', function (data) {
+        if (!data || typeof data.page !== 'number') return;
+        activePageIndex = data.page;
+        if (pageErrorMessage && pageErrorMessage.parentNode) {
+          pageErrorMessage.parentNode.removeChild(pageErrorMessage);
+        }
+        pageErrorMessage = null;
+      });
+      viewer.addHandler('tile-drawn', function (data) {
         firstTileDrawn = true;
         if (tileTimerId !== null) clearTimeout(tileTimerId);
         clearLoadingNotice(container);
+        clearPageError(eventPageIndex(data));
       });
-      viewer.addHandler('tile-load-failed', function () {
-        var message;
-
-        if (container.querySelector('.dv-tile-error-msg')) return;
-        message = document.createElement('p');
-        message.className = 'dv-tile-error-msg';
-        message.textContent = 'This page is unavailable.';
-        container.appendChild(message);
+      viewer.addHandler('tile-load-failed', function (data) {
+        showPageError(data);
       });
       viewer.addHandler('before-destroy', function () {
         if (tileTimerId !== null) clearTimeout(tileTimerId);
+      });
+      registerAttemptCleanup(attempt, function () {
+        settleOpenFailure(new Error('ATTEMPT_DISPOSED'));
       });
 
       try {
@@ -1445,6 +1513,7 @@
     if (filePos === -1) {
       return normalized + '/info.json';
     }
+    if (!cfg.cantaloupeBaseUrl) return '';
 
     var s3Key = decoded.slice(filePos + fileMarker.length);
     try {
@@ -1489,6 +1558,9 @@
       image.addEventListener('error', function () {
         finish(new Error('STATIC_IMAGE_FAILED'));
       });
+      registerAttemptCleanup(options && options.attempt, function () {
+        finish(new Error('ATTEMPT_DISPOSED'));
+      });
 
       if (image.complete) {
         if (typeof image.naturalWidth === 'number' && image.naturalWidth === 0) {
@@ -1527,6 +1599,73 @@
 
   function disposeViewer(viewer) {
     if (viewer && typeof viewer.destroy === 'function') viewer.destroy();
+  }
+
+  function isAttemptActive(attempt) {
+    return !attempt || attempt.active !== false;
+  }
+
+  function registerAttemptCleanup(attempt, cleanup) {
+    if (!attempt || typeof cleanup !== 'function') return;
+    attempt.cleanups.push(cleanup);
+  }
+
+  function disposeAttempt(attempt) {
+    var cleanups;
+
+    if (!attempt || attempt.disposed) return;
+    attempt.disposed = true;
+    attempt.active = false;
+    clearAttemptTimeout(attempt);
+    (attempt.timers || []).forEach(function (timerId) {
+      clearTimeout(timerId);
+    });
+    attempt.timers = [];
+    if (attempt.controller && typeof attempt.controller.abort === 'function') {
+      attempt.controller.abort();
+    }
+    if (attempt.viewer) disposeViewer(attempt.viewer);
+    cleanups = (attempt.cleanups || []).slice();
+    attempt.cleanups = [];
+    cleanups.forEach(function (cleanup) {
+      try {
+        cleanup();
+      } catch (err) {
+        // Cleanup must not interrupt replacement or teardown.
+      }
+    });
+  }
+
+  function clearAttemptTimeout(attempt) {
+    if (!attempt || attempt.timeoutId === null || typeof attempt.timeoutId === 'undefined') return;
+    clearTimeout(attempt.timeoutId);
+    attempt.timeoutId = null;
+  }
+
+  function scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback) {
+    attempt.timeoutId = setTimeout(function () {
+      if (!isAttemptActive(attempt) || attempt.completed || attempt.timedOut) return;
+      attempt.timeoutId = null;
+      attempt.timedOut = true;
+      if (allowFallback) {
+        disposeAttempt(attempt);
+        onFallback();
+      } else {
+        showLoadingNotice(container);
+      }
+    }, timeout);
+  }
+
+  function disposeMountState(state) {
+    if (!state || state.disposed) return;
+    state.disposed = true;
+    disposeAttempt(state.attempt);
+    if (state.container) {
+      state.container.__dvMountState = null;
+      if (state.container.parentNode && typeof state.container.parentNode.removeChild === 'function') {
+        state.container.parentNode.removeChild(state.container);
+      }
+    }
   }
 
   function mountStaticImage(container, descriptor) {
@@ -1633,14 +1772,17 @@
       return Promise.reject(new Error('PRESERVICA_UNAVAILABLE'));
     }
 
+    var mountOptions = getContainerViewerOptions(container);
     var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, '') + '/api/iiif/' + descriptor.uuid + '/manifest.json';
 
-    return fetch(manifestUrl)
+    return fetch(manifestUrl, { signal: mountOptions.signal })
       .then(function (res) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
       .then(function (manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         var content = extractManifestContent(manifest);
         var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
 
@@ -1662,13 +1804,14 @@
           var osdSources = content.images.map(function (img) {
             return { type: 'image', url: img.url };
           });
-          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, getContainerViewerOptions(container));
+          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
         }
         if (content.pdfs.length > 0) {
           mountPdfViewer(container, content.pdfs[0]);
         }
       })
       .catch(function (err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
         reportFailure(container, 'preservica', 'manifest-unavailable');
         throw err;
       });
@@ -1868,6 +2011,7 @@
    */
   function mountCompass(container, descriptor) {
     var compassBase = cfg.compassBaseUrl || ('https://' + cfg.compassHost);
+    var mountOptions = getContainerViewerOptions(container);
 
     // Use a server-side proxy when configured (required in browsers due to CORS
     // on the Islandora → Drupal redirect).  The proxy follows the redirect and
@@ -1875,20 +2019,24 @@
     var fetchManifest;
     if (cfg.compassProxyUrl) {
       fetchManifest = fetch(
-        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.compassUrl)
+        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.compassUrl),
+        { signal: mountOptions.signal }
       ).then(function (res) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
         return res.json();
       });
     } else {
       // Fallback: direct fetch (only works if Islandora endpoint allows CORS)
-      fetchManifest = fetch(descriptor.compassUrl, { redirect: 'follow' })
+      fetchManifest = fetch(descriptor.compassUrl, { redirect: 'follow', signal: mountOptions.signal })
         .then(function (res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
           var nodeMatch = res.url.match(/\/node\/(\d+)/);
           if (!nodeMatch) throw new Error('Could not resolve Compass node from: ' + res.url);
-          return fetch(compassBase + '/node/' + nodeMatch[1] + '/manifest');
+          return fetch(compassBase + '/node/' + nodeMatch[1] + '/manifest', { signal: mountOptions.signal });
         })
         .then(function (res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
           if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
           return res.json();
         });
@@ -1896,11 +2044,13 @@
 
     return fetchManifest
       .then(function (manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         var tileSources = extractCompassTileSources(manifest);
         if (tileSources.length === 0) throw new Error('No image services in manifest');
-        return mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
+        return mountOsdViewer(container, tileSources, mountOptions);
       })
       .catch(function (err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
         reportFailure(container, 'compass', 'content-unavailable');
         throw err;
       });
@@ -1908,19 +2058,23 @@
 
   function mountCompassManifest(container, descriptor) {
     var fetchManifest;
+    var mountOptions = getContainerViewerOptions(container);
     var isCompassManifest = new URL(descriptor.manifestUrl).hostname === cfg.compassHost;
 
     // The Compass resolver only accepts Compass URLs; hosted manifests load directly.
     if (cfg.compassProxyUrl && isCompassManifest) {
       fetchManifest = fetch(
-        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.manifestUrl)
+        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.manifestUrl),
+        { signal: mountOptions.signal }
       ).then(function (res) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
         return res.json();
       });
     } else {
-      fetchManifest = fetch(descriptor.manifestUrl)
+      fetchManifest = fetch(descriptor.manifestUrl, { signal: mountOptions.signal })
         .then(function (res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
           if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
           return res.json();
         });
@@ -1928,11 +2082,13 @@
 
     return fetchManifest
       .then(function (manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         var tileSources = extractCompassTileSources(manifest);
         if (tileSources.length === 0) throw new Error('No image services in manifest');
-        return mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
+        return mountOsdViewer(container, tileSources, mountOptions);
       })
       .catch(function (err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
         reportFailure(container, 'manifest', 'content-unavailable');
         throw err;
       });
@@ -2162,6 +2318,8 @@
       var chosen = null;
       var container;
       var insertAfter;
+      var signature;
+      var existingState;
       var idx;
 
       group.items.forEach(function (item) {
@@ -2182,6 +2340,16 @@
 
       if (!chosen) return;
 
+      signature = candidates.map(function (candidate) {
+        return candidate.item.uri;
+      }).join('\u0000');
+      existingState = group.root && group.root.__dvMountState;
+      if (existingState && !existingState.disposed && existingState.signature === signature &&
+          existingState.container && existingState.container.parentNode) {
+        return;
+      }
+      if (existingState) disposeMountState(existingState);
+
       container = document.createElement('div');
       container.className = 'digital-viewer-container';
       container.__dvDescriptorSelection = selection;
@@ -2189,6 +2357,14 @@
         loadingTimeoutMs: cfg.loadingTimeoutMs,
         allowFallbackOnTimeout: ranked.length > 1,
       };
+      container.__dvMountState = {
+        root: group.root,
+        container: container,
+        signature: signature,
+        attempt: null,
+        disposed: false,
+      };
+      if (group.root) group.root.__dvMountState = container.__dvMountState;
 
       if (viewerColumn) {
         // Two-column layout: append directly into the right column.
@@ -2204,9 +2380,44 @@
       }
 
       (function tryMount(rankIndex) {
+        var mountState = container.__dvMountState;
+        var attempt = {
+          active: true,
+          disposed: false,
+          viewer: null,
+          controller: typeof AbortController !== 'undefined' ? new AbortController() : null,
+          timers: [],
+          cleanups: [],
+          timeoutId: null,
+        };
+
+        if (!mountState || mountState.disposed) return;
+        if (mountState.attempt) disposeAttempt(mountState.attempt);
+        mountState.attempt = attempt;
+        container.__dvMountAttempt = attempt;
         container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
-        mountDescriptor(container, ranked[rankIndex].descriptor)
+        container.__dvMountOptions.attempt = attempt;
+        scheduleAttemptTimeout(
+          attempt,
+          container,
+          getLoadingTimeout(container.__dvMountOptions),
+          rankIndex + 1 < ranked.length,
+          function () {
+            if (!mountState.disposed) tryMount(rankIndex + 1);
+          }
+        );
+        Promise.resolve().then(function () {
+          if (!isAttemptActive(attempt)) return Promise.reject(new Error('ATTEMPT_DISPOSED'));
+          return mountDescriptor(container, ranked[rankIndex].descriptor);
+        })
+          .then(function () {
+            if (!isAttemptActive(attempt)) return;
+            attempt.completed = true;
+            clearAttemptTimeout(attempt);
+          })
           .catch(function () {
+            if (!isAttemptActive(attempt) || mountState.disposed) return;
+            disposeAttempt(attempt);
             if (rankIndex + 1 < ranked.length) {
               tryMount(rankIndex + 1);
             } else {
