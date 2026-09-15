@@ -74,14 +74,14 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-06 / M01-M18 local portion
 Status: IN PROGRESS
-Standalone commit: `b42ff31` (runtime candidate); evidence update pending
+Standalone commit: `8fb37647a87a34b18c8535dfe563fed4b0584088` (runtime candidate); evidence update pending
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN; candidate asset SHA-256 recorded below
 Environment / ASpace / browser / OS: macOS local workstation; Node 39-test DOM suite and Ruby/ERB parser checks completed; browser checks NOT RUN
 Fixture and approved scope: Converted image manifest pilot scope plus legacy-link fallback cases
 Commands or interaction steps: `node --test test/*.mjs`; `node --check public/assets/digital_viewer.js`; `ruby -c plugin_init.rb`; `ruby -c public/plugin_init.rb`; `erb -x -T - public/views/layout_head.html.erb | ruby -c`; `erb -x -T - public/views/shared/_digital.html.erb | ruby -c`; `docker image inspect archivesspace/archivesspace:4.2.0 --format '{{.Id}}'`; `docker compose ps archivesspace aspace-solr mariadb`; standalone/parent `diff -u` checks for runtime and test files
 Expected result: Parser and Node checks pass, ASpace 4.2.0 is pinned, candidate runtime bytes match between standalone and Docker mount, then actual PUI renders and browser matrix provide separate evidence.
-Observed result: 39 Node tests passed in both copies; JavaScript, Ruby and ERB checks passed; `git diff --check` passed; ASpace image ID is `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b`; Solr and MariaDB are up. ArchivesSpace remains stopped after an earlier start attempt was blocked by unrelated host port 8081 ownership. No Rails render or browser result is claimed. Candidate standalone hashes: `digital_viewer.js` `7f64faa6be158fefe64a231be16361cd52d127b4b9876708ebc76012dfc183c0`, `digital_viewer.css` `8fedfe4ca75936a1f53e0b5ab8f87e3a8b68d79d6f313bd9a45b0a0a8a905b28`, `layout_head.html.erb` `94c83f1841607aeaada3bb4be6a0ca63e52239ada4c1c9c518be7d13791c8ce9`, `_digital.html.erb` `7d6da1cf85f4971bf4a39bf7bf8fbdf85c30102629946ebeca719bbc8028d854`, `digital_viewer.test.mjs` `9025c38389d4e8b76cf4f446f413c3d3a06ab8ac7f5f202b7a42ef826f7f47f2`.
+Observed result: 39 Node tests passed in both copies; JavaScript, Ruby and ERB checks passed; `git diff --check` passed; ASpace image ID is `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b`; Solr and MariaDB are up. ArchivesSpace remains stopped after an earlier start attempt was blocked by unrelated host port 8081 ownership. No Rails render or browser result is claimed. Candidate standalone hashes: `digital_viewer.js` `f0a06151f01ed4caa745fe3e11da55e0b07f3eb1f04052db73f9d98973573215`, `digital_viewer.css` `8fedfe4ca75936a1f53e0b5ab8f87e3a8b68d79d6f313bd9a45b0a0a8a905b28`, `layout_head.html.erb` `94c83f1841607aeaada3bb4be6a0ca63e52239ada4c1c9c518be7d13791c8ce9`, `_digital.html.erb` `7d6da1cf85f4971bf4a39bf7bf8fbdf85c30102629946ebeca719bbc8028d854`, `digital_viewer.test.mjs` `60d608d6db36dddb75763aff785948d35339564d89318e38634dfeeae6297080`.
 Evidence artifact: standalone test output, candidate asset hashes, parent/standalone byte comparisons, Docker image/container inspection
 Remaining issue / owner: Move ASpace PUI to an available test port or release the unrelated listener without affecting that application; then start ASpace, render all current fixture mappings and exercise M01-M18 locally. Hosted browsers, real CORS/CSP, cold/cache timings and rollback remain pending. Owner: implementation agent with Rob/Lyrasis/ITS answers.
 Implementer / date: Codex / 2026-09-15
@@ -128,7 +128,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-05 / M14-M16
 Status: IN PROGRESS
-Standalone commit: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`
+Standalone commits: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`, `8fb37647a87a34b18c8535dfe563fed4b0584088`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN
 Environment / ASpace / browser / OS: Node DOM harness and Ruby/ERB parser checks on macOS; actual ArchivesSpace/PUI/browser checks NOT RUN
