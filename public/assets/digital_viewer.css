@@ -572,6 +572,13 @@
   text-align: center;
 }
 
+.digital-viewer-container .dv-loading-msg,
+.digital-viewer-container .dv-tile-error-msg {
+  color: #bbb;
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+}
+
 /* ── Multi-page navigation ──────────────────────────────────────────────── */
 .digital-viewer-container .dv-page-nav {
   display: flex;

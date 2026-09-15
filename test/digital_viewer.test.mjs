@@ -10,7 +10,7 @@ function loadHooks(options = {}) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const instrumented = source.replace(
     /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, makeElement: document.createElement };\n})();"
+    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, makeElement: document.createElement };\n})();"
   );
 
   function makeElement(tagName) {
@@ -31,6 +31,12 @@ function loadHooks(options = {}) {
       appendChild(child) {
         child.parentNode = this;
         this.children.push(child);
+        return child;
+      },
+      removeChild(child) {
+        const index = this.children.indexOf(child);
+        if (index !== -1) this.children.splice(index, 1);
+        child.parentNode = null;
         return child;
       },
       addEventListener(eventName, handler) {
@@ -150,11 +156,11 @@ function loadHooks(options = {}) {
       },
     },
     document: documentStub,
-    console,
+    console: options.console || console,
     fetch: options.fetch || function () {
       throw new Error('fetch should not be called in unit tests');
     },
-    OpenSeadragon() {
+    OpenSeadragon: options.OpenSeadragon || function () {
       throw new Error('OpenSeadragon should not be called in unit tests');
     },
     IntersectionObserver: options.IntersectionObserver,
@@ -162,6 +168,9 @@ function loadHooks(options = {}) {
     URL,
     Array,
     Object,
+    setTimeout,
+    clearTimeout,
+    isFinite,
     decodeURIComponent,
     encodeURIComponent,
   };
@@ -231,6 +240,189 @@ test('collectSourceAnchors includes direct representative and thumbnail links bu
   assert.ok(anchors.includes(external));
   assert.ok(anchors.includes(thumbnail));
   assert.ok(!anchors.includes(browse));
+});
+
+test('mountOsdViewer attaches open handlers before opening without a tileSources constructor option', async function () {
+  const calls = [];
+  let constructedOptions;
+  const fakeOpenSeadragon = (options) => {
+    constructedOptions = options;
+    return {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {},
+        goHome() {},
+        setRotation() {},
+        getRotation() { return 0; },
+        toggleFlip() {},
+        setFlip() {},
+        getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      addHandler(name) { calls.push(name); },
+      open(source) { calls.push(['open', source]); },
+    };
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+
+  const mounting = hooks.mountOsdViewer(
+    container,
+    'https://example.org/image/info.json',
+    { loadingTimeoutMs: 1, allowFallbackOnTimeout: true }
+  );
+
+  assert.equal(constructedOptions.tileSources, undefined);
+  assert.ok(calls.indexOf('open') !== -1);
+  assert.ok(calls.indexOf('open-failed') !== -1);
+  assert.ok(calls.indexOf('open') < calls.findIndex(call => Array.isArray(call) && call[0] === 'open'));
+  assert.deepEqual(calls.find(call => Array.isArray(call) && call[0] === 'open'), [
+    'open',
+    'https://example.org/image/info.json',
+  ]);
+  await assert.rejects(mounting, /OSD_TIMEOUT/);
+});
+
+test('mountStaticImage waits for image load before resolving and rejects on image error', async function () {
+  const hooks = loadHooks();
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountStaticImage(container, { imageUrl: 'https://example.org/image.jpg' });
+  const image = container.querySelector('img');
+
+  assert.equal(typeof mounting.then, 'function');
+  let settled = false;
+  mounting.then(() => { settled = true; });
+  await Promise.resolve();
+  assert.equal(settled, false);
+
+  image.onload();
+  await mounting;
+
+  const failedContainer = hooks.makeElement('div');
+  const failed = hooks.mountStaticImage(failedContainer, { imageUrl: 'https://example.org/broken.jpg' });
+  failedContainer.querySelector('img').onerror();
+  await assert.rejects(failed, /STATIC_IMAGE_FAILED/);
+});
+
+test('mountOsdViewer advances timed-out alternatives but retains a slow final viewer', async function () {
+  const viewers = [];
+  const fakeOpenSeadragon = (options) => {
+    const handlers = {};
+    const viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {},
+        goHome() {},
+        setRotation() {},
+        getRotation() { return 0; },
+        toggleFlip() {},
+        setFlip() {},
+        getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      destroy() { viewer.destroyed = true; },
+      handlers,
+      destroyed: false,
+    };
+    viewers.push(viewer);
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+
+  const finalAttempt = hooks.mountOsdViewer(
+    container,
+    'https://example.org/slow-final/info.json',
+    { loadingTimeoutMs: 1 }
+  );
+  await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(viewers[0].destroyed, false);
+  assert.equal(container.querySelector('.dv-loading-msg').textContent, 'Still loading');
+
+  viewers[0].handlers.open.forEach(handler => handler());
+  viewers[0].handlers['tile-drawn'].forEach(handler => handler());
+  await finalAttempt;
+  assert.equal(container.querySelector('.dv-loading-msg'), null);
+
+  const alternativeContainer = hooks.makeElement('div');
+  const alternativeAttempt = hooks.mountOsdViewer(
+    alternativeContainer,
+    'https://example.org/slow-alternative/info.json',
+    { loadingTimeoutMs: 1, allowFallbackOnTimeout: true }
+  );
+  await assert.rejects(alternativeAttempt, /OSD_TIMEOUT/);
+  assert.equal(viewers[1].destroyed, true);
+});
+
+test('tile-load-failed reports the unavailable page without replacing the active viewer', async function () {
+  let viewer;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {},
+        goHome() {},
+        setRotation() {},
+        getRotation() { return 0; },
+        toggleFlip() {},
+        setFlip() {},
+        getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(
+    container,
+    'https://example.org/page/info.json',
+    { loadingTimeoutMs: 20 }
+  );
+
+  viewer.handlers.open.forEach(handler => handler());
+  viewer.handlers['tile-drawn'].forEach(handler => handler());
+  await mounting;
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({}));
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({}));
+
+  assert.equal(container.querySelector('.dv-tile-error-msg').textContent, 'This page is unavailable.');
+  assert.equal(viewer.destroyed, undefined);
+});
+
+test('source failure diagnostics omit raw errors, URLs, and query strings', async function () {
+  const rawError = 'resolved https://example.org/manifest.json?token=secret-value';
+  const logs = [];
+  const hooks = loadHooks({
+    console: { warn(...args) { logs.push(args.join(' ')); } },
+    fetch() { return Promise.reject(new Error(rawError)); },
+  });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountCompassManifest(container, {
+    manifestUrl: 'https://example.org/manifest.json',
+  });
+
+  await assert.rejects(mounting);
+  assert.equal(container.querySelector('.dv-error-msg').textContent.includes(rawError), false);
+  assert.equal(logs.join(' ').includes(rawError), false);
 });
 
 test('detectSource detects workbench-lite manifest URLs', function () {

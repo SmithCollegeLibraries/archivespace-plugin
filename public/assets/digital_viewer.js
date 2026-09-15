@@ -25,6 +25,7 @@
     cantaloupeBaseUrl: '/iiif/2',
     compassHost: 'compass.fivecolleges.edu',
     preservicaApiBase: null,
+    loadingTimeoutMs: 30000,
   }, window.DigitalViewer || {});
 
   // Strip trailing slash from base URL
@@ -899,8 +900,12 @@
   }
 
   function getContainerViewerOptions(container) {
+    var mountOptions = container && container.__dvMountOptions || {};
+
     return {
       objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
+      loadingTimeoutMs: mountOptions.loadingTimeoutMs,
+      allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
     };
   }
 
@@ -1248,6 +1253,10 @@
    * tileSources can be a string/object (single image) or an array (multi-page sequence).
    */
   function mountOsdViewer(container, tileSources, options) {
+    var openPromise;
+    var mountOptions = options || {};
+    var tileTimerId = null;
+    var firstTileDrawn = false;
     container.innerHTML = '';
     container.classList.add('dv-active');
 
@@ -1263,7 +1272,6 @@
     /* global OpenSeadragon */
     var viewer = OpenSeadragon({
       element: osdEl,
-      tileSources: osdTileSources,
       sequenceMode: isSequence,
       initialPage: 0,
       showNavigationControl: false,
@@ -1274,6 +1282,71 @@
       animationTime: 0.3,
       gestureSettingsMouse: { scrollToZoom: true, dblClickToZoom: true },
       crossOriginPolicy: 'Anonymous',
+    });
+
+    openPromise = new Promise(function (resolve, reject) {
+      var settled = false;
+      var timeoutId = setTimeout(function () {
+        if (settled) return;
+        if (mountOptions.allowFallbackOnTimeout) {
+          settled = true;
+          disposeViewer(viewer);
+          reject(new Error('OSD_TIMEOUT'));
+        } else {
+          showLoadingNotice(container);
+        }
+      }, getLoadingTimeout(mountOptions));
+
+      function settleOpen() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        clearLoadingNotice(container);
+        resolve(viewer);
+        if (!firstTileDrawn) {
+          tileTimerId = setTimeout(function () {
+            if (!firstTileDrawn) showLoadingNotice(container);
+          }, getLoadingTimeout(mountOptions));
+        }
+      }
+
+      function settleOpenFailure(error) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        disposeViewer(viewer);
+        reject(error || new Error('OSD_OPEN_FAILED'));
+      }
+
+      viewer.addHandler('open', function () {
+        settleOpen();
+      });
+      viewer.addHandler('open-failed', function () {
+        settleOpenFailure(new Error('OSD_OPEN_FAILED'));
+      });
+      viewer.addHandler('tile-drawn', function () {
+        firstTileDrawn = true;
+        if (tileTimerId !== null) clearTimeout(tileTimerId);
+        clearLoadingNotice(container);
+      });
+      viewer.addHandler('tile-load-failed', function () {
+        var message;
+
+        if (container.querySelector('.dv-tile-error-msg')) return;
+        message = document.createElement('p');
+        message.className = 'dv-tile-error-msg';
+        message.textContent = 'This page is unavailable.';
+        container.appendChild(message);
+      });
+      viewer.addHandler('before-destroy', function () {
+        if (tileTimerId !== null) clearTimeout(tileTimerId);
+      });
+
+      try {
+        viewer.open(osdTileSources);
+      } catch (err) {
+        settleOpenFailure(err);
+      }
     });
 
     addControls(container, viewer);
@@ -1288,7 +1361,7 @@
     } else if (buildThumbnailUrl(tileSources)) {
       primeResourceUrl(buildThumbnailUrl(tileSources), false);
     }
-    return viewer;
+    return openPromise;
   }
 
   function showError(container, message) {
@@ -1300,6 +1373,26 @@
     paragraph.className = 'dv-error-msg';
     paragraph.textContent = message;
     container.appendChild(paragraph);
+  }
+
+  function reportFailure(container, stage, code) {
+    var stages = {
+      configuration: true,
+      preservica: true,
+      compass: true,
+      manifest: true,
+      viewer: true,
+    };
+    var codes = {
+      'preservica-unavailable': true,
+      'manifest-unavailable': true,
+      'content-unavailable': true,
+    };
+    var safeStage = stages[stage] ? stage : 'viewer';
+    var safeCode = codes[code] ? code : 'content-unavailable';
+
+    console.warn('[digital_viewer] stage=' + safeStage + ' code=' + safeCode);
+    showError(container, 'Digital content unavailable.');
   }
 
   function toLocalCantaloupeInfoUrl(serviceId) {
@@ -1340,17 +1433,75 @@
   // ── Cantaloupe mount ──────────────────────────────────────────────────────
 
   function mountCantaloupe(container, descriptor) {
-    // Verify info.json is reachable before mounting (gives a better error message)
-    return fetch(descriptor.infoUrl, { method: 'HEAD' })
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        mountOsdViewer(container, descriptor.infoUrl, getContainerViewerOptions(container));
-      })
-      .catch(function (err) {
-        console.warn('[digital_viewer] Cantaloupe probe failed:', err);
-        showError(container, 'Image not available (' + err.message + ')');
-        throw err;
+    return mountOsdViewer(container, descriptor.infoUrl, getContainerViewerOptions(container));
+  }
+
+  function waitForImageLoad(image, container, options) {
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var timeoutId = setTimeout(function () {
+        if (settled) return;
+        if (options && options.allowFallbackOnTimeout) {
+          finish(new Error('STATIC_IMAGE_TIMEOUT'));
+        } else {
+          showLoadingNotice(container);
+        }
+      }, getLoadingTimeout(options || {}));
+
+      function finish(error) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        if (!error) clearLoadingNotice(container);
+        if (error) {
+          reject(error);
+        } else {
+          resolve(image);
+        }
+      }
+
+      image.addEventListener('load', function () { finish(); });
+      image.addEventListener('error', function () {
+        finish(new Error('STATIC_IMAGE_FAILED'));
       });
+
+      if (image.complete) {
+        if (typeof image.naturalWidth === 'number' && image.naturalWidth === 0) {
+          finish(new Error('STATIC_IMAGE_FAILED'));
+        } else {
+          finish();
+        }
+      }
+    });
+  }
+
+  function getLoadingTimeout(options) {
+    var configured = options && options.loadingTimeoutMs;
+    var timeout = Number(configured);
+
+    if (typeof configured === 'undefined') timeout = 30000;
+    if (!isFinite(timeout) || timeout <= 0) return 30000;
+    return timeout;
+  }
+
+  function showLoadingNotice(container) {
+    var notice;
+
+    if (!container || container.querySelector('.dv-loading-msg')) return;
+    notice = document.createElement('p');
+    notice.className = 'dv-loading-msg';
+    notice.textContent = 'Still loading';
+    container.appendChild(notice);
+  }
+
+  function clearLoadingNotice(container) {
+    var notice = container && container.querySelector('.dv-loading-msg');
+
+    if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
+  }
+
+  function disposeViewer(viewer) {
+    if (viewer && typeof viewer.destroy === 'function') viewer.destroy();
   }
 
   function mountStaticImage(container, descriptor) {
@@ -1377,6 +1528,7 @@
     wrap.appendChild(image);
     container.appendChild(wrap);
     addViewerModeActions(container, null, [{ imageUrl: safeImageUrl, pageLabel: 'Image view' }], getContainerViewerOptions(container));
+    return waitForImageLoad(image, container, getContainerViewerOptions(container));
   }
 
   // ── Preservica mount ──────────────────────────────────────────────────────
@@ -1432,7 +1584,7 @@
           result.images.push({ url: url, format: body.format || 'image/jpeg' });
         }
       } catch (e) {
-        console.warn('[digital_viewer] Could not parse canvas:', canvas, e);
+        console.warn('[digital_viewer] stage=manifest code=invalid-canvas');
       }
     });
 
@@ -1452,8 +1604,8 @@
    */
   function mountPreservica(container, descriptor) {
     if (!cfg.preservicaApiBase) {
-      showError(container, 'Preservica viewer not configured (preservicaApiBase missing).');
-      return Promise.reject(new Error('Preservica viewer not configured (preservicaApiBase missing).'));
+      reportFailure(container, 'configuration', 'preservica-unavailable');
+      return Promise.reject(new Error('PRESERVICA_UNAVAILABLE'));
     }
 
     var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, '') + '/api/iiif/' + descriptor.uuid + '/manifest.json';
@@ -1485,15 +1637,14 @@
           var osdSources = content.images.map(function (img) {
             return { type: 'image', url: img.url };
           });
-          mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, getContainerViewerOptions(container));
+          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, getContainerViewerOptions(container));
         }
         if (content.pdfs.length > 0) {
           mountPdfViewer(container, content.pdfs[0]);
         }
       })
       .catch(function (err) {
-        console.warn('[digital_viewer] Preservica manifest fetch failed:', err);
-        showError(container, 'Preservica content not available (' + err.message + ')');
+        reportFailure(container, 'preservica', 'manifest-unavailable');
         throw err;
       });
   }
@@ -1720,11 +1871,10 @@
       .then(function (manifest) {
         var tileSources = extractCompassTileSources(manifest);
         if (tileSources.length === 0) throw new Error('No image services in manifest');
-        mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
+        return mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
       })
       .catch(function (err) {
-        console.warn('[digital_viewer] Compass viewer error:', err);
-        showError(container, 'Compass image not available (' + err.message + ')');
+        reportFailure(container, 'compass', 'content-unavailable');
         throw err;
       });
   }
@@ -1753,11 +1903,10 @@
       .then(function (manifest) {
         var tileSources = extractCompassTileSources(manifest);
         if (tileSources.length === 0) throw new Error('No image services in manifest');
-        mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
+        return mountOsdViewer(container, tileSources, getContainerViewerOptions(container));
       })
       .catch(function (err) {
-        console.warn('[digital_viewer] Compass manifest viewer error:', err);
-        showError(container, 'Compass image not available (' + err.message + ')');
+        reportFailure(container, 'manifest', 'content-unavailable');
         throw err;
       });
   }
@@ -1791,7 +1940,7 @@
       return mountPreservica(container, descriptor);
     }
 
-    return Promise.reject(new Error('Unsupported descriptor type: ' + descriptor.type));
+    return Promise.reject(new Error('UNSUPPORTED_DESCRIPTOR'));
   }
 
   // ── Page scan ─────────────────────────────────────────────────────────────
@@ -2010,6 +2159,10 @@
       container = document.createElement('div');
       container.className = 'digital-viewer-container';
       container.__dvDescriptorSelection = selection;
+      container.__dvMountOptions = {
+        loadingTimeoutMs: cfg.loadingTimeoutMs,
+        allowFallbackOnTimeout: ranked.length > 1,
+      };
 
       if (viewerColumn) {
         // Two-column layout: append directly into the right column.
@@ -2025,10 +2178,13 @@
       }
 
       (function tryMount(rankIndex) {
+        container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
         mountDescriptor(container, ranked[rankIndex].descriptor)
           .catch(function () {
             if (rankIndex + 1 < ranked.length) {
               tryMount(rankIndex + 1);
+            } else {
+              reportFailure(container, 'viewer', 'content-unavailable');
             }
           });
       })(0);
