@@ -740,7 +740,7 @@
     return toggle;
   }
 
-  function addControls(container, viewer) {
+  function addControls(container, viewer, options) {
     var bar = document.createElement('div');
     var state = {
       root: bar,
@@ -781,13 +781,16 @@
 
     if (viewer && typeof viewer.addHandler === 'function') {
       viewer.addHandler('animation', function () {
+        if (!isAttemptActive(options && options.attempt)) return;
         syncToolbarState(viewer, state);
       });
       viewer.addHandler('open', function () {
+        if (!isAttemptActive(options && options.attempt)) return;
         applyViewerImageAdjustments(viewer);
         syncToolbarState(viewer, state);
       });
       viewer.addHandler('full-page', function () {
+        if (!isAttemptActive(options && options.attempt)) return;
         syncToolbarState(viewer, state);
       });
     }
@@ -797,7 +800,7 @@
     container.appendChild(bar);
   }
 
-  function addPageNav(container, viewer, total) {
+  function addPageNav(container, viewer, total, options) {
     var nav = document.createElement('div');
     nav.className = 'dv-page-nav';
 
@@ -826,6 +829,7 @@
     container.appendChild(nav);
 
     viewer.addHandler('page', function (data) {
+      if (!isAttemptActive(options && options.attempt)) return;
       counter.textContent = (data.page + 1) + ' / ' + total;
       prevBtn.disabled = data.page === 0;
       nextBtn.disabled = data.page === total - 1;
@@ -1100,6 +1104,7 @@
 
     if (viewer && typeof viewer.addHandler === 'function') {
       viewer.addHandler('page', function (data) {
+        if (!isAttemptActive(options && options.attempt)) return;
         if (!data || typeof data.page !== 'number') return;
         state.activePageIndex = data.page;
         syncViewerModeActions(state);
@@ -1147,7 +1152,7 @@
       });
   }
 
-  function addThumbnailCarousel(container, viewer, tileSources) {
+  function addThumbnailCarousel(container, viewer, tileSources, options) {
     var carousel = document.createElement('div');
     var prevBtn = document.createElement('button');
     var nextBtn = document.createElement('button');
@@ -1281,6 +1286,7 @@
     updateArrowState();
 
     viewer.addHandler('page', function (data) {
+      if (!isAttemptActive(options && options.attempt)) return;
       updateActive(data.page);
     });
     viewer.addHandler('before-destroy', function () {
@@ -1405,13 +1411,16 @@
       }
 
       viewer.addHandler('open', function () {
+        if (!isAttemptActive(attempt)) return;
         settleOpen();
       });
       viewer.addHandler('open-failed', function (data) {
+        if (!isAttemptActive(attempt)) return;
         if (settled) showPageError(data);
         else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
       });
       viewer.addHandler('page', function (data) {
+        if (!isAttemptActive(attempt)) return;
         if (!data || typeof data.page !== 'number') return;
         activePageIndex = data.page;
         if (pageErrorMessage && pageErrorMessage.parentNode) {
@@ -1420,12 +1429,14 @@
         pageErrorMessage = null;
       });
       viewer.addHandler('tile-drawn', function (data) {
+        if (!isAttemptActive(attempt)) return;
         firstTileDrawn = true;
         if (tileTimerId !== null) clearTimeout(tileTimerId);
         clearLoadingNotice(container);
         clearPageError(eventPageIndex(data));
       });
       viewer.addHandler('tile-load-failed', function (data) {
+        if (!isAttemptActive(attempt)) return;
         showPageError(data);
       });
       viewer.addHandler('before-destroy', function () {
@@ -1442,13 +1453,14 @@
       }
     });
 
-    addControls(container, viewer);
-    addViewerModeActions(container, viewer, tileSources, options || {});
+    addControls(container, viewer, mountOptions);
+    addViewerModeActions(container, viewer, tileSources, mountOptions);
     if (isSequence) {
-      addPageNav(container, viewer, tileSources.length);
-      addThumbnailCarousel(container, viewer, tileSources);
+      addPageNav(container, viewer, tileSources.length, mountOptions);
+      addThumbnailCarousel(container, viewer, tileSources, mountOptions);
       warmSequenceCache(tileSources, 0);
       viewer.addHandler('page', function (data) {
+        if (!isAttemptActive(attempt)) return;
         warmSequenceCache(tileSources, data.page);
       });
     } else if (buildThumbnailUrl(tileSources)) {
