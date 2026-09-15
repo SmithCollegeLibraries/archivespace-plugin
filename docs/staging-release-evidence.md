@@ -2,7 +2,7 @@
 
 Date started: 2026-09-15  
 Release scope: ArchivesSpace PUI plugin `digital_viewer`, targeting ArchivesSpace 4.2.0  
-Current branch: `codex/lyr-01-baseline` (task-boundary commits through LYR-05)
+Current branch: `codex/lyr-05-config-assets`
 
 This file records implementation evidence for the Lyrasis staging launch task list. It does not grant Gate A or Gate B approval.
 
@@ -74,7 +74,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-06 / M01-M18 local portion
 Status: IN PROGRESS
-Standalone commit: `8fb37647a87a34b18c8535dfe563fed4b0584088` (runtime candidate); evidence update pending
+Standalone commit: `8fb37647a87a34b18c8535dfe563fed4b0584088` (runtime candidate); evidence recorded in `0a0de32f7195d91678961b43100f38f639ff183f`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN; candidate asset SHA-256 recorded below
 Environment / ASpace / browser / OS: macOS local workstation; Node 39-test DOM suite and Ruby/ERB parser checks completed; browser checks NOT RUN
