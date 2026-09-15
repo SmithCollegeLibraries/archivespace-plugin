@@ -214,6 +214,18 @@ test('detectSource requires strict configured Compass host equality', function (
     unconfiguredHooks.detectSource('https://example.org/system/files/page.tif'),
     null
   );
+
+  const noCantaloupeHooks = loadHooks({
+    config: {
+      cantaloupeBaseUrl: '',
+      compassBaseUrl: 'https://compass.fivecolleges.edu',
+    },
+  });
+
+  assert.equal(
+    noCantaloupeHooks.detectSource('https://compass.fivecolleges.edu/system/files/page.tif'),
+    null
+  );
 });
 
 test('parseCompassHost accepts only HTTP(S) hostnames and normalizes them', function () {

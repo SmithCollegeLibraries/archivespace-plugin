@@ -120,7 +120,7 @@
     }
 
     // Compass S3 TIFF — strip host + /system/files/ to get the S3 path key
-    if (isCompassHost && normalizedUri.indexOf('/system/files/') !== -1) {
+    if (isCompassHost && cfg.cantaloupeBaseUrl && normalizedUri.indexOf('/system/files/') !== -1) {
       var marker = '/system/files/';
       var pos = normalizedUri.indexOf(marker);
       if (pos !== -1) {
@@ -1840,8 +1840,10 @@
       if (svc) {
         var serviceId = (svc['@id'] || svc.id || '').replace(/\/$/, '');
         if (serviceId) {
+          var tileSource = toLocalCantaloupeInfoUrl(serviceId);
+          if (!tileSource) return;
           tileSources.push({
-            tileSource: toLocalCantaloupeInfoUrl(serviceId),
+            tileSource: tileSource,
             thumbnailUrl: thumbnailUrl || '',
             pageIndex: index,
             pageLabel: canvas.label || '',
