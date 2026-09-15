@@ -4,6 +4,7 @@
   window.DigitalViewer is read by digital_viewer.js at init time.
 %>
 <%
+  require_relative 'digital_viewer_asset_version'
   digital_viewer_env = lambda do |name|
     ENV.key?(name) ? ENV[name].to_s : ''
   end
@@ -11,11 +12,7 @@
   digital_viewer_compass_base_url = digital_viewer_env.call('COMPASS_BASE_URL')
   digital_viewer_compass_host_match = digital_viewer_compass_base_url.match(/\Ahttps?:\/\/([A-Za-z0-9.-]+)/i)
   digital_viewer_compass_host = digital_viewer_compass_host_match ? digital_viewer_compass_host_match[1].downcase : ''
-  digital_viewer_asset_version = [
-    File.mtime(File.expand_path('../assets/digital_viewer.js', __dir__)).to_i,
-    File.mtime(File.expand_path('../assets/digital_viewer.css', __dir__)).to_i,
-    File.mtime(File.expand_path('../assets/openseadragon.min.js', __dir__)).to_i
-  ].max
+  digital_viewer_asset_version = DigitalViewerAssetVersion.for_plugin_root(File.expand_path('../..', __dir__))
   digital_viewer_asset_path = lambda do |filename|
     path = "/assets/#{filename}"
     respond_to?(:app_prefix) ? app_prefix(path) : path
