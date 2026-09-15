@@ -10,7 +10,7 @@ function loadHooks(options = {}) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const instrumented = source.replace(
     /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, makeElement: document.createElement };\n})();"
+    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, makeElement: document.createElement };\n})();"
   );
 
   function makeElement(tagName) {
@@ -205,6 +205,32 @@ test('classifyPageContext enhances only an explicit leaf Digital Object page', f
     hooks.classifyPageContext({ recordType: 'DigitalObject', hasChildren: false, paneExists: false }),
     'inline-fallback'
   );
+});
+
+test('collectSourceAnchors includes direct representative and thumbnail links but excludes figcaption browse links', function () {
+  const hooks = loadHooks();
+  const representative = { href: 'https://example.org/representative.jpg' };
+  const external = { href: 'https://example.org/object.json' };
+  const thumbnail = { href: 'https://example.org/thumb.jpg' };
+  const browse = { href: '/repositories/2/resources/1/digitized' };
+  const root = {
+    querySelectorAll(selector) {
+      return {
+        '[data-rep-file-version-wrapper] > a[href]': [representative],
+        '.available-digital-objects a.external-digital-object__link[href]': [external],
+        '.available-digital-objects a.thumbnail[href]': [thumbnail],
+        '[data-rep-file-version-wrapper] figcaption a[href]': [browse],
+      }[selector] || [];
+    },
+  };
+
+  const anchors = hooks.collectSourceAnchors(root);
+
+  assert.equal(anchors.length, 3);
+  assert.ok(anchors.includes(representative));
+  assert.ok(anchors.includes(external));
+  assert.ok(anchors.includes(thumbnail));
+  assert.ok(!anchors.includes(browse));
 });
 
 test('detectSource detects workbench-lite manifest URLs', function () {

@@ -49,6 +49,7 @@
   };
   var warmedResourceUrls = {};
   var viewerControlInstanceCount = 0;
+  var sourceGroupCount = 0;
 
   function sanitizeUrl(url) {
     var trimmed = typeof url === 'string' ? url.trim() : '';
@@ -1804,44 +1805,52 @@
    *   2. <dt>File URI</dt><dd><a href="..."> (some themes / archival object pages)
    *   3. data-file-uri attribute (theme / future template overrides)
    */
+  function collectSourceAnchors(root) {
+    var selectors = [
+      '[data-additional-file-version] a[href]',
+      '.available-digital-objects a.external-digital-object__link[href]',
+      '.available-digital-objects a.thumbnail[href]',
+      '[data-rep-file-version-wrapper] > a[href]',
+      '[data-file-uri]'
+    ];
+    var results = [];
+    var seen = [];
+
+    if (!root || typeof root.querySelectorAll !== 'function') return results;
+
+    selectors.forEach(function (selector) {
+      var elements = root.querySelectorAll(selector);
+      for (var i = 0; i < elements.length; i += 1) {
+        if (seen.indexOf(elements[i]) === -1) {
+          seen.push(elements[i]);
+          results.push(elements[i]);
+        }
+      }
+    });
+
+    return results;
+  }
+
   function collectFileUris() {
     var results = [];
-    var seen = {};
+    var anchors = collectSourceAnchors(document);
 
-    function addUri(uri, anchor) {
-      if (uri && !seen[uri]) {
-        seen[uri] = true;
-        results.push({ uri: uri, anchor: anchor });
-      }
-    }
-
-    // data-file-uri attribute (theme / future template overrides)
-    var attrEls = document.querySelectorAll('[data-file-uri]');
-    for (var i = 0; i < attrEls.length; i++) {
-      addUri(attrEls[i].dataset.fileUri, attrEls[i]);
-    }
-
-    // ASpace default PUI digital object page: .available-digital-objects a[href]
-    var extLinks = document.querySelectorAll('.available-digital-objects a.external-digital-object__link[href]');
-    for (var k = 0; k < extLinks.length; k++) {
-      addUri(extLinks[k].href, extLinks[k]);
-    }
-
-    // ASpace digital object record page: [data-additional-file-version] a[href]
-    var fvLinks = document.querySelectorAll('[data-additional-file-version] a[href]');
-    for (var f = 0; f < fvLinks.length; f++) {
-      addUri(fvLinks[f].href, fvLinks[f]);
-    }
+    anchors.forEach(function (anchor) {
+      var uri = anchor.dataset && anchor.dataset.fileUri
+        ? anchor.dataset.fileUri
+        : anchor.href;
+      if (uri) results.push({ uri: uri, anchor: anchor });
+    });
 
     // ASpace archival object page / some themes: <dt>File URI</dt><dd><a href="...">
     var dts = document.querySelectorAll('dt');
-    for (var j = 0; j < dts.length; j++) {
+    for (var j = 0; j < dts.length; j += 1) {
       if (/file\s+uri/i.test(dts[j].textContent)) {
         var dd = dts[j].nextElementSibling;
         if (dd) {
           var a = dd.querySelector('a');
           var uri = a ? a.href : dd.textContent.trim();
-          addUri(uri, dd);
+          if (uri) results.push({ uri: uri, anchor: a || dd });
         }
       }
     }
@@ -1850,10 +1859,28 @@
   }
 
   function findGroupRoot(anchor) {
-    if (anchor.closest) {
-      return anchor.closest('#notes_row, .record-pane, .digital-object, .instance') || anchor.parentNode;
+    var root;
+    var pageContext = getPageContext();
+
+    if (pageContext.recordType === 'DigitalObject' && pageContext.hasChildren === false && pageContext.paneExists) {
+      root = document.querySelector('#notes_row > .resizable-content-pane');
     }
-    return anchor.parentNode;
+
+    if (!root && anchor.closest) {
+      root = anchor.closest(
+        '[data-dv-source-group], [data-additional-file-version], ' +
+        '[data-rep-file-version-wrapper], .objectimage, .record-pane, .digital-object, .instance'
+      ) || anchor.parentNode;
+    } else if (!root) {
+      root = anchor.parentNode;
+    }
+
+    if (root && root.setAttribute && !root.getAttribute('data-dv-source-group')) {
+      sourceGroupCount += 1;
+      root.setAttribute('data-dv-source-group', 'render-' + sourceGroupCount);
+    }
+
+    return root;
   }
 
   function findInsertAfter(anchor) {
@@ -1948,7 +1975,9 @@
         groups.push(group);
       }
 
-      group.items.push(item);
+      if (!group.items.some(function (existing) { return existing.uri === item.uri; })) {
+        group.items.push(item);
+      }
     });
 
     groups.forEach(function (group) {
