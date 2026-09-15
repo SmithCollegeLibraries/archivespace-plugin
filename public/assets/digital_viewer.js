@@ -1873,6 +1873,47 @@
       : null) || anchor.parentNode;
   }
 
+  function classifyPageContext(context) {
+    if (!context || !context.paneExists) return 'inline-fallback';
+    if (context.recordType === 'DigitalObject' && context.hasChildren === false) {
+      return 'leaf-digital-object';
+    }
+    return 'stock';
+  }
+
+  function getPageContext() {
+    var context = document.querySelector('[data-dv-page-context]');
+    var dataset = context && context.dataset ? context.dataset : {};
+
+    return {
+      recordType: dataset.recordType || '',
+      hasChildren: dataset.hasChildren === 'true',
+      paneExists: !!document.querySelector('#notes_row > .resizable-content-pane'),
+    };
+  }
+
+  function prepareLeafLayout() {
+    var pane = document.querySelector('#notes_row > .resizable-content-pane');
+    var metadataColumn;
+    var viewerColumn;
+
+    if (!pane || !pane.children || pane.querySelector('#dv-viewer-column')) return null;
+
+    metadataColumn = document.createElement('div');
+    metadataColumn.className = 'dv-metadata-column';
+    viewerColumn = document.createElement('div');
+    viewerColumn.id = 'dv-viewer-column';
+    viewerColumn.className = 'dv-viewer-column';
+
+    while (pane.firstChild) {
+      metadataColumn.appendChild(pane.firstChild);
+    }
+    pane.appendChild(metadataColumn);
+    pane.appendChild(viewerColumn);
+    pane.classList.add('dv-enhanced-pane');
+    return viewerColumn;
+  }
+
   // ── Initialization ────────────────────────────────────────────────────────
 
   function init() {
@@ -1884,8 +1925,9 @@
     var fileUris = collectFileUris();
     if (fileUris.length === 0) return;
 
-    // If the two-column layout is present, render all viewers into the right column.
-    var viewerColumn = document.getElementById('dv-viewer-column');
+    var pageContext = getPageContext();
+    var pageLayout = classifyPageContext(pageContext);
+    var viewerColumn = null;
 
     var groups = [];
 
@@ -1925,6 +1967,10 @@
       });
 
       if (candidates.length === 0) return;
+
+      if (!viewerColumn && pageLayout === 'leaf-digital-object') {
+        viewerColumn = prepareLeafLayout();
+      }
 
       selection = buildDescriptorSelection(candidates);
       ranked = selection.rankedCandidates;

@@ -1,24 +1,28 @@
-<%#
-  digital_viewer plugin — override of shared/_digital.html.erb
-  Suppresses the representative thumbnail and objectimage divs entirely —
-  the inline IIIF viewer replaces them.
-  For archival object pages (dig_objs loop), the external links are kept as
-  hidden anchors so digital_viewer.js can still detect the file URI.
-%>
+<%# The viewer reads this escaped, explicit page context before enhancing stock markup. %>
+<% dv_record = local_assigns[:record] %>
+<% dv_record_type = dv_record ? dv_record.class.name.to_s.split('::').last : '' %>
+<% dv_has_children = local_assigns.key?(:has_children) ? local_assigns[:has_children] : (defined?(@has_children) && @has_children) %>
+<div
+  class="dv-page-context"
+  data-dv-page-context="true"
+  data-record-type="<%= ERB::Util.html_escape(dv_record_type) %>"
+  data-has-children="<%= dv_has_children ? 'true' : 'false' %>"
+  aria-hidden="true"
+></div>
+
 <% if local_assigns[:dig_objs] && dig_objs.present? %>
 <div class="available-digital-objects">
   <% dig_objs.each do |d_file| %>
     <% if !d_file['out'].blank? %>
-      <%# Hidden anchor — preserves JS detection of file URI without showing thumbnail UI %>
       <a
         class="external-digital-object__link record-type-badge digital_object"
         href="<%= d_file['out'] %>"
-        style="display:none"
         target="new"
         title="<%= t('digital_object._public.link') %>"
-      ></a>
+      >
+        <%= t('digital_object._public.link') %>
+      </a>
     <% end %>
   <% end %>
 </div>
 <% end %>
-<%# representative_file_version thumbnail intentionally suppressed — IIIF viewer renders inline %>

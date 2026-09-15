@@ -1,5 +1,38 @@
 /* digital_viewer — ArchivesSpace PUI plugin styles */
 
+.dv-page-context {
+  display: none;
+}
+
+#notes_row > .resizable-content-pane.dv-enhanced-pane {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+#notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-metadata-column,
+#notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-viewer-column {
+  min-width: 0;
+}
+
+#notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-metadata-column {
+  flex: 7 1 0;
+}
+
+#notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-viewer-column {
+  flex: 5 1 0;
+}
+
+@media (max-width: 767px) {
+  #notes_row > .resizable-content-pane.dv-enhanced-pane {
+    display: block;
+  }
+
+  #notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-viewer-column {
+    margin-top: 1.5rem;
+  }
+}
+
 /* ── Two-column layout — viewer right column ────────────────────────────── */
 #dv-viewer-column {
   padding-top: 4px;

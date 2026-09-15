@@ -10,7 +10,7 @@ function loadHooks(options = {}) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const instrumented = source.replace(
     /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, makeElement: document.createElement };\n})();"
+    "window.__digitalViewerTestHooks = { detectSource: detectSource, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, makeElement: document.createElement };\n})();"
   );
 
   function makeElement(tagName) {
@@ -183,6 +183,27 @@ test('detectSource normalizes bare Compass node URLs to direct manifest descript
       type: 'compass-manifest',
       manifestUrl: 'https://compass.fivecolleges.edu/node/1353469/manifest',
     }
+  );
+});
+
+test('classifyPageContext enhances only an explicit leaf Digital Object page', function () {
+  const hooks = loadHooks();
+
+  assert.equal(
+    hooks.classifyPageContext({ recordType: 'DigitalObject', hasChildren: false, paneExists: true }),
+    'leaf-digital-object'
+  );
+  assert.equal(
+    hooks.classifyPageContext({ recordType: 'DigitalObject', hasChildren: true, paneExists: true }),
+    'stock'
+  );
+  assert.equal(
+    hooks.classifyPageContext({ recordType: 'ArchivalObject', hasChildren: false, paneExists: true }),
+    'stock'
+  );
+  assert.equal(
+    hooks.classifyPageContext({ recordType: 'DigitalObject', hasChildren: false, paneExists: false }),
+    'inline-fallback'
   );
 });
 
