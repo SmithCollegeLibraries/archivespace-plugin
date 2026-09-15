@@ -10,7 +10,7 @@ This file records implementation evidence for the Lyrasis staging launch task li
 
 Task / matrix ID: LYR-01  
 Status: IN PROGRESS  
-Standalone commit: pending  
+Standalone commit: `9bba4a545921cbfa9e9747e4ebd9c884988204af`  
 Parent mirror commit: NOT APPLICABLE for documentation-only baseline  
 Archive / SHA-256: NOT RUN  
 Environment / ASpace / browser / OS: macOS local workstation; ArchivesSpace 4.2.0 image present; browser checks NOT RUN  
@@ -56,8 +56,8 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-02  
 Status: IN PROGRESS  
-Standalone commit: pending  
-Parent mirror commit: pending  
+Standalone commit: `a0faac7576099efc16aa3e5f0e4140d51d528818`  
+Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace  
 Archive / SHA-256: NOT RUN  
 Environment / ASpace / browser / OS: Node DOM harness on macOS; actual ArchivesSpace/PUI/browser checks NOT RUN  
 Fixture and approved scope: Page classification contract; converted image pilot scope  
