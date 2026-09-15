@@ -4,6 +4,8 @@ ArchivesSpace Public User Interface plugin for IIIF image viewing with OpenSeadr
 
 Status: development pilot; tested locally with ArchivesSpace 4.2.0. Not yet approved for Lyrasis production. Current evidence and next tasks: `docs/plugin-pilot-checkpoint-2026-09-10.md` included in this repository.
 
+The current staging launch inventory and evidence record are `docs/fixture-ledger.md` and `docs/staging-release-evidence.md`.
+
 ## Install on a test instance
 
 1. Clone https://github.com/SmithCollegeLibraries/archivespace-plugin.git into `plugins/digital_viewer` in the ArchivesSpace installation. The on-disk directory name must be `digital_viewer`.
