@@ -42,7 +42,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Status: IN PROGRESS; all six correction regression groups pass locally, while hosted and full fixture acceptance remain open.
 
-Correction commits: lifecycle/source corrections `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, stale-callback guards `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, renderer/page/layout corrections `cf351ef`, sequence ownership and fallback corrections `271b3069f8fbd0be74f259289d0846052da13db0`, rapid-navigation ownership correction `d4d46e6c5ef3be6e05339a041f8e4af50ebc73e5`; content-hashed asset version `8f980cebe08468b6fd79b34941b833bdd93ee54d`; documentation/evidence updates follow in later commits.
+Correction commits: lifecycle/source corrections `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, stale-callback guards `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, renderer/page/layout corrections `cf351ef`, sequence ownership and fallback corrections `271b3069f8fbd0be74f259289d0846052da13db0`, rapid-navigation ownership correction `d4d46e62062ce5d78cc88d0d05d1face03f4cf1b`; content-hashed asset version `8f980cebe08468b6fd79b34941b833bdd93ee54d`; documentation/evidence updates follow in later commits.
 
 | Correction | Observed local evidence | Remaining gap |
 |---|---|---|
@@ -95,7 +95,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-06 / M01-M18 local portion
 Status: IN PROGRESS
-Standalone commits: `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `8f980cebe08468b6fd79b34941b833bdd93ee54d`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e6c5ef3be6e05339a041f8e4af50ebc73e5` (runtime corrections); evidence recorded in `0a0de32f7195d91678961b43100f38f639ff183f`
+Standalone commits: `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `8f980cebe08468b6fd79b34941b833bdd93ee54d`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e62062ce5d78cc88d0d05d1face03f4cf1b` (runtime corrections); evidence recorded in `0a0de32f7195d91678961b43100f38f639ff183f`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN; candidate asset SHA-256 recorded below
 Environment / ASpace / browser / OS: macOS local workstation; Node 52-test DOM suite, Ruby asset-version test and Ruby/ERB parser checks completed; browser checks NOT RUN
@@ -113,7 +113,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-04  
 Status: IN PROGRESS  
-Standalone commits: `a96eaafdd6694affb302a5096069a0a0d63ea21f`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e6c5ef3be6e05339a041f8e4af50ebc73e5`
+Standalone commits: `a96eaafdd6694affb302a5096069a0a0d63ea21f`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e62062ce5d78cc88d0d05d1face03f4cf1b`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace  
 Archive / SHA-256: NOT RUN  
 Environment / ASpace / browser / OS: Node event/DOM harness on macOS; actual ArchivesSpace/PUI/browser checks NOT RUN  
@@ -149,7 +149,7 @@ Rob approver / date / decision / accepted scope: Pending
 
 Task / matrix ID: LYR-05 / M14-M16
 Status: IN PROGRESS
-Standalone commits: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`, `8fb37647a87a34b18c8535dfe563fed4b0584088`, `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e6c5ef3be6e05339a041f8e4af50ebc73e5`
+Standalone commits: `b42ff314f5dc0c7c1a2956f2010ad5b54bfaf522`, `8fb37647a87a34b18c8535dfe563fed4b0584088`, `cb1df3cf46cfe463b23fa782544a07d0c46f9421`, `9fb1e955bec60e75be18bfab9bc8a1f481a1a719`, `271b3069f8fbd0be74f259289d0846052da13db0`, `d4d46e62062ce5d78cc88d0d05d1face03f4cf1b`
 Parent mirror commit: uncommitted; parent `.git` index is read-only in this workspace
 Archive / SHA-256: NOT RUN
 Environment / ASpace / browser / OS: Node DOM harness and Ruby/ERB parser checks on macOS; actual ArchivesSpace/PUI/browser checks NOT RUN
