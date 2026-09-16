@@ -622,6 +622,62 @@ test('init reuses an unchanged source-group mount instead of duplicating it', as
   assert.equal(documentStub.host.children[1], firstContainer);
 });
 
+for (const anchorClass of ['external-digital-object__link', 'thumbnail']) {
+  test('inline ' + anchorClass + ' viewers follow their own source blocks in record order', async function () {
+    const documentStub = makeInitDocument(['https://example.org/shared.jpg', 'https://example.org/shared.jpg']);
+    const available = documentStub.sourceGroup;
+    available.className = 'available-digital-objects';
+    const anchors = available.children.slice();
+    const groups = anchors.map(function (anchor, index) {
+      const group = documentStub.createElement('div');
+      group.className = 'objectimage';
+      group.setAttribute('data-dv-source-group', 'digital-' + index);
+      available.appendChild(group);
+      const content = documentStub.createElement('div');
+      content.className = 'panel';
+      group.appendChild(content);
+      content.appendChild(anchor);
+      anchor.className = anchorClass;
+      anchor.closest = function (selector) {
+        let node = this;
+        while (node) {
+          if (selector.split(',').some(function (part) {
+            const token = part.trim();
+            return token === '[data-dv-source-group]'
+              ? !!node.getAttribute('data-dv-source-group')
+              : token.startsWith('.') && node.classList.contains(token.slice(1));
+          })) return node;
+          node = node.parentNode;
+        }
+        return null;
+      };
+      return group;
+    });
+    const hooks = loadHooks({ document: documentStub });
+    hooks.init();
+    await Promise.resolve();
+    const containers = groups.map(group => group.__dvMountState.container);
+    try {
+      containers.forEach(container => container.querySelector('img').onload());
+      await Promise.resolve();
+      assert.equal(available.children.length, 4);
+      groups.forEach(function (group, index) {
+        assert.equal(available.children[index * 2], group);
+        assert.equal(group.nextSibling, containers[index]);
+        assert.equal(containers[index].__dvMountState.root, group);
+        assert.equal(anchors[index].parentNode.parentNode, group);
+      });
+      hooks.init();
+      assert.equal(available.children.length, 4, 'reinitialization must not duplicate viewers');
+      hooks.disposeMountState(groups[0].__dvMountState);
+      assert.equal(groups[1].nextSibling, containers[1], 'teardown must preserve the other object');
+      assert.equal(available.children[0], groups[0], 'original source remains available');
+    } finally {
+      groups.forEach(group => hooks.disposeMountState(group.__dvMountState));
+    }
+  });
+}
+
 test('init removes an obsolete mount when the replacement source is unsupported', async function () {
   const documentStub = makeInitDocument();
   const hooks = loadHooks({ document: documentStub });

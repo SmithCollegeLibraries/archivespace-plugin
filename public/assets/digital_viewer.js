@@ -2459,6 +2459,10 @@
   }
 
   function findInsertAfter(anchor) {
+    // Keep each inline viewer adjacent to its own source, including thumbnails.
+    var sourceGroup = anchor.closest ? anchor.closest('[data-dv-source-group]') : null;
+    if (sourceGroup) return sourceGroup;
+
     if (anchor.classList && anchor.classList.contains('external-digital-object__link')) {
       var availBlock = anchor.closest
         ? anchor.closest('.available-digital-objects')
