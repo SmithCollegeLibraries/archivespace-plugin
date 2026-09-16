@@ -36,7 +36,6 @@ export const edgePages = async(page)=>{
  rows.push({id,status:res.status(),expectedMounts:mounts,loaded,hiddenSentinelInHtml:html.includes('example.invalid/unpublished'),...await page.evaluate(()=>({context:document.querySelector('[data-dv-page-context]')?.dataset,leafColumn:!!document.querySelector('#dv-viewer-column'),mounts:document.querySelectorAll('.digital-viewer-container').length,pages:document.querySelector('.digital-viewer-container')?.__dvMountAttempt?.viewer?.tileSources?.length||null,externalAnchors:document.querySelectorAll('.external-digital-object__link').length,representative:[...document.querySelectorAll('[data-rep-file-version-wrapper] > a')].map(a=>({href:a.getAttribute('href'),visible:!!a.getClientRects().length})),images:[...document.querySelectorAll('.available-digital-objects img')].map(i=>({loaded:i.complete&&i.naturalWidth>0,linked:!!i.closest('a')})),additional:[...document.querySelectorAll('[data-additional-file-version] a[href]')].map(a=>({href:a.href,visible:!!a.getClientRects().length})),errors:[...document.querySelectorAll('.dv-error-msg,.dv-tile-error-msg,.dv-loading-msg')].map(e=>e.textContent)}))});
  }return rows;
 };
-
 export const navigation = async(page)=>{
  await page.goto('http://localhost:18081/repositories/2/digital_objects/863');
  const results=[];
@@ -74,4 +73,3 @@ export const failureControls = async(page)=>{
   }finally{await context.close();}
  }return rows;
 };
-
