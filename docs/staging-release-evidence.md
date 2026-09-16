@@ -6,6 +6,43 @@ Current branch: `codex/lyr-05-config-assets`
 
 This file records implementation evidence for the Lyrasis staging launch task list. It does not grant Gate A or Gate B approval.
 
+## Latest R03 correction — 2026-09-16
+
+Status: Request-ownership fix implemented and locally verified. Hosted ASpace, full fixture/browser acceptance, CORS/CSP and rollback gates remain open. The earlier sections below retain their historical test counts and asset hashes; this section identifies the current candidate.
+
+Runtime/test commit: `2134fb4ba784daa3c92beee79976922666b36fa7`
+
+Parent mirror: byte-identical, uncommitted (parent Git index remains read-only)
+
+Approver: Rob; no deployment approval is implied by these checks.
+
+### Correction
+
+Each call to the viewer instance's `addTiledImage` now receives a fresh owned options object and one-shot success/error callbacks. A request is current only while its identity, selected page and live viewer/attempt match. Close, navigation to another request, and destruction invalidate that ownership. Stale callbacks are stopped **before** they can raise OSD `open`/`open-failed` or trigger its native error display. Genuine source failures must carry the active options identity; URL equality alone is no longer used to claim ownership. Initial failure/fallback behavior, empty-world page errors, tile-specific recovery and unavailable placeholders are preserved.
+
+The integration point is checked against the vendored **OSD 5.0.1** build: `goToPage` changes `currentPage` before opening; `open` calls `addTiledImage`; metadata errors return the request options object. Re-run the browser regression when upgrading OSD.
+
+### Independently observed regression evidence
+
+- Test-first Node run: five new cases failed on the old runtime (same-source failures before/after replacement opening, unowned events, repeated URLs on different pages, and callbacks after close). After the fix, **60 tests passed in each copy**, including the preserved current/initial failure behavior and recovery.
+- Real browser: **Chrome 151, vendored OSD 5.0.1**, unmodified plugin loaded through its normal source scan and manifest adapter. The checked-in [browser regression](../test/browser/source-request-ownership.mjs) uses intercepted fixture responses and deferred metadata requests, not fake OSD events. Both before-open and after-draw race scenarios passed against standalone and parent copies.
+- Negative browser control: the same regression failed against the still-unfixed parent copy before mirroring, with `retired same-source failure changed the plugin error state`.
+- Each browser scenario also verified that a genuine current metadata failure is reported on page 2 with an empty world, navigation to a working page clears it, an unavailable page 3 retains its message after placeholder opening/drawing, and leaving that placeholder clears the message. Retired requests raised **zero** OSD `open-failed` events; genuine current failures still raised one.
+- JavaScript (runtime and browser test), Ruby and ERB syntax checks, the Ruby asset-version test and whitespace checks passed. Runtime/frontend/test inventories and bytes match across **51 files** in the two copies.
+
+Reproduce Node/parser checks using the commands in LYR-06 below. Browser execution instructions are in [test/browser/README.md](../test/browser/README.md); no Playwright dependency was added to the plugin or its dependency-free Node suite.
+
+Current hashes:
+
+| Artifact | SHA-256 |
+|---|---|
+| Asset-version helper digest | `542567bd615cb82af236b6e0b99e60926b7cb7b1fedab6deee0dc0e9f91fa240` |
+| `public/assets/digital_viewer.js` | `9ea7239d31adfe3b0627cb09b69c4b55e18ff0a995cabd851b13fbcb2343070c` |
+| `test/digital_viewer.test.mjs` | `2817d9ed2633ea24b82a0ff36d148fe66f0cd9d131e538534bf518b6cb949333` |
+| `test/browser/source-request-ownership.mjs` | `7d89380dce76f30488d2506aeeed4d970858fe3f5ab0cc6edc0b1591902a5c14` |
+
+Scope limitation: this is a focused real-browser regression using synthetic local HTTP fixtures. It does **not** verify the ASpace-rendered pilot records, hosted configuration, real CORS/CSP, complete fixture matrix or rollback. No hosted service was deployed or restarted. Claude/external review and Rob's approval remain separate.
+
 ## LYR-01 — Baseline and fixture inventory
 
 Task / matrix ID: LYR-01  
