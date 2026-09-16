@@ -8,7 +8,15 @@ This file records implementation evidence for the Lyrasis staging launch task li
 
 Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here. Rob's acceptance and installation approval remain pending.
 
-## Local fixture/render checkpoint and two integration fixes — 2026-09-16
+## Local URL/layout follow-up — 2026-09-16
+
+Current candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5` (following `fe02937`). Plugin runtime changes are CSS only; parent-only Compose changes correct browser-facing local origins and provide the reusable QA port/sidebar override. See [exact scope, regression evidence, fingerprints and reproduction](local-layout-validation-2026-09-16.md) and [raw observations](evidence/local-layout-2026-09-16.json).
+
+Forty record-layout checks pass across five widths and both actual ASpace sidebar configurations. Long-note state/ARIA, keyboard/mouse resizing followed by mobile reflow, viewer keyboard controls and tree navigation pass within the documented scope. Final screenshot checks exposed and corrected vertical adjustment clipping and over-narrow resized viewers; both added regressions fail on intermediate `fe02937` CSS and pass on the final CSS. All 18 DO/AO pages were rerun on the final CSS. Both copies still pass 63 Node tests and both R03 browser scenarios. Served assets match digest `26102a571fd06034f4d7e68aa902535a34ff1def31a8ba8f0e82536914a947ec`.
+
+Final local ASpace state is healthy, left sidebar, PUI/API/Staff 18081/18089/18082. Tree leaf-node 404s reproduce with plugin browser assets disabled and follow the bundled stock 4.2.0 indexing/expansion code; selection/navigation work. No clean-console or full accessibility claim. Independent review, remaining fixtures/matrix, host/content, archive and rollback gates remain open; Rob remains approver. No hosted changes or push.
+
+## Earlier local fixture/render checkpoint and two integration fixes — 2026-09-16
 
 Current runtime: `4c609029b112e5d873d77c1e4c79d949860f86dc`; 63 Node tests pass in both copies. The earlier independent review does not automatically cover this subsequent delta.
 

@@ -1,6 +1,6 @@
 # Independent review handoff: digital_viewer staging work
 
-**Subsequent checkpoint:** local fixture creation, actual ASpace rendering and two integration fixes are documented in [local validation — 2026-09-16](local-validation-2026-09-16.md). Current runtime is `4c609029`; 63 Node tests pass. The exact versions and review claims below are retained for the earlier R03 scope, not silently extended to the newer candidate. Neither release gate is closed.
+**Subsequent checkpoints:** [local fixture/render validation](local-validation-2026-09-16.md) records the two integration fixes; [local URLs and layout validation](local-layout-validation-2026-09-16.md) records candidate `0c1ca14`, 40 responsive-layout checks, both actual sidebar configurations and focused notes/resize/keyboard checks. There are still 63 Node tests per copy. The exact versions and review claims below are retained for the earlier R03 scope, not silently extended to newer candidates. Neither release gate is closed.
 
 Prepared: 2026-09-16. Product: ArchivesSpace PUI plugin `digital_viewer`; target ASpace 4.2.0.
 

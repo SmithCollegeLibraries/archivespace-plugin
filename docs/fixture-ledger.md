@@ -2,11 +2,11 @@
 
 Updated: 2026-09-16. Local fixture/render subtask completed with limitations below; full LYR-01/06 acceptance and both release gates remain OPEN.
 
-Current runtime: `4c609029b112e5d873d77c1e4c79d949860f86dc`. [Reviewable local evidence and reproduction](local-validation-2026-09-16.md); [machine-readable browser observations](evidence/local-aspace-2026-09-16.json).
+Current candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`. [Latest local URL/layout evidence and reproduction](local-layout-validation-2026-09-16.md); [latest machine-readable observations](evidence/local-layout-2026-09-16.json). [Earlier fixture-creation evidence](local-validation-2026-09-16.md) is retained as a historical checkpoint. No fixture records changed during the URL/layout follow-up.
 
 ## Environment and scope
 
-ArchivesSpace 4.2.0 image `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b`; existing Solr 4.2.0 and MariaDB 10.3.39. Started the existing stopped container, without recreating containers, changing config, or deleting volumes. PUI `http://localhost:18081`, API 18089, Staff 18082. The unrelated 8081 listener remains untouched.
+ArchivesSpace 4.2.0 image `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b`; existing Solr 4.2.0 and MariaDB 10.3.39. The fixture-creation checkpoint started the existing stopped container. The later URL/layout follow-up recreated only ASpace with corrected browser-facing proxy URLs, tested left/right sidebar configurations, then restored left. Existing database, volumes and plugin mount were preserved. PUI `http://localhost:18081`, API 18089, Staff 18082. The unrelated 8081 listener remains untouched.
 
 Parent `plugins/` is the live mount; `docker/aspace/config.rb` enables `digital_viewer`. Parent plugin bytes match the standalone copy, but the parent Git index is read-only for this session. The current suite has 63 passing Node tests in each copy, not the historical 39/60 counts.
 
@@ -30,8 +30,8 @@ All four had `linked_instances: []` immediately before creation. All eight pages
 | Fixture / PUI path | Source contract and observed behavior | Remaining qualification |
 | --- | --- | --- |
 | `archival_objects/4100` | Two linked objects: 869 and 863. Two distinct `digital-0/1` groups, viewers with 1/77 pages; original links visible. Correct link/viewer/link/viewer order after fix `5621241`. | Second object's PDF isolation still needs an approved PDF fixture. |
-| `archival_objects/4101` | No digital instances; no viewer/leaf column. Published synthetic long scope/content note. | Note text renders after indexing; full ReadMoreNotes, keyboard/mouse resizing and both sidebar positions NOT accepted. |
-| `digital_objects/870` | Published child component `digital_object_components/1`; rendered context reports children=true; inline viewer, no leaf column. | Child's own PUI page and full tree interactions NOT RUN. |
+| `archival_objects/4101` | No digital instances; no viewer/leaf column. Published synthetic long scope/content note. Enter/Space/click and ARIA state pass, as do mouse/keyboard resizing and subsequent mobile reflow, on both actual sidebar configurations. | Focused Chrome checks, not full accessibility acceptance. |
+| `digital_objects/870` | Published child component `digital_object_components/1`; rendered context reports children=true; inline viewer, no leaf column. Parent-to-child navigation and child current-node highlight pass on both sidebar sides. | Full tree accessibility/cross-browser audit not run; stock leaf 404 remains. |
 | `digital_objects/871` | Representative thumbnail followed by SIA manifest. Zero external-link-class anchors. Representative anchor and additional File Version point to manifest; one viewer, thumbnail retained. | Confirms own-record representative branch. |
 | `digital_objects/872` | Representative thumbnail only; loaded image, no invented anchor or viewer/empty column. | No direct downloadable original is invented. |
 | `archival_objects/4102` | Representative instance links DO 871. ASpace's derived_from yields a link to DO 871, **not** the manifest. Thumbnail and record link retained; no viewer expected here. | Do not misreport this as a failed manifest scan. |
@@ -71,7 +71,6 @@ Nothing was deleted or rolled back in this session. To retire fixtures, identify
 ## Gaps still open
 
 - Approved public PDF and its owner/object association: direct PDF, image-plus-PDF, second-object PDF isolation. Rob was asked; no new content approval assumed.
-- Local stock configuration points public/staff links and check_session to standard ports instead of the alternate ports. Stock tree/node requests also returned 404 on new AOs despite a populated backend tree; investigate before full M04/M18 acceptance.
-- At 390px, DO 869 scroll width is 521px and AO 4100 is 673px, **with and without plugin JS/CSS**. Desktop at 1280px has no horizontal overflow. Narrow layout is NOT accepted.
-- Linked thumbnail-plus-out-link entry branch (distinct from the representative and thumbnail-only branches), both sidebar positions, complete keyboard/notes/resizing, Safari/Firefox, full download/failure matrix, rollback and archive acceptance remain pending.
+- Local origins and focused narrow/sidebar/notes/resize checks now pass as documented above. Stock leaf tree 404s remain and are explained by installed 4.2.0 code; tree selection/navigation work. This does not close the full M04/M18 or clean-console gates.
+- Linked thumbnail-plus-out-link entry branch (distinct from representative and thumbnail-only branches), complete accessibility/Tab-order, Safari/Firefox, full download/failure matrix, rollback and archive acceptance remain pending.
 - Lyrasis origin/config/CSP/operations, hosted CORS, restricted-content evidence, content review and Rob's release approval remain open.

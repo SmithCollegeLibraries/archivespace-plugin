@@ -46,7 +46,8 @@ through its metadata-error callback.
 ## Local ASpace layout and navigation checks
 
 `local-layout.mjs` is a separate, read-only real-ASpace check. It requires the
-local records in [fixture-ledger.md](../../docs/fixture-ledger.md), working PUI
+local records in the standalone repository's `docs/fixture-ledger.md` (parent
+location: `exports/archivespace-plugin-repository/docs/fixture-ledger.md`), working PUI
 18081/Staff 18082, and access to the approved pilot manifests/images. It does not
 create records or change configuration. Run it once per **actual ASpace** sidebar
 configuration (`left`, then `right`); changing only a DOM attribute is not a test

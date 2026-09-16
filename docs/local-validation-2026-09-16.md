@@ -1,5 +1,7 @@
 # Local ASpace validation checkpoint — 2026-09-16
 
+**Later follow-up:** [local URLs and layout validation](local-layout-validation-2026-09-16.md) records candidate `0c1ca14`, corrected origins, narrow layout, both sidebar configurations and focused notes/resize/keyboard checks. The observations and open items below describe the earlier `4c609029` checkpoint; do not use its asset hash as the current candidate.
+
 Status: local integration progress, **not approval to ship**. Implementer: Codex. Independent review and Rob's acceptance of this new delta are pending. The earlier external review applies to its recorded R03 candidate, not automatically to these later changes.
 
 ## Exact candidate and fixes
