@@ -1,58 +1,77 @@
 # Lyrasis staging fixture ledger
 
-Date: 2026-09-15  
-Status: LYR-01 in progress; current local ArchivesSpace API/PUI checks completed, fixture creation remains open.
+Updated: 2026-09-16. Local fixture/render subtask completed with limitations below; full LYR-01/06 acceptance and both release gates remain OPEN.
 
-This ledger contains public test URLs and local record identifiers only. It does not contain credentials, restricted identifiers, or record-edit payloads. Historical snapshot findings are separated from observations made against the current local stack.
+Current runtime: `4c609029b112e5d873d77c1e4c79d949860f86dc`. [Reviewable local evidence and reproduction](local-validation-2026-09-16.md); [machine-readable browser observations](evidence/local-aspace-2026-09-16.json).
 
-## Baseline and source identity
+## Environment and scope
 
-| Item | Value | Evidence/status |
-|---|---|---|
-| Standalone plugin | `7edccca02af1a74b1ef6b1f5f5b0db9f48af9227` baseline; candidate through `8fb37647a87a34b18c8535dfe563fed4b0584088` | Candidate branch `codex/lyr-05-config-assets`; baseline checkout was clean |
-| Parent live mount | `f6d5f2f37394ee1e3933f478e0239991685de07e` | Parent worktree has pre-existing user edits; runtime plugin files match standalone |
-| ArchivesSpace | `archivesspace/archivesspace:4.2.0`, `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b` | Image inspection passed |
-| Solr | `archivesspace/solr:4.2.0` | Compose configuration and running container inspected |
-| MariaDB | `mariadb:10.3.39` | Compose configuration inspected; running container |
-| Enabled plugin | `digital_viewer` | `docker/aspace/config.rb` |
-| Live mount | Parent `plugins/` → `/archivesspace/plugins` | Compose configuration inspected |
-| Config mount | Parent `docker/aspace/config.rb` → `/archivesspace/config/config.rb` | Compose configuration inspected |
-| PUI/API ports | Standard PUI `8081`, API `8089`, Staff `8082`; temporary render PUI `18081`, API `18089` | Standard PUI listener was occupied by an unrelated process; temporary override preserved volumes and used alternate host ports |
-| Standalone tests | 39 passing | `node --test test/*.mjs` |
-| Syntax checks | Passing | Node, Ruby, and ERB parser checks recorded in `staging-release-evidence.md` |
+ArchivesSpace 4.2.0 image `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11c4710e26978f82c73b`; existing Solr 4.2.0 and MariaDB 10.3.39. Started the existing stopped container, without recreating containers, changing config, or deleting volumes. PUI `http://localhost:18081`, API 18089, Staff 18082. The unrelated 8081 listener remains untouched.
 
-## Pilot fixtures
+Parent `plugins/` is the live mount; `docker/aspace/config.rb` enables `digital_viewer`. Parent plugin bytes match the standalone copy, but the parent Git index is read-only for this session. The current suite has 63 passing Node tests in each copy, not the historical 39/60 counts.
 
-| Local Digital Object | Title | Approved public manifest | Expected pages | Digital Object snapshot | Archival Object mapping |
-|---:|---|---|---:|---|---|
-| 869 | Cantaloupe HTTPS pilot — SIA-SIA_000095_B41_F19_001r01 (TEST) | `https://libtools2.smith.edu/digital/manifests/sia-pilot.json` | 1 | `exports/libtools2-manifest-pilot/record-updates/20260909T193656Z/869.before.json` | Current API checked 2026-09-15: `linked_instances: []`, `file_versions: 1`, published manifest; local Archival Object fixture required. PUI `/repositories/2/digital_objects/869` returned 200 on temporary port 18081. |
-| 863 | 9 to 5, Boston MA, 1983 | `https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_as541926.json` | 77 | `exports/libtools2-manifest-pilot/record-updates/20260909T193656Z/863.before.json`; alternatives seed `exports/archivespace-4.2.0-20260909/record-863.before-local-manifest-test.json` | Current API checked 2026-09-15: `linked_instances: []`, `file_versions: 1`, published manifest; local Archival Object fixture required. PUI `/repositories/2/digital_objects/863` returned 200 on temporary port 18081. |
-| 864 | 19 color photographs, most of gorillas, some including Fossey, with Fossey's captions on the back, 1969 and undated | `https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00386_as412062_001.json` | 41 | `exports/additional-manifest-pilot/record-updates/20260909T201033Z/864.before.json` | Current API checked 2026-09-15: `linked_instances: []`, `file_versions: 1`, published manifest; local Archival Object fixture required. PUI `/repositories/2/digital_objects/864` returned 200 on temporary port 18081. |
-| 867 | People photo shoot of Steinem, 1980 | `https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_b216_f10.json` | 36 | `exports/additional-manifest-pilot/record-updates/20260909T201033Z/867.before.json` | Current API checked 2026-09-15: `linked_instances: []`, `file_versions: 1`, published manifest; local Archival Object fixture required. PUI `/repositories/2/digital_objects/867` returned 200 on temporary port 18081. |
+All records below are in LOCAL repository 2. No hosted record IDs are inferred. Sixteen labeled QA records were created: one resource, nine Archival Objects, five Digital Objects and one component. The four original pilots' File Versions were verified byte-equivalent to their pre-fixture JSON values. Only new AO backlinks were added through the new instances. No existing pilot was posted/updated.
 
-The manifest page counts above were read from the retained local manifest artifacts. They describe the proposed public-content pilot fixtures, not a hosted staging acceptance result.
+## Pilot mapping — fresh API and browser observations
 
-## Required fixture gaps
+PUI paths below are relative to `http://localhost:18081/repositories/2/`.
 
-| Fixture | Current status | Required next action | Owner |
-|---|---|---|---|
-| Four Digital Object → Archival Object mappings | ABSENT IN CURRENT API | Query completed 2026-09-15; all four returned `linked_instances: []`; create published local Archival Object fixture for each absent mapping | Implementation agent |
-| Archival Object with two distinct linked Digital Objects | NOT FOUND | Create an isolated local record fixture and save its pre-change record/lock version | Implementation agent |
-| Digital Object with children | NOT VERIFIED | Identify from local API or create isolated fixture | Implementation agent |
-| Representative thumbnail with direct link | NOT VERIFIED | Identify rendered 4.2.0 example and save HTML evidence | Implementation agent |
-| Representative thumbnail only | NOT FOUND | Create or identify a published fixture; preserve the image without inventing a link | Implementation agent |
-| Direct PDF | NOT FOUND | Add a separately verified approved public PDF File Version to an isolated fixture | Rob / implementation agent |
-| Image plus companion PDF | NOT FOUND | Create an isolated Digital Object fixture with both published versions and record ownership | Rob / implementation agent |
-| Unsupported URL | NOT VERIFIED | Add a published test URL in an isolated fixture | Implementation agent |
-| No digital content | NOT VERIFIED | Identify an ordinary Archival Object and retain its page URL/HTML evidence | Implementation agent |
-| Long notes and sidebar positions | NOT VERIFIED | Exercise stock 4.2.0 pages after PUI starts, with both configured positions | Implementation agent |
+| Digital Object | Manifest under `https://libtools2.smith.edu/digital/manifests/` | Pages observed | Created Archival Object | Other new backlink |
+| --- | --- | ---: | --- | --- |
+| `digital_objects/869` — SIA | `sia-pilot.json` | 1 | `archival_objects/4096` | 4100 |
+| `digital_objects/863` — 9 to 5 | `smith_ssc_ms00237_as541926.json` | 77 | `archival_objects/4097` | 4100 |
+| `digital_objects/864` — Fossey | `smith_ssc_ms00386_as412062_001.json` | 41 | `archival_objects/4098` | — |
+| `digital_objects/867` — Steinem | `smith_ssc_ms00237_b216_f10.json` | 36 | `archival_objects/4099` | — |
 
-## Repeatable local fixture procedure
+All four had `linked_instances: []` immediately before creation. All eight pages subsequently returned HTTP 200, retained their visible original manifest link, and loaded a first image in real OSD/Chrome 151. Counts above were freshly observed, not copied from historical manifests. These are local browser results, not Lyrasis acceptance.
 
-1. Start the existing 4.2.0 Compose services without deleting or recreating volumes. If the standard PUI port is occupied, use a temporary alternate-port override and record it.
-2. Query each Digital Object through the local API with resolved instances and record the current `lock_version`.
-3. Resolve every linked instance to its Archival Object URL and save read-only pre-change JSON outside the plugin package.
-4. Create only isolated, published local fixtures for missing cases. Keep the original record fields and current lock version in the rollback evidence.
-5. Re-read each record and PUI page, then add the URL, page type, producer, source URLs, expected behavior, and evidence path here.
+## Edge-case fixtures
 
-No fixture edits were made during LYR-01. The current API/PUI checks used the authenticated local API on port 18089 and PUI on port 18081; all four records rendered and all four current `linked_instances` arrays were empty. Fixture creation, Archival Object mappings and browser checks remain open.
+| Fixture / PUI path | Source contract and observed behavior | Remaining qualification |
+| --- | --- | --- |
+| `archival_objects/4100` | Two linked objects: 869 and 863. Two distinct `digital-0/1` groups, viewers with 1/77 pages; original links visible. Correct link/viewer/link/viewer order after fix `5621241`. | Second object's PDF isolation still needs an approved PDF fixture. |
+| `archival_objects/4101` | No digital instances; no viewer/leaf column. Published synthetic long scope/content note. | Note text renders after indexing; full ReadMoreNotes, keyboard/mouse resizing and both sidebar positions NOT accepted. |
+| `digital_objects/870` | Published child component `digital_object_components/1`; rendered context reports children=true; inline viewer, no leaf column. | Child's own PUI page and full tree interactions NOT RUN. |
+| `digital_objects/871` | Representative thumbnail followed by SIA manifest. Zero external-link-class anchors. Representative anchor and additional File Version point to manifest; one viewer, thumbnail retained. | Confirms own-record representative branch. |
+| `digital_objects/872` | Representative thumbnail only; loaded image, no invented anchor or viewer/empty column. | No direct downloadable original is invented. |
+| `archival_objects/4102` | Representative instance links DO 871. ASpace's derived_from yields a link to DO 871, **not** the manifest. Thumbnail and record link retained; no viewer expected here. | Do not misreport this as a failed manifest scan. |
+| `archival_objects/4103` | Non-representative instance of thumbnail-only DO 872. Entry-list branch preserves unlinked thumbnail; no viewer. | Confirms linked-instance thumb-only branch. |
+| `digital_objects/873`, `archival_objects/4104` | Published unsupported `https://example.invalid/digital-viewer-qa/not-an-image` link preserved; no viewer or empty leaf column. | Reserved invalid host deliberately not fetched. |
+| `digital_objects/874` | Six-version alternatives fixture: four unpublished sentinels, published thumbnail, published 77-view manifest. One viewer; unpublished sentinels absent from server HTML. | Preserves the historical 863 snapshot's order/publication/protocol shape; not its private URLs. No companion PDF yet. |
+| `resources/2` | Isolated QA collection owning the nine new Archival Objects. | Resource PUI page itself NOT included in the 18-page smoke result. |
+
+Image/thumbnail fixture source: approved SIA image service, `https://digital.smith.edu/iiif/2/2023-01%2FSIA-SIA_000095_B41_F19_001r01.tif/full/512,/0/default.jpg`. It loaded in Chrome. This does not prove the restricted-content boundary.
+
+The read-only alternatives seed is parent `exports/archivespace-4.2.0-20260909/record-863.before-local-manifest-test.json`. Its four unpublished entries remain unpublished in the synthetic copy and use reserved `example.invalid` sentinels instead of private destinations. The published image and manifest use existing approved pilot content. The original seed was not changed.
+
+## Producers and representative behavior
+
+Source inspected directly in the installed 4.2.0 WAR: `ObjectsController#show`, `ResultInfo#process_digital`, `process_digital_instance`, `process_file_versions`, and backend `RepresentativeFileVersion`.
+
+- Digital Objects/components use `process_digital`; linked AO entries use `process_digital_instance`. Both derive display values via `process_file_versions`: `out`, `thumb`, optional `represent`/`caption`, with caller-added `material`/caption. These are source-inspected contracts, not runtime instrumentation of private Rails variables.
+- Digital Object additional published versions are also emitted by stock record innards. Representatives replace the partial's entry list; DO 871 verifies this branch with zero external-link-class anchors.
+- AO representative `derived_from` is a local record URI. Preserving that link is correct; the plugin must not fabricate a file URL.
+- Group markers are rendered-block identities, not ASpace IDs. Viewers sit beside their own groups, not after the shared list.
+
+## Reproduction, snapshots and rollback boundaries
+
+Local-only artifacts (outside the distributable plugin) are under parent `exports/lyr-local-20260916/`:
+
+- `pilots.before.json`: all four complete pre-fixture local records and lock versions.
+- `fixture-plan.json`: ordered creation payloads; `$key` references resolve to the preceding creation result URI.
+- `created.json`: exact 16 creation responses/IDs. Re-read these before any repeat run; **do not blindly repost the plan**.
+- `records.after.json`: initial readbacks of all fixtures and pilots.
+- `4101.before-note-publish.json` and `4101.after-note-publish.json`: synthetic note correction (ASpace defaults note_text.publish to false); later snapshot supersedes 4101 in the initial readback.
+- Four `single-image/two-objects-desktop/narrow.png` screenshots of the final runtime.
+
+To reproduce on this stack, start only `preservica-archivesspace-1` if stopped, verify its existing ports/mounts and health, then use the checked-in browser probes linked above. On a fresh local database, inspect schemas and create only missing labeled QA records in plan order, recording each returned URI. Do not assume the recorded IDs are free, copy local IDs to staging, or publish historical hidden versions. Session credentials must remain in memory, not reports.
+
+Nothing was deleted or rolled back in this session. To retire fixtures, identify them by both recorded URI and `dv-qa-20260916` identifier/title, and obtain cleanup approval. Never restore the four full pilot snapshots over newer records: their File Versions were not changed. Removing only the new fixture instances would remove the newly introduced backlinks. Any future record restoration must use a fresh lock version and scoped fields.
+
+## Gaps still open
+
+- Approved public PDF and its owner/object association: direct PDF, image-plus-PDF, second-object PDF isolation. Rob was asked; no new content approval assumed.
+- Local stock configuration points public/staff links and check_session to standard ports instead of the alternate ports. Stock tree/node requests also returned 404 on new AOs despite a populated backend tree; investigate before full M04/M18 acceptance.
+- At 390px, DO 869 scroll width is 521px and AO 4100 is 673px, **with and without plugin JS/CSS**. Desktop at 1280px has no horizontal overflow. Narrow layout is NOT accepted.
+- Linked thumbnail-plus-out-link entry branch (distinct from the representative and thumbnail-only branches), both sidebar positions, complete keyboard/notes/resizing, Safari/Firefox, full download/failure matrix, rollback and archive acceptance remain pending.
+- Lyrasis origin/config/CSP/operations, hosted CORS, restricted-content evidence, content review and Rob's release approval remain open.

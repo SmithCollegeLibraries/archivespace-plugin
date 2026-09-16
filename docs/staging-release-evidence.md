@@ -8,6 +8,14 @@ This file records implementation evidence for the Lyrasis staging launch task li
 
 Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here. Rob's acceptance and installation approval remain pending.
 
+## Local fixture/render checkpoint and two integration fixes — 2026-09-16
+
+Current runtime: `4c609029b112e5d873d77c1e4c79d949860f86dc`; 63 Node tests pass in both copies. The earlier independent review does not automatically cover this subsequent delta.
+
+See [local validation, fix commits, hashes, browser observations and limitations](local-validation-2026-09-16.md) and the refreshed [fixture ledger](fixture-ledger.md). Sixteen isolated local records cover the missing AO mappings and most non-PDF cases. Eighteen real record pages were checked after the final fix; original pilot File Versions are unchanged. Actual browser checks exposed and corrected inline placement and toolbar/thumbnail overlap, each with a failing-before/passing-after regression.
+
+Final served asset digest: `935bc7cf685f6949e2ef9a24f0ac39c6b1b2b04163062ba59836d9b43cf5e601`. Existing local ASpace remains healthy on PUI/API/Staff 18081/18089/18082. Narrow layout, stock navigation/config, PDF fixtures, remaining matrix, host/content gates, packaging and rollback remain open. No hosted deployment or approval occurred.
+
 ## External review returned — recorded 2026-09-16
 
 Source: independent review report supplied by Rob in the conversation. The reviewer name and execution date were not separately supplied. This section records that report; it does not represent another independent review by the implementing assistant.

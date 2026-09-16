@@ -1,0 +1,624 @@
+{
+  "date": "2026-09-16",
+  "runtimeCommit": "4c609029b112e5d873d77c1e4c79d949860f86dc",
+  "assetDigest": "935bc7cf685f6949e2ef9a24f0ac39c6b1b2b04163062ba59836d9b43cf5e601",
+  "browser": "Chrome 151.0.0.0 on macOS via Playwright",
+  "aspace": "4.2.0",
+  "origin": "http://localhost:18081",
+  "cache": "Reused browser context; warm repeats, not cold benchmarks",
+  "pilots": [
+    {
+      "id": 869,
+      "status": 200,
+      "serverPane": true,
+      "serverOriginalLink": true,
+      "loaded": true,
+      "elapsedMs": 1153,
+      "expectedPages": 1,
+      "type": "DigitalObject",
+      "children": "false",
+      "pane": true,
+      "originalLinks": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+          "visible": true
+        }
+      ],
+      "mounts": 1,
+      "pages": 1,
+      "counter": null,
+      "errors": [],
+      "pageErrors": []
+    },
+    {
+      "id": 863,
+      "status": 200,
+      "serverPane": true,
+      "serverOriginalLink": true,
+      "loaded": true,
+      "elapsedMs": 817,
+      "expectedPages": 77,
+      "type": "DigitalObject",
+      "children": "false",
+      "pane": true,
+      "originalLinks": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_as541926.json",
+          "visible": true
+        }
+      ],
+      "mounts": 1,
+      "pages": 77,
+      "counter": "1 / 77",
+      "errors": [],
+      "pageErrors": []
+    },
+    {
+      "id": 864,
+      "status": 200,
+      "serverPane": true,
+      "serverOriginalLink": true,
+      "loaded": true,
+      "elapsedMs": 619,
+      "expectedPages": 41,
+      "type": "DigitalObject",
+      "children": "false",
+      "pane": true,
+      "originalLinks": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00386_as412062_001.json",
+          "visible": true
+        }
+      ],
+      "mounts": 1,
+      "pages": 41,
+      "counter": "1 / 41",
+      "errors": [],
+      "pageErrors": []
+    },
+    {
+      "id": 867,
+      "status": 200,
+      "serverPane": true,
+      "serverOriginalLink": true,
+      "loaded": true,
+      "elapsedMs": 314,
+      "expectedPages": 36,
+      "type": "DigitalObject",
+      "children": "false",
+      "pane": true,
+      "originalLinks": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_b216_f10.json",
+          "visible": true
+        }
+      ],
+      "mounts": 1,
+      "pages": 36,
+      "counter": "1 / 36",
+      "errors": [],
+      "pageErrors": []
+    }
+  ],
+  "archival": [
+    {
+      "id": 4096,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 1,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [
+        1
+      ],
+      "errors": []
+    },
+    {
+      "id": 4097,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 1,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_as541926.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [
+        77
+      ],
+      "errors": []
+    },
+    {
+      "id": 4098,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 1,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00386_as412062_001.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [
+        41
+      ],
+      "errors": []
+    },
+    {
+      "id": 4099,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 1,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_b216_f10.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [
+        36
+      ],
+      "errors": []
+    },
+    {
+      "id": 4100,
+      "status": 200,
+      "expectedMounts": 2,
+      "loaded": true,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 2,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        },
+        {
+          "group": "digital-1",
+          "links": [
+            {
+              "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_as541926.json",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [
+        1,
+        77
+      ],
+      "errors": []
+    },
+    {
+      "id": 4101,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 0,
+      "leafColumn": false,
+      "groups": [],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [],
+      "errors": []
+    },
+    {
+      "id": 4102,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 0,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "render-1",
+          "links": [
+            {
+              "href": "/repositories/2/digital_objects/871",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [
+        "/repositories/2/digital_objects/871"
+      ],
+      "stockImages": [
+        {
+          "loaded": true,
+          "linked": true
+        }
+      ],
+      "pages": [],
+      "errors": []
+    },
+    {
+      "id": 4103,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 0,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [
+        {
+          "loaded": true,
+          "linked": false
+        }
+      ],
+      "pages": [],
+      "errors": []
+    },
+    {
+      "id": 4104,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "serverPane": true,
+      "type": "ArchivalObject",
+      "mounts": 0,
+      "leafColumn": false,
+      "groups": [
+        {
+          "group": "digital-0",
+          "links": [
+            {
+              "href": "https://example.invalid/digital-viewer-qa/not-an-image",
+              "visible": true
+            }
+          ],
+          "mounts": 0
+        }
+      ],
+      "representatives": [],
+      "stockImages": [],
+      "pages": [],
+      "errors": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": 870,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "hiddenSentinelInHtml": false,
+      "context": {
+        "dvPageContext": "true",
+        "recordType": "DigitalObject",
+        "hasChildren": "true"
+      },
+      "leafColumn": false,
+      "mounts": 1,
+      "pages": null,
+      "externalAnchors": 1,
+      "representative": [],
+      "images": [],
+      "additional": [],
+      "errors": []
+    },
+    {
+      "id": 871,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "hiddenSentinelInHtml": false,
+      "context": {
+        "dvPageContext": "true",
+        "recordType": "DigitalObject",
+        "hasChildren": "false"
+      },
+      "leafColumn": true,
+      "mounts": 1,
+      "pages": null,
+      "externalAnchors": 0,
+      "representative": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+          "visible": true
+        }
+      ],
+      "images": [
+        {
+          "loaded": true,
+          "linked": true
+        }
+      ],
+      "additional": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+          "visible": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "id": 872,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "hiddenSentinelInHtml": false,
+      "context": {
+        "dvPageContext": "true",
+        "recordType": "DigitalObject",
+        "hasChildren": "false"
+      },
+      "leafColumn": false,
+      "mounts": 0,
+      "pages": null,
+      "externalAnchors": 0,
+      "representative": [],
+      "images": [
+        {
+          "loaded": true,
+          "linked": false
+        }
+      ],
+      "additional": [],
+      "errors": []
+    },
+    {
+      "id": 873,
+      "status": 200,
+      "expectedMounts": 0,
+      "loaded": null,
+      "hiddenSentinelInHtml": false,
+      "context": {
+        "dvPageContext": "true",
+        "recordType": "DigitalObject",
+        "hasChildren": "false"
+      },
+      "leafColumn": false,
+      "mounts": 0,
+      "pages": null,
+      "externalAnchors": 1,
+      "representative": [],
+      "images": [],
+      "additional": [],
+      "errors": []
+    },
+    {
+      "id": 874,
+      "status": 200,
+      "expectedMounts": 1,
+      "loaded": true,
+      "hiddenSentinelInHtml": false,
+      "context": {
+        "dvPageContext": "true",
+        "recordType": "DigitalObject",
+        "hasChildren": "false"
+      },
+      "leafColumn": true,
+      "mounts": 1,
+      "pages": 77,
+      "externalAnchors": 0,
+      "representative": [],
+      "images": [
+        {
+          "loaded": true,
+          "linked": false
+        }
+      ],
+      "additional": [
+        {
+          "href": "https://libtools2.smith.edu/digital/manifests/smith_ssc_ms00237_as541926.json",
+          "visible": true
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "navigation": [
+    {
+      "page": 1,
+      "loaded": true,
+      "counter": "1 / 77",
+      "downloadVisible": false
+    },
+    {
+      "page": 39,
+      "loaded": true,
+      "counter": "39 / 77",
+      "downloadVisible": false
+    },
+    {
+      "page": 77,
+      "loaded": true,
+      "counter": "77 / 77",
+      "downloadVisible": false
+    },
+    {
+      "action": "keyboard Open page 77",
+      "downloadVisible": true,
+      "href": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541926_p0077.tif/full/1198,/0/default.jpg"
+    },
+    {
+      "action": "Back to object",
+      "downloadVisible": false
+    },
+    {
+      "action": "keyboard Zoom in",
+      "passed": true
+    }
+  ],
+  "failureControls": [
+    {
+      "mode": "javascript-disabled",
+      "path": "digital_objects/869",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 0,
+      "messages": []
+    },
+    {
+      "mode": "javascript-disabled",
+      "path": "archival_objects/4096",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 0,
+      "messages": []
+    },
+    {
+      "mode": "osd-blocked",
+      "path": "digital_objects/869",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 0,
+      "messages": []
+    },
+    {
+      "mode": "osd-blocked",
+      "path": "archival_objects/4096",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 0,
+      "messages": []
+    },
+    {
+      "mode": "manifest-blocked",
+      "path": "digital_objects/869",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 1,
+      "messages": [
+        "Digital content unavailable."
+      ]
+    },
+    {
+      "mode": "manifest-blocked",
+      "path": "archival_objects/4096",
+      "status": 200,
+      "links": 1,
+      "linkVisible": true,
+      "href": "https://libtools2.smith.edu/digital/manifests/sia-pilot.json",
+      "mounts": 1,
+      "messages": [
+        "Digital content unavailable."
+      ]
+    }
+  ],
+  "r03": [
+    {
+      "scenario": "failure before replacement open",
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "failure after replacement draw",
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+    }
+  ],
+  "narrowBaselineWithoutPluginJSAndCSS": [
+    {
+      "path": "digital_objects/869",
+      "viewport": 390,
+      "scrollWidth": 521,
+      "mounts": 0
+    },
+    {
+      "path": "archival_objects/4100",
+      "viewport": 390,
+      "scrollWidth": 673,
+      "mounts": 0
+    }
+  ],
+  "limitations": [
+    "Not full matrix acceptance",
+    "No Safari or Firefox run",
+    "Both sidebar positions and resizing not accepted",
+    "Narrow layout overflow with and without plugin enhancement",
+    "PDF fixture and owner association pending",
+    "Hosted CSP/CORS and content boundary not tested",
+    "Local stock check_session connection failures and tree/node 404s remain"
+  ]
+}
