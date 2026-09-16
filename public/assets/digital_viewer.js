@@ -1375,7 +1375,12 @@
       }
 
       function settleOpen() {
-        if (settled) return;
+        if (settled) {
+          if (isUnavailableTileSource(tileSources[activePageIndex])) {
+            showPageError({ page: activePageIndex });
+          }
+          return;
+        }
         settled = true;
         if (timeoutId !== null) clearTimeout(timeoutId);
         clearLoadingNotice(container);
@@ -1439,6 +1444,8 @@
           if (candidate === source) return index;
           if (typeof candidate === 'string' && typeof source === 'string' && candidate === source) return index;
           if (candidate && source && candidate.url && source.url && candidate.url === source.url) return index;
+          if (candidate && candidate.url && typeof source === 'string' && candidate.url === source) return index;
+          if (typeof candidate === 'string' && source && source.url && candidate === source.url) return index;
         }
         return null;
       }
@@ -1548,11 +1555,12 @@
         removePageError();
       }
 
-      function showPageError(data) {
+      function showPageError(data, options) {
         var info = eventPageInfo(data);
         var message;
 
-        if (!info || info.pageIndex === null || info.pageIndex !== activePageIndex || info.current === false) return;
+        if (!info || info.pageIndex === null || info.pageIndex !== activePageIndex) return;
+        if (info.current === false && !(options && options.allowWithoutImage)) return;
         if (!pageErrorState || pageErrorState.pageIndex !== info.pageIndex ||
             (pageErrorState.tiledImage && info.tiledImage && pageErrorState.tiledImage !== info.tiledImage)) {
           pageErrorState = {
@@ -1573,6 +1581,14 @@
         pageErrorMessage = message;
       }
 
+      function showSourcePageError(data) {
+        var source = data && (data.source || data.tileSource);
+
+        if (source && sourcePageIndex(source) === null &&
+            !(source && typeof source.index === 'number')) return;
+        showPageError(data, { allowWithoutImage: true });
+      }
+
       viewer.addHandler('open', function () {
         if (!isAttemptActive(attempt)) return;
         rememberCurrentTiledImage(activePageIndex);
@@ -1581,7 +1597,7 @@
       viewer.addHandler('open-failed', function (data) {
         if (!isAttemptActive(attempt)) return;
         rememberCurrentTiledImage(activePageIndex);
-        if (settled) showPageError(data);
+        if (settled) showSourcePageError(data);
         else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
       });
       viewer.addHandler('close', function () {
@@ -1594,7 +1610,7 @@
         rememberCurrentTiledImage(activePageIndex);
         removePageError();
         if (isUnavailableTileSource(tileSources[activePageIndex])) {
-          showPageError({ page: activePageIndex });
+          showPageError({ page: activePageIndex }, { allowWithoutImage: true });
         }
       });
       viewer.addHandler('tile-ready', function (data) {

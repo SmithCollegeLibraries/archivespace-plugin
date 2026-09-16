@@ -1050,6 +1050,111 @@ test('rapid sequence navigation ignores retired image events while the world is 
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
 
+test('page-level source failures use active page ownership without an image', async function () {
+  let viewer;
+  const pageItems = [{}, {}];
+  let currentPageItem = pageItems[0];
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      world: {
+        getItemAt() { return currentPageItem; },
+      },
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(container, [
+    { tileSource: 'page-a', imageUrl: 'https://example.org/page-a.jpg' },
+    { tileSource: 'page-b', imageUrl: 'https://example.org/page-b.jpg' },
+  ], { loadingTimeoutMs: 20 });
+
+  viewer.handlers.open.forEach(handler => handler());
+  await mounting;
+
+  currentPageItem = null;
+  viewer.handlers.close.forEach(handler => handler());
+  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
+  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'retired-page' }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-a' }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+
+  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-b' }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-a' }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+});
+
+test('unavailable sequence canvases show an error when their placeholders open', async function () {
+  let viewer;
+  const pageItems = [{}, {}];
+  let currentPageItem = pageItems[0];
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      world: {
+        getItemAt() { return currentPageItem; },
+      },
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(container, [
+    { tileSource: 'page-a', imageUrl: 'https://example.org/page-a.jpg' },
+    {
+      tileSource: {
+        type: 'image',
+        url: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+      },
+      unavailable: true,
+      pageIndex: 1,
+    },
+  ], { loadingTimeoutMs: 20 });
+
+  viewer.handlers.open.forEach(handler => handler());
+  await mounting;
+
+  currentPageItem = null;
+  viewer.handlers.close.forEach(handler => handler());
+  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+
+  currentPageItem = pageItems[1];
+  viewer.handlers.open.forEach(handler => handler());
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+});
+
 test('an entirely unavailable manifest falls back to a working alternative', async function () {
   const documentStub = makeInitDocument([
     'https://compass-prod-i2-files.s3.amazonaws.com/workbench-lite/test/manifests/unavailable.json',
