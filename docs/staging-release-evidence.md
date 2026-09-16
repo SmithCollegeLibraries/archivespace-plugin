@@ -6,6 +6,8 @@ Current branch: `codex/lyr-05-config-assets`
 
 This file records implementation evidence for the Lyrasis staging launch task list. It does not grant Gate A or Gate B approval.
 
+Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). This evidence was collected by the implementer; external validation and Rob's approval remain pending.
+
 ## Latest R03 correction — 2026-09-16
 
 Status: Request-ownership fix implemented and locally verified. Hosted ASpace, full fixture/browser acceptance, CORS/CSP and rollback gates remain open. The earlier sections below retain their historical test counts and asset hashes; this section identifies the current candidate.
@@ -22,7 +24,7 @@ Each call to the viewer instance's `addTiledImage` now receives a fresh owned op
 
 The integration point is checked against the vendored **OSD 5.0.1** build: `goToPage` changes `currentPage` before opening; `open` calls `addTiledImage`; metadata errors return the request options object. Re-run the browser regression when upgrading OSD.
 
-### Independently observed regression evidence
+### Implementer-run regression evidence
 
 - Test-first Node run: five new cases failed on the old runtime (same-source failures before/after replacement opening, unowned events, repeated URLs on different pages, and callbacks after close). After the fix, **60 tests passed in each copy**, including the preserved current/initial failure behavior and recovery.
 - Real browser: **Chrome 151, vendored OSD 5.0.1**, unmodified plugin loaded through its normal source scan and manifest adapter. The checked-in [browser regression](../test/browser/source-request-ownership.mjs) uses intercepted fixture responses and deferred metadata requests, not fake OSD events. Both before-open and after-draw race scenarios passed against standalone and parent copies.
