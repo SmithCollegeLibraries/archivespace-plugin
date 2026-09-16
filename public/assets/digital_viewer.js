@@ -1329,6 +1329,8 @@
     var pageErrorState = null;
     var imagePageOwners = [];
     var currentTiledImage = null;
+    var activeSourceRequest = null;
+    var viewerDisposed = false;
     resetContainer(container);
     container.classList.add('dv-active');
 
@@ -1581,13 +1583,40 @@
         pageErrorMessage = message;
       }
 
-      function showSourcePageError(data) {
-        var source = data && (data.source || data.tileSource);
-
-        if (source && sourcePageIndex(source) === null &&
-            !(source && typeof source.index === 'number')) return;
-        showPageError(data, { allowWithoutImage: true });
+      function isCurrentSourceRequest(request) {
+        return !viewerDisposed && isAttemptActive(attempt) && request &&
+          request === activeSourceRequest && request.pageIndex === activePageIndex;
       }
+
+      // OSD 5.0.1 creates fresh addTiledImage options for every sequence open
+      // and returns that same options object in metadata error events. Guard
+      // its callbacks before they can raise open/open-failed (including OSD's
+      // own error UI); a URL or page index cannot identify a repeated request.
+      var addTiledImage = viewer.addTiledImage;
+      viewer.addTiledImage = function (options) {
+        var requestOptions = Object.assign({}, options);
+        var request = {
+          options: requestOptions,
+          pageIndex: typeof viewer.currentPage === 'function' ? viewer.currentPage() : activePageIndex,
+          completed: false,
+        };
+
+        // goToPage sets currentPage before open, but raises page afterwards.
+        activePageIndex = request.pageIndex;
+        activeSourceRequest = request;
+
+        function guardCallback(callback) {
+          return function () {
+            if (!isCurrentSourceRequest(request) || request.completed) return;
+            request.completed = true;
+            if (typeof callback === 'function') return callback.apply(this, arguments);
+          };
+        }
+
+        requestOptions.success = guardCallback(options.success);
+        requestOptions.error = guardCallback(options.error);
+        return addTiledImage.call(this, requestOptions);
+      };
 
       viewer.addHandler('open', function () {
         if (!isAttemptActive(attempt)) return;
@@ -1595,13 +1624,15 @@
         settleOpen();
       });
       viewer.addHandler('open-failed', function (data) {
-        if (!isAttemptActive(attempt)) return;
+        if (!isCurrentSourceRequest(activeSourceRequest) || !data ||
+            data.options !== activeSourceRequest.options) return;
         rememberCurrentTiledImage(activePageIndex);
-        if (settled) showSourcePageError(data);
+        if (settled) showPageError({ page: activeSourceRequest.pageIndex }, { allowWithoutImage: true });
         else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
       });
       viewer.addHandler('close', function () {
         currentTiledImage = null;
+        activeSourceRequest = null;
       });
       viewer.addHandler('page', function (data) {
         if (!isAttemptActive(attempt)) return;
@@ -1629,6 +1660,8 @@
         showPageError(data);
       });
       viewer.addHandler('before-destroy', function () {
+        viewerDisposed = true;
+        activeSourceRequest = null;
         if (tileTimerId !== null) clearTimeout(tileTimerId);
       });
       registerAttemptCleanup(attempt, function () {

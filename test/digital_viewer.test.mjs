@@ -198,6 +198,71 @@ function normalize(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+// Model OSD 5.0.1's open -> addTiledImage -> options.error -> open-failed
+// boundary. Each open gets fresh options, even when the source URL repeats.
+function makeSourceOpenHarness(t, sources = ['page-a', 'page-b']) {
+  let viewer;
+  let currentImage = null;
+  let pageIndex = 0;
+  let sequence;
+  const requests = [];
+  const hooks = loadHooks({ OpenSeadragon() {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; }, setFullPage() {}, forceRedraw() {},
+      world: { getItemAt() { return currentImage; } },
+      sourceErrors: 0,
+      sourceOpens: 0,
+      currentPage() { return pageIndex; },
+      addHandler(name, handler) { (handlers[name] ||= []).push(handler); },
+      emit(name, data = {}) { (handlers[name] || []).forEach(handler => handler(data)); },
+      close() { currentImage = null; this.emit('close'); },
+      destroy() { this.emit('before-destroy'); this.close(); },
+      open(source) {
+        this.close();
+        if (Array.isArray(source)) {
+          sequence = source;
+          return this.open(sequence[pageIndex]);
+        }
+        this.addTiledImage({
+          tileSource: source,
+          success: () => { this.sourceOpens++; this.emit('open', { source }); },
+          error: data => { this.sourceErrors++; this.emit('open-failed', data); },
+        });
+        return this;
+      },
+      goToPage(index) {
+        pageIndex = index;
+        this.open(sequence[index]);
+        this.emit('page', { page: index });
+      },
+      addTiledImage(options) {
+        requests.push({
+          options,
+          fail() { options.error({ source: options.tileSource, options, message: 'TileSource failed' }); },
+          succeed() {
+            currentImage = {};
+            options.success({ item: currentImage });
+            viewer.emit('tile-ready', { tiledImage: currentImage, tile: {} });
+          },
+        });
+      },
+    };
+    return viewer;
+  } });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(container, sources.map(source => ({ tileSource: source })), {
+    loadingTimeoutMs: 1000,
+  });
+  t.after(() => viewer.destroy());
+  return { viewer, container, requests, mounting };
+}
+
 function makeInitDocument(uris = ['https://example.org/image.jpg'], leaf = false) {
   const nodes = [];
 
@@ -1050,55 +1115,97 @@ test('rapid sequence navigation ignores retired image events while the world is 
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
 
-test('page-level source failures use active page ownership without an image', async function () {
-  let viewer;
-  const pageItems = [{}, {}];
-  let currentPageItem = pageItems[0];
-  const fakeOpenSeadragon = () => {
-    const handlers = {};
-    viewer = {
-      canvas: { style: {} },
-      viewport: {
-        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
-        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
-      },
-      isFullPage() { return false; },
-      setFullPage() {},
-      forceRedraw() {},
-      world: {
-        getItemAt() { return currentPageItem; },
-      },
-      addHandler(name, handler) {
-        if (!handlers[name]) handlers[name] = [];
-        handlers[name].push(handler);
-      },
-      open() {},
-      handlers,
-    };
-    return viewer;
-  };
-  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
-  const container = hooks.makeElement('div');
-  const mounting = hooks.mountOsdViewer(container, [
-    { tileSource: 'page-a', imageUrl: 'https://example.org/page-a.jpg' },
-    { tileSource: 'page-b', imageUrl: 'https://example.org/page-b.jpg' },
-  ], { loadingTimeoutMs: 20 });
-
-  viewer.handlers.open.forEach(handler => handler());
+test('page-level source failures use active request ownership without an image', async function (t) {
+  const { viewer, container, requests, mounting } = makeSourceOpenHarness(t);
+  requests[0].succeed();
   await mounting;
-
-  currentPageItem = null;
-  viewer.handlers.close.forEach(handler => handler());
-  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
-  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'retired-page' }));
+  viewer.goToPage(1);
+  viewer.emit('open-failed', { source: 'retired-page' });
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
-  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-a' }));
+  viewer.emit('open-failed', { source: 'page-a' });
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  requests[1].fail();
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+  viewer.emit('open-failed', { source: 'page-a' });
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+});
 
-  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-b' }));
+for (const replacementOpened of [false, true]) {
+  test(`same-source retired failures are ignored ${replacementOpened ? 'after' : 'before'} replacement opens`, async function (t) {
+    const { viewer, container, requests, mounting } = makeSourceOpenHarness(t);
+    requests[0].succeed();
+    await mounting;
+    viewer.goToPage(1);
+    const retired = requests.at(-1);
+    viewer.goToPage(0);
+    viewer.goToPage(1);
+    const replacement = requests.at(-1);
+    if (replacementOpened) replacement.succeed();
+
+    retired.fail();
+    assert.equal(!!container.querySelector('.dv-tile-error-msg'), false);
+    assert.equal(viewer.sourceErrors, 0, 'stale failure must not reach OSD error rendering');
+
+    if (!replacementOpened) {
+      replacement.fail();
+      assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+      assert.equal(viewer.sourceErrors, 1);
+      retired.fail();
+      retired.options.success({ item: {} });
+      assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+      assert.equal(viewer.sourceErrors, 1);
+      assert.equal(viewer.sourceOpens, 1);
+      viewer.goToPage(1);
+      requests.at(-1).succeed();
+      assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+    }
+  });
+}
+
+test('source events without the active request identity cannot claim the active page', async function (t) {
+  const { viewer, container, requests, mounting } = makeSourceOpenHarness(t);
+  requests[0].succeed();
+  await mounting;
+  viewer.goToPage(1);
+  for (const data of [{}, { source: 'page-b' }, { source: 'page-b', options: { tileSource: 'page-b' } }]) {
+    viewer.emit('open-failed', data);
+    assert.equal(!!container.querySelector('.dv-tile-error-msg'), false);
+  }
+  requests.at(-1).fail();
   assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
-  viewer.handlers['open-failed'].forEach(handler => handler({ source: 'page-a' }));
-  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+});
+
+test('identical source URLs on different pages retain the requested page identity', async function (t) {
+  const { viewer, container, requests, mounting } = makeSourceOpenHarness(t, ['same-url', 'same-url']);
+  requests[0].succeed();
+  await mounting;
+  viewer.goToPage(1);
+  requests[1].fail();
+  assert.equal(container.querySelector('.dv-tile-error-msg')?.getAttribute('data-page-index'), '1');
+});
+
+test('saved source callbacks cannot update a closed or destroyed viewer', async function (t) {
+  const { viewer, container, requests, mounting } = makeSourceOpenHarness(t);
+  requests[0].succeed();
+  await mounting;
+  viewer.goToPage(1);
+  const retired = requests.at(-1);
+  viewer.close();
+  retired.fail();
+  retired.options.success({ item: {} });
+  assert.equal(viewer.sourceErrors, 0);
+  assert.equal(viewer.sourceOpens, 1);
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  viewer.destroy();
+  retired.fail();
+  assert.equal(viewer.sourceErrors, 0);
+});
+
+test('the current initial source failure still rejects the mount', async function (t) {
+  const { requests, mounting } = makeSourceOpenHarness(t);
+  const rejected = assert.rejects(mounting, /OSD_OPEN_FAILED/);
+  requests[0].fail();
+  await rejected;
 });
 
 test('unavailable sequence canvases show an error when their placeholders open', async function () {
