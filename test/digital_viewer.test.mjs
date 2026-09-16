@@ -572,6 +572,17 @@ test('mountOsdViewer attaches open handlers before opening without a tileSources
   await assert.rejects(mounting, /OSD_TIMEOUT/);
 });
 
+test('OSD toolbar is anchored to the image area, outside sequence navigation and thumbnails', async function (t) {
+  const { container, requests, mounting } = makeSourceOpenHarness(t);
+  requests[0].succeed();
+  await mounting;
+  assert.ok(container.querySelector('.dv-controls').parentNode === container.querySelector('.dv-osd'),
+    'toolbar must be inside the image area, not over the bottom of the whole viewer');
+  assert.equal(container.querySelector('.dv-page-nav').parentNode, container);
+  assert.equal(container.querySelector('.dv-thumbnail-carousel').parentNode, container);
+  assert.equal(container.querySelector('.dv-mode-actions').parentNode, container);
+});
+
 test('mountStaticImage waits for image load before resolving and rejects on image error', async function () {
   const hooks = loadHooks();
   const container = hooks.makeElement('div');

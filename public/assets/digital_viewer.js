@@ -1675,7 +1675,7 @@
       }
     });
 
-    addControls(container, viewer, mountOptions);
+    addControls(osdEl, viewer, mountOptions);
     addViewerModeActions(container, viewer, tileSources, mountOptions);
     if (isSequence) {
       addPageNav(container, viewer, tileSources.length, mountOptions);
