@@ -4,6 +4,50 @@
   display: none;
 }
 
+/* Stock 4.2.0 record rows need to shrink and wrap with long identifiers. */
+#main-content.objects #info_row {
+  flex-wrap: wrap;
+}
+
+#main-content.objects #info_row > .information,
+#main-content.objects .resizable-content-pane {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#main-content.objects #info_row .page_actions {
+  max-width: 100%;
+}
+
+#main-content.objects #info_row .page_actions > .d-flex {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  #main-content.objects #notes_row {
+    flex-direction: column;
+  }
+
+  /* Override inline dimensions left behind by the stock desktop resizer. */
+  #main-content.objects #notes_row > .sidebar-container,
+  #main-content.objects #notes_row > .resizable-content-pane {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    min-width: 0;
+  }
+
+  #main-content.objects #notes_row .resizable-sidebar-handle {
+    display: none;
+  }
+
+  #main-content.objects .available-digital-objects {
+    float: none;
+    width: 100%;
+    max-width: none;
+  }
+}
+
 #notes_row > .resizable-content-pane.dv-enhanced-pane {
   display: flex;
   align-items: flex-start;
@@ -115,6 +159,7 @@
 
 .digital-viewer-container .dv-controls-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -139,6 +184,7 @@
 }
 
 .digital-viewer-container .dv-ctrl-btn {
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
   position: relative;
@@ -301,7 +347,7 @@
   position: absolute;
   right: 16px;
   bottom: calc(100% - 8px);
-  width: min(100%, 300px);
+  width: min(calc(100% - 32px), 300px);
   padding: 14px;
   border-radius: 16px;
   background: rgba(246, 247, 248, 0.96);

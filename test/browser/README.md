@@ -42,3 +42,37 @@ This is a focused browser regression, **not** ASpace fixture acceptance, a hoste
 CORS/CSP check, or approval for Lyrasis deployment. On OSD upgrades, rerun it:
 request ownership depends on OSD passing each `addTiledImage` options object back
 through its metadata-error callback.
+
+## Local ASpace layout and navigation checks
+
+`local-layout.mjs` is a separate, read-only real-ASpace check. It requires the
+local records in [fixture-ledger.md](../../docs/fixture-ledger.md), working PUI
+18081/Staff 18082, and access to the approved pilot manifests/images. It does not
+create records or change configuration. Run it once per **actual ASpace** sidebar
+configuration (`left`, then `right`); changing only a DOM attribute is not a test
+of that setting. Use the parent repository's `docker/aspace/compose.qa.yml` for
+the local port/configuration override. Do not use it on hosted ASpace.
+
+```js
+import { chromium } from 'playwright';
+import { runLocalLayoutChecks, checkAssetDisabledControl } from './test/browser/local-layout.mjs';
+const browser = await chromium.launch();
+try {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  page.setDefaultTimeout(5000);
+  console.log(await runLocalLayoutChecks(page, { sidebarPosition: 'left' }));
+  console.log(await checkAssetDisabledControl(page, 'http://localhost:18081'));
+} finally {
+  await browser.close();
+}
+```
+
+The suite asserts public/staff URLs, image completion, record/viewer bounds at
+320/390/767/768/1280 pixels, both viewers on AO 4100, visible original links,
+note Enter/Space/click behavior and ARIA state, keyboard/mouse resizing followed
+by mobile reflow, viewer keyboard controls and tree selection/navigation. It
+throws on failure. The asset-disabled control **reports**, rather than fixes or
+waives, stock overflow and leaf-node 404s. Templates remain installed in that
+control; it is not a complete plugin-uninstall test. See the dated layout
+validation report for results and remaining acceptance limits.
