@@ -1399,8 +1399,12 @@
       }
 
       function getCurrentTiledImage() {
+        var tiledImage;
+
         if (!viewer.world || typeof viewer.world.getItemAt !== 'function') return null;
-        return viewer.world.getItemAt(0) || null;
+        tiledImage = viewer.world.getItemAt(0) || null;
+        if (!tiledImage) currentTiledImage = null;
+        return tiledImage;
       }
 
       function rememberCurrentTiledImage(pageIndex) {
@@ -1408,7 +1412,10 @@
         var owner;
         var changed;
 
-        if (!tiledImage) return null;
+        if (!tiledImage) {
+          currentTiledImage = null;
+          return null;
+        }
         changed = currentTiledImage !== tiledImage;
         currentTiledImage = tiledImage;
         owner = imagePageOwners.filter(function (entry) {
@@ -1439,6 +1446,7 @@
       function eventPageInfo(data) {
         var tiledImage = data && (data.tiledImage || (data.tile && data.tile.tiledImage));
         var source = data && (data.source || data.tileSource);
+        var actualCurrentTiledImage = getCurrentTiledImage();
         var owner;
         var index;
 
@@ -1449,12 +1457,12 @@
           if (owner) {
             return {
               pageIndex: owner.pageIndex,
-              current: tiledImage === currentTiledImage,
+              current: tiledImage === actualCurrentTiledImage && owner.pageIndex === activePageIndex,
               tiledImage: tiledImage,
               tile: data && data.tile,
             };
           }
-          if (tiledImage === getCurrentTiledImage()) {
+          if (tiledImage === actualCurrentTiledImage) {
             rememberCurrentTiledImage(activePageIndex);
             return {
               pageIndex: activePageIndex,
@@ -1466,20 +1474,52 @@
           return null;
         }
         if (data && typeof data.page === 'number') {
-          return { pageIndex: data.page, current: true, tile: data.tile };
+          return {
+            pageIndex: data.page,
+            current: data.page === activePageIndex && !!actualCurrentTiledImage,
+            tiledImage: actualCurrentTiledImage,
+            tile: data.tile,
+          };
         }
         if (data && data.source && typeof data.source.index === 'number') {
-          return { pageIndex: data.source.index, current: data.source.index === activePageIndex, tile: data.tile };
+          return {
+            pageIndex: data.source.index,
+            current: data.source.index === activePageIndex && !!actualCurrentTiledImage,
+            tiledImage: actualCurrentTiledImage,
+            tile: data.tile,
+          };
         }
         if (data && data.item && typeof data.item.index === 'number') {
-          return { pageIndex: data.item.index, current: data.item.index === activePageIndex, tile: data.tile };
+          return {
+            pageIndex: data.item.index,
+            current: data.item.index === activePageIndex && !!actualCurrentTiledImage,
+            tiledImage: actualCurrentTiledImage,
+            tile: data.tile,
+          };
         }
         if (data && data.item && data.item.source && typeof data.item.source.index === 'number') {
-          return { pageIndex: data.item.source.index, current: data.item.source.index === activePageIndex, tile: data.tile };
+          return {
+            pageIndex: data.item.source.index,
+            current: data.item.source.index === activePageIndex && !!actualCurrentTiledImage,
+            tiledImage: actualCurrentTiledImage,
+            tile: data.tile,
+          };
         }
         index = sourcePageIndex(source);
-        if (index !== null) return { pageIndex: index, current: index === activePageIndex, tile: data && data.tile };
-        return { pageIndex: activePageIndex, current: true, tile: data && data.tile };
+        if (index !== null) {
+          return {
+            pageIndex: index,
+            current: index === activePageIndex && !!actualCurrentTiledImage,
+            tiledImage: actualCurrentTiledImage,
+            tile: data && data.tile,
+          };
+        }
+        return {
+          pageIndex: activePageIndex,
+          current: !!actualCurrentTiledImage,
+          tiledImage: actualCurrentTiledImage,
+          tile: data && data.tile,
+        };
       }
 
       function removePageError() {
@@ -1543,6 +1583,9 @@
         rememberCurrentTiledImage(activePageIndex);
         if (settled) showPageError(data);
         else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
+      });
+      viewer.addHandler('close', function () {
+        currentTiledImage = null;
       });
       viewer.addHandler('page', function (data) {
         if (!isAttemptActive(attempt)) return;

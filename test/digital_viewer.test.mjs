@@ -743,6 +743,7 @@ test('final pending manifest shows one loading note and accepts late OSD success
   const documentStub = makeInitDocument(['https://libtools2.smith.edu/manifests/final.json']);
   let manifestResolve;
   let viewer;
+  const currentItem = {};
   const fakeOpenSeadragon = () => {
     const handlers = {};
     viewer = {
@@ -752,6 +753,7 @@ test('final pending manifest shows one loading note and accepts late OSD success
         toggleFlip() {}, setFlip() {}, getFlip() { return false; },
       },
       isFullPage() { return false; }, setFullPage() {}, forceRedraw() {},
+      world: { getItemAt() { return currentItem; } },
       addHandler(name, handler) {
         if (!handlers[name]) handlers[name] = [];
         handlers[name].push(handler);
@@ -807,6 +809,7 @@ test('mountOsdViewer advances timed-out alternatives but retains a slow final vi
   const viewers = [];
   const fakeOpenSeadragon = (options) => {
     const handlers = {};
+    const currentItem = {};
     const viewer = {
       canvas: { style: {} },
       viewport: {
@@ -821,6 +824,7 @@ test('mountOsdViewer advances timed-out alternatives but retains a slow final vi
       isFullPage() { return false; },
       setFullPage() {},
       forceRedraw() {},
+      world: { getItemAt() { return currentItem; } },
       addHandler(name, handler) {
         if (!handlers[name]) handlers[name] = [];
         handlers[name].push(handler);
@@ -862,6 +866,7 @@ test('mountOsdViewer advances timed-out alternatives but retains a slow final vi
 
 test('tile-load-failed reports the unavailable page without replacing the active viewer', async function () {
   let viewer;
+  const currentItem = {};
   const fakeOpenSeadragon = () => {
     const handlers = {};
     viewer = {
@@ -878,6 +883,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
       isFullPage() { return false; },
       setFullPage() {},
       forceRedraw() {},
+      world: { getItemAt() { return currentItem; } },
       addHandler(name, handler) {
         if (!handlers[name]) handlers[name] = [];
         handlers[name].push(handler);
@@ -969,6 +975,77 @@ test('later page failures stay page-scoped and clear after recovery', async func
   viewer.handlers['tile-ready'].forEach(handler => handler({
     tile: failedTile,
     tiledImage: pageItems[1],
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+});
+
+test('rapid sequence navigation ignores retired image events while the world is empty', async function () {
+  let viewer;
+  const originalA = {};
+  const replacementA = {};
+  let currentPageItem = originalA;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; },
+      setFullPage() {},
+      forceRedraw() {},
+      world: {
+        getItemAt() { return currentPageItem; },
+      },
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({ OpenSeadragon: fakeOpenSeadragon });
+  const container = hooks.makeElement('div');
+  const mounting = hooks.mountOsdViewer(container, [
+    { tileSource: 'page-a', imageUrl: 'https://example.org/page-a.jpg' },
+    { tileSource: 'page-b', imageUrl: 'https://example.org/page-b.jpg' },
+  ], { loadingTimeoutMs: 20 });
+
+  viewer.handlers.open.forEach(handler => handler());
+  await mounting;
+
+  currentPageItem = null;
+  viewer.handlers.close.forEach(handler => handler());
+  viewer.handlers.page.forEach(handler => handler({ page: 1 }));
+  viewer.handlers.close.forEach(handler => handler());
+  viewer.handlers.page.forEach(handler => handler({ page: 0 }));
+
+  const delayedTile = {};
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({
+    tile: delayedTile,
+    tiledImage: originalA,
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+  viewer.handlers['tile-ready'].forEach(handler => handler({
+    tile: delayedTile,
+    tiledImage: originalA,
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+
+  currentPageItem = replacementA;
+  viewer.handlers.open.forEach(handler => handler());
+  const replacementTile = {};
+  viewer.handlers['tile-load-failed'].forEach(handler => handler({
+    tile: replacementTile,
+    tiledImage: replacementA,
+  }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '0');
+  viewer.handlers['tile-ready'].forEach(handler => handler({
+    tile: replacementTile,
+    tiledImage: replacementA,
   }));
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
