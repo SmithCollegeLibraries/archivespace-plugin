@@ -1,5 +1,7 @@
 # Independent review handoff: digital_viewer staging work
 
+**Current decision record:** [local acceptance and next steps](staging-signoff-2026-09-16.md). Rob accepts the demonstrated local examples; this is not cumulative code/release acceptance or a substitute for independent validation. The guide now checks evidence-backed local criteria and leaves remaining browser, host/content, package and rollback work open. Use that checkpoint rather than restarting historical correction prompts.
+
 **Latest fixture follow-up:** [PDF/scanned-text validation](local-formats-validation-2026-09-16.md) adds real local Chrome evidence for three PDFs, six scanned pages, actual blocked-PDF fallback, linked thumbnail/out-link and separate-object isolation. Runtime is unchanged from `0c1ca14`; both guide copies now use the confirmed no-mixed-media pilot scope. The standalone guide is tracked by this checkpoint. This additional evidence still requires independent review and Rob's approval; it is not hosted or whole-matrix acceptance.
 
 **Subsequent checkpoints:** [local fixture/render validation](local-validation-2026-09-16.md) records the two integration fixes; [local URLs and layout validation](local-layout-validation-2026-09-16.md) records candidate `0c1ca14`, 40 responsive-layout checks, both actual sidebar configurations and focused notes/resize/keyboard checks. There are still 63 Node tests per copy. The exact versions and review claims below are retained for the earlier R03 scope, not silently extended to newer candidates. Neither release gate is closed.

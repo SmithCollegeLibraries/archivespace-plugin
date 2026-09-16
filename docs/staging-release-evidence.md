@@ -6,7 +6,13 @@ Current branch: `codex/lyr-05-config-assets`
 
 This file records implementation evidence for the Lyrasis staging launch task list. It does not grant Gate A or Gate B approval.
 
-Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here. Rob's acceptance and installation approval remain pending.
+Current acceptance and work queue: [sign-off checkpoint and next steps](staging-signoff-2026-09-16.md). Rob accepts the demonstrated local examples; cumulative code acceptance and Gates A/B remain open. Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here.
+
+## Local demonstration acceptance and status reconciliation — 2026-09-16
+
+After receiving the local DO/AO test links, Rob said “Great. This looks good.” Recorded as acceptance of the local examples/presentation, not a claim that Rob personally reran every automated check, signed off a hosted PDF endpoint, or approved installation. The [checkpoint](staging-signoff-2026-09-16.md) records exact accepted/open scopes, all nine LYR task dispositions, outstanding owners and NEXT-01–06 exit criteria. LYR-01's local inventory is complete; only evidenced individual local criteria are checked in both guide copies. Unfinished tests and release gates remain open rather than signed off by an agent.
+
+This reconciliation changes documentation only. Prior passing test evidence is retained at `a338829`; runtime remains `0c1ca14`. No new browser/unit run, deployment, record edit, contact with Lyrasis or security-policy change is claimed. Next local work is the remaining release matrix and package preparation; Rob can coordinate host/PDF/content answers in parallel, followed by rollback, independent review and exact-artifact Gate A approval.
 
 ## PDF/scanned-text fixture follow-up — 2026-09-16
 

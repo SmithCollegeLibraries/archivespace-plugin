@@ -2,7 +2,7 @@
 
 ArchivesSpace Public User Interface plugin for IIIF image viewing with OpenSeadragon, plus source adapters for direct files, legacy Compass and Preservica.
 
-Status: development pilot; tested locally with ArchivesSpace 4.2.0. Not yet approved for Lyrasis production. Current evidence and next tasks: `docs/lyrasis-staging-launch-task-list.md` and `docs/staging-release-evidence.md`.
+Status: local demonstration accepted by Rob on 2026-09-16; tested locally with ArchivesSpace 4.2.0. Neither the Lyrasis staging-install package nor production rollout is approved. Current sign-off and next work: [staging checkpoint](docs/staging-signoff-2026-09-16.md); detailed tasks/evidence: `docs/lyrasis-staging-launch-task-list.md` and `docs/staging-release-evidence.md`.
 
 The current staging launch inventory and evidence record are `docs/fixture-ledger.md` and `docs/staging-release-evidence.md`.
 
@@ -41,7 +41,7 @@ The tests use Node's built-in test runner and a DOM shim. They do not substitute
 
 ## Test and rollback
 
-Verify single/multipage rendering, page and thumbnail navigation, zoom, download policy, broken-source fallback and a record without digital content. Check for localhost URLs, mixed content, CSP/CORS errors and unauthenticated public access. The existing pilot matrix is incomplete for PDFs and Preservica.
+Verify single/multipage rendering, page and thumbnail navigation, zoom, download policy, broken-source fallback and a record without digital content. Check for localhost URLs, mixed content, CSP/CORS errors and unauthenticated public access. Local Chrome PDF, blocked-embedding/direct-access and scanned-text evidence is recorded; cross-browser/remaining release checks and hosted PDF policy remain open. Preservica playback is outside this converted-manifest/PDF pilot, not claimed as verified.
 
 Before installing, retain the host's current plugin/config versions. Roll back by restoring the prior plugin and config, or disabling this plugin in the enabled list, and restarting ArchivesSpace. Restore record file versions separately from saved snapshots if the pilot changes them. Rehearse this on test before production.
 

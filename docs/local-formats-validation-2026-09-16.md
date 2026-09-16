@@ -2,6 +2,8 @@
 
 Status: requested local fixture/testing subtask completed. **Not Lyrasis installation approval.** Rob remains approver; these are implementer observations, not independent review.
 
+Subsequent user acceptance: after receiving the local test URLs, Rob responded “Great. This looks good.” The demonstrated examples/presentation are accepted locally; no exhaustive user/browser test, hosted PDF-policy choice or release approval is inferred. See [the sign-off checkpoint](staging-signoff-2026-09-16.md) for completed/open tasks and next work.
+
 Runtime remains `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`, with asset digest `26102a571fd06034f4d7e68aa902535a34ff1def31a8ba8f0e82536914a947ec`. No viewer, CSS, template, backend or host-policy change was needed. New browser assertions and their README are mirrored into the parent plugin. Both copies retain 63 passing Node tests; Ruby asset-version checks and new JavaScript syntax checks pass. ASpace 4.2.0 serves the parent copy at `http://localhost:18081` with the existing left sidebar configuration.
 
 Final read-only GET/hash checks match all three served assets to disk. New browser-probe SHA-256: `46d01ccfdde1e4222b92972cda7df4c399b0c534cb6c345ed568676de9d18709`. Full `public/`, `frontend/` and `test/` directory comparisons pass between copies, as does guide parity. Final API readbacks verify all twelve fixture identities, the original resource's nine children, and unchanged File Versions on pilots 863/864/867/869. Local `readbacks.json` records these checks without session credentials.

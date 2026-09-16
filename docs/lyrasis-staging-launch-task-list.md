@@ -1,13 +1,13 @@
 # digital_viewer: Lyrasis staging launch task list
 
 Date: 2026-09-16\
-Status: Scope/evidence update v5; staging candidate remains IN PROGRESS, with no release acceptance.\
+Status: Checkpoint reconciliation v6; Rob accepts the local demonstration, while release Gates A/B remain OPEN.\
 Approver for all decisions and gates: Rob O'Connell.\
 Reviewer of record: Claude, validating claims and evidence.\
 Historical correction assignee: luna-high; subsequent implementation and fixture evidence is recorded in the linked reports.\
 Product: ArchivesSpace PUI plugin `digital_viewer`, targeting ArchivesSpace 4.2.0.
 
-Current continuation: runtime `0c1ca14` and the subsequent local PDF/scanned-text evidence supersede the missing-fixture statements in historical checkpoints below. Consult standalone `docs/fixture-ledger.md` and `docs/local-formats-validation-2026-09-16.md`; do not restart completed R01–R06 work. Rob's Special Collections clarification limits pilot object types to an image sequence, a single image, or a PDF, with no mixed-media requirement.
+Current continuation: Rob accepted the demonstrated local examples on 2026-09-16. The current disposition and ordered NEXT-01–06 work are in standalone `docs/staging-signoff-2026-09-16.md`. Runtime remains `0c1ca14`, with fixture evidence at `a338829`. Do not restart completed R01–R06 fixes or recreate accepted fixtures. Checked items below mean the stated local criterion has evidence, not full-task, independent-review or release approval. Historical checkpoints/prompts are retained as history; current work follows the sign-off checkpoint. Rob's Special Collections clarification limits pilot object types to an image sequence, a single image, or a PDF, with no mixed-media requirement.
 
 Historical correction handoff: [Correction handoff — resume here](#correction-handoff--resume-here). This revision turns the six findings from the review of `af7b2834b97f5af6eb4e12a24756feeb86c3afab` into implementable corrections; it does not ask the assignee to restart completed work from the original baseline. The parent copy at `docs/lyrasis-staging-launch-task-list.md` is the source guide; keep the same-named standalone copy synchronized for handoff.
 
@@ -246,11 +246,11 @@ Work:
 
 Acceptance:
 
-- [ ] Baseline results and exact source commits are recorded.
-- [ ] Fixture ledger distinguishes historical user confirmation from fresh observations.
-- [ ] All four pilots have a current linked-Archival-Object mapping or a documented absence plus created local fixture. Both page types are in the browser ledger, and a two-object Archival Object is available.
-- [ ] Existing Docker volumes and record data are preserved; no upgrade or volume deletion is required.
-- [ ] Fixture setup is repeatable and contains no credentials or restricted URLs.
+- [x] Baseline results and exact source commits are recorded.
+- [x] Fixture ledger distinguishes historical user confirmation from fresh observations.
+- [x] All four pilots have a current linked-Archival-Object mapping or a documented absence plus created local fixture. Both page types are in the browser ledger, and a two-object Archival Object is available.
+- [x] Existing Docker volumes and record data are preserved; no upgrade or volume deletion is required.
+- [x] Fixture setup is repeatable and contains no credentials or restricted URLs.
 
 Use September pilot evidence for current fixture identities. The older parent `docs/test-instance-validation-checklist.md` contains stale IDs/page counts and a credential-printing example; do not reuse its commands as the release procedure.
 
@@ -271,12 +271,12 @@ Work:
 
 Acceptance and edge cases:
 
-- [ ] Digital Objects with/without children and Archival Object pages render on actual 4.2.0 without template errors.
-- [ ] Both configured sidebar positions work; mouse and keyboard resizing work where upstream supports them.
-- [ ] Long notes expand/collapse with keyboard and mouse; ARIA state updates correctly.
-- [ ] No-content and unsupported-source pages preserve normal navigation and metadata.
-- [ ] Desktop/narrow layouts have no overlapping viewer, sidebar or page actions.
-- [ ] Evidence includes an ordinary archival page, not just Digital Object fixtures.
+- [x] Digital Objects with/without children and Archival Object pages render on actual 4.2.0 without template errors.
+- [x] Both configured sidebar positions work; mouse and keyboard resizing work where upstream supports them.
+- [x] Long notes expand/collapse with keyboard and mouse; ARIA state updates correctly.
+- [x] No-content and unsupported-source pages preserve normal navigation and metadata.
+- [x] Desktop/narrow layouts have no overlapping viewer, sidebar or page actions.
+- [x] Evidence includes an ordinary archival page, not just Digital Object fixtures.
 - [ ] The candidate package contains no `public/views/objects/show.html.erb`; actual rendered pages retain upstream 4.2.0 hooks. A missing expected pane triggers the documented inline fallback without corrupting the page.
 
 ### LYR-03 — Preserve original links and object identity
@@ -311,10 +311,10 @@ Acceptance and edge cases:
 
 - [ ] Unsupported URL, JavaScript disabled, missing OSD, unavailable config and all-source failure each retain a usable original link.
 - [ ] Representative thumbnail only, thumbnail plus link, external link, missing caption and empty digital list render sensibly.
-- [ ] Own-record and linked-instance producers, record-innards links, and both digital-partial branches are tested. A fixture with a representative version and zero external-link-class anchors still detects its renderable representative anchor; a thumbnail-only representative remains visible, and figcaption browse links are excluded.
-- [ ] Two archival entries remain separately accessible; a separately linked PDF gets its own viewer/direct link and never becomes the image object's download. Existing companion-policy unit tests remain regression coverage, not a mandatory mixed-media pilot fixture.
-- [ ] Repeated anchors do not duplicate mounts or remove another object's access links.
-- [ ] Unpublished file versions are not introduced; plugin download controls do not substitute for server authorization.
+- [x] Own-record and linked-instance producers, record-innards links, and both digital-partial branches are tested. A fixture with a representative version and zero external-link-class anchors still detects its renderable representative anchor; a thumbnail-only representative remains visible, and figcaption browse links are excluded.
+- [x] Two archival entries remain separately accessible; a separately linked PDF gets its own viewer/direct link and never becomes the image object's download. Existing companion-policy unit tests remain regression coverage, not a mandatory mixed-media pilot fixture.
+- [x] Repeated anchors do not duplicate mounts or remove another object's access links.
+- [x] Unpublished file versions are not introduced; plugin download controls do not substitute for server authorization.
 - [ ] Tests assert visible links during initial loading, success and terminal failure.
 
 ### LYR-04 — Complete image loading and fallback lifecycle
@@ -383,7 +383,7 @@ Acceptance and edge cases:
 - [ ] Assets work under both tested path shapes, load each library once and leave Staff UI usable.
 - [ ] One authoritative asset set exists; standalone and Docker copies match.
 - [ ] CSS-only update, normal update and rollback invalidate caches correctly.
-- [ ] README documents exact tested configuration, precedence, empty values, directory name `digital_viewer` and ASpace version.
+- [x] README documents exact tested configuration, precedence, empty values, directory name `digital_viewer` and ASpace version.
 
 Keep detector ordering and source conventions intact. If a source classification change is necessary, locate the parent's `ArchivesSpaceService::extractDigitalObjects()` and keep both detectors consistent under AGENTS.md. Configuration cleanup alone does not justify adding a source type.
 
@@ -434,7 +434,7 @@ Use identical candidate runtime bytes in Docker and the standalone checkout. Com
 Acceptance:
 
 - [ ] Node, asset-version behavioral tests, JavaScript syntax, Ruby syntax, ERB compilation, actual 4.2.0 startup, Rails render and browser checks are each recorded separately; LYR-R01–R06 have persistent regression tests and before/after evidence.
-- [ ] Browser observations include versions, candidate commit and screenshots or console/network evidence.
+- [x] Browser observations include versions, candidate commit and screenshots or console/network evidence.
 - [ ] Primary journey works in Chrome, Firefox and Safari; keyboard/narrow-layout checks cover changed pages/controls. Use actual Safari for Safari sign-off.
 - [ ] Fresh navigation and cached repeats cover first image, middle/last page and page-mode download; record timings. Call a run cold only when cache state is known. Do not clear a shared image cache to manufacture a benchmark.
 - [ ] No unexplained console errors, accidental local-service requests, metadata loss, inaccessible original links or unexpected request fan-out.
@@ -570,7 +570,8 @@ Rob approver / date / decision / accepted scope:
 
 | Decision | Reviewer / evidence providers | Approver | Required basis | Status |
 | --- | --- | --- | --- | --- |
-| Specification/layout ready for implementation | Claude validates the plan | Rob | Dependencies, chosen JS/CSS layout, failure semantics and edge cases | OPEN |
+| Demonstrated local examples/presentation | Implementer evidence; Rob's local feedback | Rob | Response after local test URLs; no per-browser or exhaustive user test claimed | ACCEPTED 2026-09-16; local scope only |
+| Specification/layout ready for implementation | Claude validates the plan | Rob | Dependencies, chosen JS/CSS layout, failure semantics and edge cases | Full specification review OPEN; local presentation accepted above |
 | Code accepted | Claude validates implementation claims | Rob | Diff, tests, stock-page/partial comparison and local browser evidence | OPEN |
 | Host/config agreement | Lyrasis provides facts; Claude checks supporting evidence | Rob | Exact PUI/config/prefix/CSP/install/rollback answers | OPEN |
 | Public-content boundary | Special Collections and ITS provide content/service evidence | Rob | Reviewed fixtures and restricted-access/cache evidence | OPEN |

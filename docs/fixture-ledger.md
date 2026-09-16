@@ -1,6 +1,6 @@
 # Lyrasis staging fixture ledger
 
-Updated: 2026-09-16. Local fixture/render subtask completed with limitations below; full LYR-01/06 acceptance and both release gates remain OPEN.
+Updated: 2026-09-16. LYR-01 local baseline/fixture inventory is complete. Rob accepts the demonstrated local examples/presentation; LYR-06's full release matrix and both release gates remain OPEN. See [scoped sign-off and remaining tasks](staging-signoff-2026-09-16.md); local acceptance is not hosted/content-security approval.
 
 Current runtime candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`, unchanged by the latest testing. [Latest PDF/scanned-text evidence and reproduction](local-formats-validation-2026-09-16.md); [format observations](evidence/local-formats-2026-09-16.json). [Local URL/layout evidence](local-layout-validation-2026-09-16.md) and [earlier fixture creation](local-validation-2026-09-16.md) remain historical checkpoints. The format follow-up adds a separate collection; it does not modify prior fixture records.
 
