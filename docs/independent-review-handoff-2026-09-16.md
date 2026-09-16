@@ -1,5 +1,7 @@
 # Independent review handoff: digital_viewer staging work
 
+**Latest fixture follow-up:** [PDF/scanned-text validation](local-formats-validation-2026-09-16.md) adds real local Chrome evidence for three PDFs, six scanned pages, actual blocked-PDF fallback, linked thumbnail/out-link and separate-object isolation. Runtime is unchanged from `0c1ca14`; both guide copies now use the confirmed no-mixed-media pilot scope. The standalone guide is tracked by this checkpoint. This additional evidence still requires independent review and Rob's approval; it is not hosted or whole-matrix acceptance.
+
 **Subsequent checkpoints:** [local fixture/render validation](local-validation-2026-09-16.md) records the two integration fixes; [local URLs and layout validation](local-layout-validation-2026-09-16.md) records candidate `0c1ca14`, 40 responsive-layout checks, both actual sidebar configurations and focused notes/resize/keyboard checks. There are still 63 Node tests per copy. The exact versions and review claims below are retained for the earlier R03 scope, not silently extended to newer candidates. Neither release gate is closed.
 
 Prepared: 2026-09-16. Product: ArchivesSpace PUI plugin `digital_viewer`; target ASpace 4.2.0.
@@ -27,7 +29,7 @@ Return a separate conclusion for each scope:
 
 The documentation commit containing this packet does not change runtime bytes. Use the immutable commits, not a moving branch name. They were verified locally; availability on GitHub was not checked and no push was performed for this handoff.
 
-The parent copy is byte-identical but uncommitted; its Git index is read-only in this workspace. Do not reset either worktree or alter permissions. The standalone `docs/lyrasis-staging-launch-task-list.md` is currently **untracked**, so `git archive` does not include it. Do not assume the README's guide reference works in a fresh checkout/package. This packet supplies the focused review criteria without depending on that file.
+The parent copy is byte-identical but uncommitted; its Git index is read-only in this workspace. Do not reset either worktree or alter permissions. At this earlier R03 checkpoint, the standalone guide was untracked and omitted by `git archive`. The PDF/scanned-text follow-up tracks it; final archive extraction/installation checks remain required. This packet supplies the focused R03 review criteria independently of that guide.
 
 ## 2. Work completed
 

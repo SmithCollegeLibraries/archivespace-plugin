@@ -2,7 +2,7 @@
 
 Updated: 2026-09-16. Local fixture/render subtask completed with limitations below; full LYR-01/06 acceptance and both release gates remain OPEN.
 
-Current candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`. [Latest local URL/layout evidence and reproduction](local-layout-validation-2026-09-16.md); [latest machine-readable observations](evidence/local-layout-2026-09-16.json). [Earlier fixture-creation evidence](local-validation-2026-09-16.md) is retained as a historical checkpoint. No fixture records changed during the URL/layout follow-up.
+Current runtime candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`, unchanged by the latest testing. [Latest PDF/scanned-text evidence and reproduction](local-formats-validation-2026-09-16.md); [format observations](evidence/local-formats-2026-09-16.json). [Local URL/layout evidence](local-layout-validation-2026-09-16.md) and [earlier fixture creation](local-validation-2026-09-16.md) remain historical checkpoints. The format follow-up adds a separate collection; it does not modify prior fixture records.
 
 ## Environment and scope
 
@@ -10,7 +10,22 @@ ArchivesSpace 4.2.0 image `sha256:7bd8aa78412715044df84450bf3925b4e8a36a55fe5a11
 
 Parent `plugins/` is the live mount; `docker/aspace/config.rb` enables `digital_viewer`. Parent plugin bytes match the standalone copy, but the parent Git index is read-only for this session. The current suite has 63 passing Node tests in each copy, not the historical 39/60 counts.
 
-All records below are in LOCAL repository 2. No hosted record IDs are inferred. Sixteen labeled QA records were created: one resource, nine Archival Objects, five Digital Objects and one component. The four original pilots' File Versions were verified byte-equivalent to their pre-fixture JSON values. Only new AO backlinks were added through the new instances. No existing pilot was posted/updated.
+All records below are in LOCAL repository 2. No hosted record IDs are inferred. The initial checkpoint created sixteen labeled QA records: one resource, nine Archival Objects, five Digital Objects and one component. The four original pilots' File Versions were verified byte-equivalent to their pre-fixture JSON values. Only new AO backlinks were added through the new instances. No existing pilot was posted/updated. The format follow-up adds twelve records, listed separately below.
+
+## PDF and scanned-text additions — 2026-09-16
+
+Special Collections confirms image sequences, single images or PDFs, with no mixed-media pilot requirement. The PDFs are unmodified local copies of Rob's examples, not fabricated historical content. All new records have `LOCAL ONLY` titles and `dv-format-20260916` identifiers, under resource **3**. Resource 2 retains its original nine Archival Objects.
+
+| Digital Object / Archival Object | Source / expected behavior | Fresh local observation |
+| --- | --- | --- |
+| 875 / 4105 | Having Our Say, 35-page PDF | Native Chrome PDF renders; first/last/first scroll and original/direct links pass at 1280/390px |
+| 876 / 4106 | What It Is, May 1973, 1-page PDF | Native Chrome PDF renders and links remain visible at 1280/390px; original links also usable without JavaScript |
+| 877 / 4107 | What It Is, July 1973, 4-page PDF | Native Chrome PDF renders; first/last/first scroll and links pass at 1280/390px |
+| 878 / 4108 | May PDF from original Compass file URL | Real SAMEORIGIN embed refusal; keyboard `Open PDF` opens a new tab that renders the document |
+| 879 / 4109 | 20/20, 1983: six scanned pages, linked stored thumbnail | All six viewport images/thumbnail loads and ordered navigation pass on both page types at 1280/390px; zoom and page-6 download targeting pass; AO confirms thumbnail-plus-out-link branch |
+| — / 4110 | Separate DOs 879 (images) and 877 (PDF) | Two independent groups/viewers; no neighbor PDF attached to image viewer; both fit at 1280/390px |
+
+Exact public-source provenance, immutable PDF hashes, local payload/returned-ID files and a reproducible browser probe are in [the format report](local-formats-validation-2026-09-16.md). Parent-only fixture server: `http://localhost:18090`, bound to loopback. Never copy those URLs into staging. The report distinguishes local embedding success from an approved hosted PDF endpoint, which remains open.
 
 ## Pilot mapping — fresh API and browser observations
 
@@ -29,7 +44,7 @@ All four had `linked_instances: []` immediately before creation. All eight pages
 
 | Fixture / PUI path | Source contract and observed behavior | Remaining qualification |
 | --- | --- | --- |
-| `archival_objects/4100` | Two linked objects: 869 and 863. Two distinct `digital-0/1` groups, viewers with 1/77 pages; original links visible. Correct link/viewer/link/viewer order after fix `5621241`. | Second object's PDF isolation still needs an approved PDF fixture. |
+| `archival_objects/4100` | Two linked objects: 869 and 863. Two distinct `digital-0/1` groups, viewers with 1/77 pages; original links visible. Correct link/viewer/link/viewer order after fix `5621241`. | Separate-object PDF isolation now checked by AO 4110; this original fixture is unchanged. |
 | `archival_objects/4101` | No digital instances; no viewer/leaf column. Published synthetic long scope/content note. Enter/Space/click and ARIA state pass, as do mouse/keyboard resizing and subsequent mobile reflow, on both actual sidebar configurations. | Focused Chrome checks, not full accessibility acceptance. |
 | `digital_objects/870` | Published child component `digital_object_components/1`; rendered context reports children=true; inline viewer, no leaf column. Parent-to-child navigation and child current-node highlight pass on both sidebar sides. | Full tree accessibility/cross-browser audit not run; stock leaf 404 remains. |
 | `digital_objects/871` | Representative thumbnail followed by SIA manifest. Zero external-link-class anchors. Representative anchor and additional File Version point to manifest; one viewer, thumbnail retained. | Confirms own-record representative branch. |
@@ -37,7 +52,7 @@ All four had `linked_instances: []` immediately before creation. All eight pages
 | `archival_objects/4102` | Representative instance links DO 871. ASpace's derived_from yields a link to DO 871, **not** the manifest. Thumbnail and record link retained; no viewer expected here. | Do not misreport this as a failed manifest scan. |
 | `archival_objects/4103` | Non-representative instance of thumbnail-only DO 872. Entry-list branch preserves unlinked thumbnail; no viewer. | Confirms linked-instance thumb-only branch. |
 | `digital_objects/873`, `archival_objects/4104` | Published unsupported `https://example.invalid/digital-viewer-qa/not-an-image` link preserved; no viewer or empty leaf column. | Reserved invalid host deliberately not fetched. |
-| `digital_objects/874` | Six-version alternatives fixture: four unpublished sentinels, published thumbnail, published 77-view manifest. One viewer; unpublished sentinels absent from server HTML. | Preserves the historical 863 snapshot's order/publication/protocol shape; not its private URLs. No companion PDF yet. |
+| `digital_objects/874` | Six-version alternatives fixture: four unpublished sentinels, published thumbnail, published 77-view manifest. One viewer; unpublished sentinels absent from server HTML. | Preserves the historical 863 snapshot's order/publication/protocol shape; not its private URLs. A mixed-media companion fixture is not required. |
 | `resources/2` | Isolated QA collection owning the nine new Archival Objects. | Resource PUI page itself NOT included in the 18-page smoke result. |
 
 Image/thumbnail fixture source: approved SIA image service, `https://digital.smith.edu/iiif/2/2023-01%2FSIA-SIA_000095_B41_F19_001r01.tif/full/512,/0/default.jpg`. It loaded in Chrome. This does not prove the restricted-content boundary.
@@ -70,7 +85,7 @@ Nothing was deleted or rolled back in this session. To retire fixtures, identify
 
 ## Gaps still open
 
-- Approved public PDF and its owner/object association: direct PDF, image-plus-PDF, second-object PDF isolation. Rob was asked; no new content approval assumed.
+- Local PDF and separate-object isolation fixtures now pass within the format report's scope. Hosted PDF endpoint/frame-policy approval remains open; mixed-media objects are outside the confirmed pilot scope.
 - Local origins and focused narrow/sidebar/notes/resize checks now pass as documented above. Stock leaf tree 404s remain and are explained by installed 4.2.0 code; tree selection/navigation work. This does not close the full M04/M18 or clean-console gates.
-- Linked thumbnail-plus-out-link entry branch (distinct from representative and thumbnail-only branches), complete accessibility/Tab-order, Safari/Firefox, full download/failure matrix, rollback and archive acceptance remain pending.
+- Linked thumbnail-plus-out-link now passes locally on AO 4109. Complete accessibility/Tab-order, Safari/Firefox, full download/failure matrix, rollback and archive acceptance remain pending.
 - Lyrasis origin/config/CSP/operations, hosted CORS, restricted-content evidence, content review and Rob's release approval remain open.

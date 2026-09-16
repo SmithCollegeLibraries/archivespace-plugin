@@ -1,0 +1,291 @@
+[
+  {
+    "key": "resource",
+    "path": "resources",
+    "record": {
+      "jsonmodel_type": "resource",
+      "title": "LOCAL ONLY digital_viewer PDF and scanned-text fixtures 2026-09-16",
+      "id_0": "dv-format-20260916",
+      "level": "collection",
+      "publish": true,
+      "dates": [
+        {
+          "jsonmodel_type": "date",
+          "date_type": "single",
+          "label": "creation",
+          "expression": "2026-09-16"
+        }
+      ],
+      "extents": [
+        {
+          "jsonmodel_type": "extent",
+          "portion": "whole",
+          "number": "1",
+          "extent_type": "items"
+        }
+      ],
+      "lang_materials": [
+        {
+          "jsonmodel_type": "lang_material",
+          "language_and_script": {
+            "jsonmodel_type": "language_and_script",
+            "language": "eng",
+            "script": "Latn"
+          }
+        }
+      ],
+      "finding_aid_language": "eng",
+      "finding_aid_script": "Latn"
+    }
+  },
+  {
+    "key": "pdf-35",
+    "path": "digital_objects",
+    "record": {
+      "jsonmodel_type": "digital_object",
+      "digital_object_id": "dv-format-20260916-pdf-35",
+      "title": "LOCAL ONLY QA — Having Our Say — 35-page local PDF",
+      "publish": true,
+      "file_versions": [
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "http://localhost:18090/pdfs/having-our-say.pdf",
+          "publish": true,
+          "is_representative": false
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-1",
+    "path": "digital_objects",
+    "record": {
+      "jsonmodel_type": "digital_object",
+      "digital_object_id": "dv-format-20260916-pdf-1",
+      "title": "LOCAL ONLY QA — What It Is, May 1973 — 1-page local PDF",
+      "publish": true,
+      "file_versions": [
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+          "publish": true,
+          "is_representative": false
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-4",
+    "path": "digital_objects",
+    "record": {
+      "jsonmodel_type": "digital_object",
+      "digital_object_id": "dv-format-20260916-pdf-4",
+      "title": "LOCAL ONLY QA — What It Is, July 1973 — 4-page local PDF",
+      "publish": true,
+      "file_versions": [
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+          "publish": true,
+          "is_representative": false
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-blocked",
+    "path": "digital_objects",
+    "record": {
+      "jsonmodel_type": "digital_object",
+      "digital_object_id": "dv-format-20260916-pdf-blocked",
+      "title": "LOCAL ONLY QA — What It Is, May 1973 — Compass SAMEORIGIN fallback",
+      "publish": true,
+      "file_versions": [
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+          "publish": true,
+          "is_representative": false
+        }
+      ]
+    }
+  },
+  {
+    "key": "text-6",
+    "path": "digital_objects",
+    "record": {
+      "jsonmodel_type": "digital_object",
+      "digital_object_id": "dv-format-20260916-text-6",
+      "title": "LOCAL ONLY QA — 20/20, 1983 — six scanned pages with linked thumbnail",
+      "publish": true,
+      "file_versions": [
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373240.jpg",
+          "publish": true,
+          "use_statement": "image-thumbnail",
+          "xlink_show_attribute": "embed",
+          "is_representative": false
+        },
+        {
+          "jsonmodel_type": "file_version",
+          "file_uri": "http://localhost:18090/manifests/20-20-1983.json",
+          "publish": true,
+          "is_representative": false
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-35-ao",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-pdf-35-ao",
+      "title": "LOCAL ONLY QA — pdf-35-ao",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$pdf-35"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-1-ao",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-pdf-1-ao",
+      "title": "LOCAL ONLY QA — pdf-1-ao",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$pdf-1"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-4-ao",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-pdf-4-ao",
+      "title": "LOCAL ONLY QA — pdf-4-ao",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$pdf-4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "key": "pdf-blocked-ao",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-pdf-blocked-ao",
+      "title": "LOCAL ONLY QA — pdf-blocked-ao",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$pdf-blocked"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "key": "text-6-ao",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-text-6-ao",
+      "title": "LOCAL ONLY QA — text-6-ao",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$text-6"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "key": "separate-image-and-pdf",
+    "path": "archival_objects",
+    "record": {
+      "jsonmodel_type": "archival_object",
+      "ref_id": "dv-format-20260916-separate-image-and-pdf",
+      "title": "LOCAL ONLY QA — separate-image-and-pdf",
+      "publish": true,
+      "level": "item",
+      "resource": {
+        "ref": "$resource"
+      },
+      "instances": [
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$text-6"
+          }
+        },
+        {
+          "jsonmodel_type": "instance",
+          "instance_type": "digital_object",
+          "is_representative": false,
+          "digital_object": {
+            "ref": "$pdf-4"
+          }
+        }
+      ]
+    }
+  }
+]

@@ -78,3 +78,48 @@ throws on failure. The asset-disabled control **reports**, rather than fixes or
 waives, stock overflow and leaf-node 404s. Templates remain installed in that
 control; it is not a complete plugin-uninstall test. See the dated layout
 validation report for results and remaining acceptance limits.
+
+
+## Local PDF and scanned-text checks
+
+`local-formats.mjs` is a read-only test of **this local fixture database**, not a
+record installer. It requires ASpace PUI 18081 and the loopback fixture server
+18090 described in standalone `docs/local-formats-validation-2026-09-16.md`
+(parent location: `exports/archivespace-plugin-repository/docs/`). Verify local
+IDs/identifiers before running; do not point it at hosted ASpace. PDFs and
+screenshots remain parent-only test data, outside the plugin package.
+
+Use installed Chrome: the native-PDF assertions inspect its extension frame,
+load progress and page count, then use real wheel scrolling. Other browsers need
+separate validation. An iframe load event is not used as PDF success evidence.
+
+```js
+import { chromium } from 'playwright';
+import {
+  runPdfChecks, runBlockedPdfChecks, runScannedTextChecks, runSeparateObjectCheck,
+} from './test/browser/local-formats.mjs';
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  page.setDefaultTimeout(7000);
+  console.log(await runPdfChecks(page));
+  console.log(await runBlockedPdfChecks(page));
+  console.log(await runScannedTextChecks(page));
+  console.log(await runSeparateObjectCheck(page));
+} finally {
+  await browser.close();
+}
+```
+
+The first three functions accept optional `{ screenshotDir: '/existing/path' }`.
+Assertions cover correct PDF source/pages, first/last scrolling, original and
+fallback links, real Compass SAMEORIGIN refusal plus keyboard direct access,
+six-page order/viewport image completion, thumbnails, zoom, page-mode download
+targeting, desktop/narrow bounds, linked-thumbnail scanning and separate-object
+isolation. The blocked case deliberately fails if Compass changes its policy;
+reassess the observation instead of forcing the old expectation. Fixture content
+can also change upstream; compare the report's dated fingerprints.
+
+No full-resolution download completion, full accessibility/cross-browser audit,
+hosted policy, restricted-content boundary or release approval is implied.

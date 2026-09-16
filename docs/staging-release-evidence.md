@@ -8,6 +8,14 @@ This file records implementation evidence for the Lyrasis staging launch task li
 
 Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here. Rob's acceptance and installation approval remain pending.
 
+## PDF/scanned-text fixture follow-up — 2026-09-16
+
+Runtime remains `0c1ca14`; no production-code fix was needed. See [format validation, exact fixture IDs, hashes, reproducibility and limitations](local-formats-validation-2026-09-16.md) and [raw results](evidence/local-formats-2026-09-16.json). Twelve labeled local records in a separate collection cover Rob's three PDFs (1/4/35 pages), six scanned-text images, actual Compass SAMEORIGIN failure/direct access, linked thumbnail/out-link and isolation of a separate PDF object. PDFs pass 12 DO/AO/viewport rows; scanned text passes four; two blocked-embed cases and separate-object checks pass. No-JavaScript original PDF links also pass.
+
+Both guide copies now reflect Special Collections' no-mixed-media pilot scope; companion-policy unit tests remain intact. The standalone guide is included in this checkpoint's commit, resolving its prior untracked-file omission. New browser probe/README are mirrored; both copies pass 63 Node tests, Ruby asset-version checks and JavaScript syntax. Runtime digest stays `26102a571fd06034f4d7e68aa902535a34ff1def31a8ba8f0e82536914a947ec`.
+
+These are Chrome/local observations, not hosted approval. The PDF success fixtures use loopback file serving, while the original Compass PDF intentionally demonstrates blocked embedding. An approved durable hosted PDF endpoint/policy, full remaining browser matrix, host/content, extracted-package/notice and rollback checks remain open. No hosted publication, policy change, push or parent Git-index write occurred. Historical sections below retain their original counts and then-open gaps.
+
 ## Local URL/layout follow-up — 2026-09-16
 
 Current candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5` (following `fe02937`). Plugin runtime changes are CSS only; parent-only Compose changes correct browser-facing local origins and provide the reusable QA port/sidebar override. See [exact scope, regression evidence, fingerprints and reproduction](local-layout-validation-2026-09-16.md) and [raw observations](evidence/local-layout-2026-09-16.json).

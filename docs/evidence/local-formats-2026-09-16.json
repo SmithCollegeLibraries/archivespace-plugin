@@ -1,0 +1,1008 @@
+{
+  "date": "2026-09-16",
+  "scope": "LOCAL ASpace 4.2.0 only; implementer observations, not release approval",
+  "runtimeCommit": "0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5",
+  "browserProbeSha256": "46d01ccfdde1e4222b92972cda7df4c399b0c534cb6c345ed568676de9d18709",
+  "unchangedPilotFileVersions": [863, 864, 867, 869],
+  "originalFixtureCollectionChildCount": 9,
+  "assetDigest": "26102a571fd06034f4d7e68aa902535a34ff1def31a8ba8f0e82536914a947ec",
+  "puiOrigin": "http://localhost:18081",
+  "fixtureOrigin": "http://localhost:18090",
+  "records": {
+    "complete": true,
+    "created": [
+      {
+        "key": "resource",
+        "status": "Created",
+        "id": 3,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/resources/3",
+        "warnings": []
+      },
+      {
+        "key": "pdf-35",
+        "status": "Created",
+        "id": 875,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/digital_objects/875",
+        "warnings": []
+      },
+      {
+        "key": "pdf-1",
+        "status": "Created",
+        "id": 876,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/digital_objects/876",
+        "warnings": []
+      },
+      {
+        "key": "pdf-4",
+        "status": "Created",
+        "id": 877,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/digital_objects/877",
+        "warnings": []
+      },
+      {
+        "key": "pdf-blocked",
+        "status": "Created",
+        "id": 878,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/digital_objects/878",
+        "warnings": []
+      },
+      {
+        "key": "text-6",
+        "status": "Created",
+        "id": 879,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/digital_objects/879",
+        "warnings": []
+      },
+      {
+        "key": "pdf-35-ao",
+        "status": "Created",
+        "id": 4105,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4105",
+        "warnings": []
+      },
+      {
+        "key": "pdf-1-ao",
+        "status": "Created",
+        "id": 4106,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4106",
+        "warnings": []
+      },
+      {
+        "key": "pdf-4-ao",
+        "status": "Created",
+        "id": 4107,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4107",
+        "warnings": []
+      },
+      {
+        "key": "pdf-blocked-ao",
+        "status": "Created",
+        "id": 4108,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4108",
+        "warnings": []
+      },
+      {
+        "key": "text-6-ao",
+        "status": "Created",
+        "id": 4109,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4109",
+        "warnings": []
+      },
+      {
+        "key": "separate-image-and-pdf",
+        "status": "Created",
+        "id": 4110,
+        "lock_version": 0,
+        "stale": true,
+        "uri": "/repositories/2/archival_objects/4110",
+        "warnings": []
+      }
+    ]
+  },
+  "pdfs": [
+    {
+      "path": "/digital_objects/875",
+      "width": 1280,
+      "pdf": {
+        "pages": 35,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 573.953125,
+            "right": 932.5,
+            "width": 358.546875
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/digital_objects/875",
+      "width": 390,
+      "pdf": {
+        "pages": 35,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4105",
+      "width": 1280,
+      "pdf": {
+        "pages": 35,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4105",
+      "width": 390,
+      "pdf": {
+        "pages": 35,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/digital_objects/876",
+      "width": 1280,
+      "pdf": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 573.953125,
+            "right": 932.5,
+            "width": 358.546875
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/digital_objects/876",
+      "width": 390,
+      "pdf": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4106",
+      "width": 1280,
+      "pdf": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4106",
+      "width": 390,
+      "pdf": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/digital_objects/877",
+      "width": 1280,
+      "pdf": {
+        "pages": 4,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 573.953125,
+            "right": 932.5,
+            "width": 358.546875
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/digital_objects/877",
+      "width": 390,
+      "pdf": {
+        "pages": 4,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4107",
+      "width": 1280,
+      "pdf": {
+        "pages": 4,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "/archival_objects/4107",
+      "width": 390,
+      "pdf": {
+        "pages": 4,
+        "loadProgress": 100,
+        "firstLastNavigation": true
+      },
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    }
+  ],
+  "blockedPdfs": [
+    {
+      "path": "digital_objects/878",
+      "frameRefusal": true,
+      "keyboardDirectAccess": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 573.953125,
+            "right": 932.5,
+            "width": 358.546875
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "archival_objects/4108",
+      "frameRefusal": true,
+      "keyboardDirectAccess": {
+        "pages": 1,
+        "loadProgress": 100,
+        "firstLastNavigation": false
+      },
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    }
+  ],
+  "scannedText": [
+    {
+      "path": "digital_objects/879",
+      "width": 1280,
+      "pages": [
+        {
+          "page": 1,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 2,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 3,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 4,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 5,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 6,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+          "fullyLoaded": true
+        }
+      ],
+      "thumbnails": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "compassRequests": 0,
+      "tileResponses": 24,
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 573.953125,
+            "right": 932.5,
+            "width": 358.546875
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          },
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "digital_objects/879",
+      "width": 390,
+      "pages": [
+        {
+          "page": 1,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 2,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 3,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 4,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 5,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 6,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+          "fullyLoaded": true
+        }
+      ],
+      "thumbnails": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "compassRequests": 0,
+      "tileResponses": 26,
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          },
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    },
+    {
+      "path": "archival_objects/4109",
+      "width": 1280,
+      "pages": [
+        {
+          "page": 1,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 2,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 3,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 4,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 5,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 6,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+          "fullyLoaded": true
+        }
+      ],
+      "thumbnails": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "compassRequests": 0,
+      "tileResponses": 28,
+      "layout": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          }
+        ]
+      }
+    },
+    {
+      "path": "archival_objects/4109",
+      "width": 390,
+      "pages": [
+        {
+          "page": 1,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 2,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 3,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 4,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 5,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+          "fullyLoaded": true
+        },
+        {
+          "page": 6,
+          "source": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+          "fullyLoaded": true
+        }
+      ],
+      "thumbnails": [
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        },
+        {
+          "loaded": true
+        }
+      ],
+      "compassRequests": 0,
+      "tileResponses": 27,
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          }
+        ]
+      }
+    }
+  ],
+  "separateObjects": {
+    "result": [
+      {
+        "group": "digital-0",
+        "pages": 6,
+        "pdf": null,
+        "pdfLinks": []
+      },
+      {
+        "group": "digital-1",
+        "pages": null,
+        "pdf": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+        "pdfLinks": [
+          "http://localhost:18090/pdfs/what-it-is-july-1973.pdf"
+        ]
+      }
+    ],
+    "layouts": [
+      {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "mounts": [
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          },
+          {
+            "left": 883,
+            "right": 1240,
+            "width": 357
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          },
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "scrollWidth": 390,
+        "mounts": [
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          },
+          {
+            "left": 40,
+            "right": 350,
+            "width": 310
+          }
+        ],
+        "originalLinks": [
+          {
+            "href": "http://localhost:18090/manifests/20-20-1983.json",
+            "visible": true,
+            "thumbnail": true
+          },
+          {
+            "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+            "visible": true,
+            "thumbnail": false
+          }
+        ]
+      }
+    ]
+  },
+  "metadataHeaders": [
+    {
+      "page": 1,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0001.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+      "status": 200,
+      "width": 3536,
+      "height": 4525,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    },
+    {
+      "page": 2,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0002.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+      "status": 200,
+      "width": 3545,
+      "height": 4538,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    },
+    {
+      "page": 3,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0003.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+      "status": 200,
+      "width": 2191,
+      "height": 3534,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    },
+    {
+      "page": 4,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0004.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+      "status": 200,
+      "width": 2178,
+      "height": 3533,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    },
+    {
+      "page": 5,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0005.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+      "status": 200,
+      "width": 2185,
+      "height": 3538,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    },
+    {
+      "page": 6,
+      "key": "2025-10/smith_ssc_ms00237_as541945_p0006.tif",
+      "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+      "status": 200,
+      "width": 3216,
+      "height": 4575,
+      "allowOrigin": "*",
+      "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+    }
+  ],
+  "supplemental": {
+    "noJavaScript": [
+      {
+        "path": "digital_objects/876",
+        "status": 200,
+        "originalPdfLinksVisible": [
+          true
+        ],
+        "mounts": 0
+      },
+      {
+        "path": "archival_objects/4106",
+        "status": 200,
+        "originalPdfLinksVisible": [
+          true
+        ],
+        "mounts": 0
+      }
+    ],
+    "tiles": [
+      {
+        "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+        "status": 200,
+        "type": "image/jpeg",
+        "allowOrigin": "*",
+        "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+      },
+      {
+        "service": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+        "status": 200,
+        "type": "image/jpeg",
+        "allowOrigin": "*",
+        "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+      }
+    ],
+    "compassPdf": {
+      "status": 200,
+      "type": "application/pdf",
+      "frameOptions": "SAMEORIGIN"
+    },
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+  },
+  "limitations": [
+    "Chrome 151 only; no Safari, Firefox, hosted or off-campus checks",
+    "PDF scrolling/metadata and visually inspected screenshots; not an accessibility certification or a full-document visual comparison",
+    "Page download links asserted; full-resolution download completion was not tested",
+    "Approved for local tests by user, not public publication or restricted-content boundary sign-off"
+  ]
+}

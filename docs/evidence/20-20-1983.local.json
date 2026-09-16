@@ -1,0 +1,197 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "http://localhost:18090/manifests/20-20-1983.json",
+  "@type": "sc:Manifest",
+  "label": "LOCAL TEST — 20/20, 1983 (six scanned pages)",
+  "description": "Local QA fixture derived from the user-supplied public Compass record. Not a published production manifest.",
+  "related": "https://compass.fivecolleges.edu/islandora/object/smith_ssc_ms00237_as541945",
+  "sequences": [
+    {
+      "@id": "http://localhost:18090/manifests/20-20-1983/sequence/normal",
+      "@type": "sc:Sequence",
+      "viewingDirection": "left-to-right",
+      "canvases": [
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/1",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 1",
+          "width": 3536,
+          "height": 4525,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373240.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/1",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/1",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 3536,
+                "height": 4525,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/2",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 2",
+          "width": 3545,
+          "height": 4538,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373241.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/2",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/2",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 3545,
+                "height": 4538,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/3",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 3",
+          "width": 2191,
+          "height": 3534,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373242.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/3",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/3",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 2191,
+                "height": 3534,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/4",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 4",
+          "width": 2178,
+          "height": 3533,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373243.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/4",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/4",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 2178,
+                "height": 3533,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0004.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/5",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 5",
+          "width": 2185,
+          "height": 3538,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373244.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/5",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/5",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 2185,
+                "height": 3538,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0005.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "http://localhost:18090/manifests/20-20-1983/canvas/6",
+          "@type": "sc:Canvas",
+          "label": "20/20, 1983, page 6",
+          "width": 3216,
+          "height": 4575,
+          "thumbnail": {
+            "@id": "https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1373245.jpg"
+          },
+          "images": [
+            {
+              "@id": "http://localhost:18090/manifests/20-20-1983/annotation/6",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "http://localhost:18090/manifests/20-20-1983/canvas/6",
+              "resource": {
+                "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 3216,
+                "height": 4575,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0006.tif",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

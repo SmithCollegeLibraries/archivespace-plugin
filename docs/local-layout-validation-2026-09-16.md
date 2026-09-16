@@ -1,5 +1,7 @@
 # Local URLs and layout follow-up — 2026-09-16
 
+Subsequent evidence: [PDF/scanned-text validation](local-formats-validation-2026-09-16.md) closes the then-missing local PDF, separate-PDF isolation and linked thumbnail/out-link fixtures without changing this runtime. Special Collections' no-mixed-media scope supersedes this historical report's companion-fixture requirement. Other release gates remain open.
+
 Status: the two authorized local follow-ups are implemented and checked. This is
 implementer evidence, **not independent review or approval for Lyrasis**. Rob
 remains the approver. The earlier external R03 review does not automatically
