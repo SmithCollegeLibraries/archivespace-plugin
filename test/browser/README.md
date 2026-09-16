@@ -71,7 +71,8 @@ try {
 The suite asserts public/staff URLs, image completion, record/viewer bounds at
 320/390/767/768/1280 pixels, both viewers on AO 4100, visible original links,
 note Enter/Space/click behavior and ARIA state, keyboard/mouse resizing followed
-by mobile reflow, viewer keyboard controls and tree selection/navigation. It
+by mobile reflow, viewer/popover fit after large desktop resizing, adjustment
+panel bounds on both axes, viewer keyboard controls and tree selection/navigation. It
 throws on failure. The asset-disabled control **reports**, rather than fixes or
 waives, stock overflow and leaf-node 404s. Templates remain installed in that
 control; it is not a complete plugin-uninstall test. See the dated layout

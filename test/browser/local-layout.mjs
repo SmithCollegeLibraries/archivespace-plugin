@@ -135,10 +135,13 @@ export async function checkViewerKeyboard(page, origin, width) {
   const fit = await root.evaluate(function (element) {
     const box = element.getBoundingClientRect();
     const popover = element.querySelector('.dv-adjust-popover').getBoundingClientRect();
-    return { viewerLeft: box.left, viewerRight: box.right, popoverLeft: popover.left, popoverRight: popover.right };
+    return { viewerLeft: box.left, viewerRight: box.right, viewerTop: box.top, viewerBottom: box.bottom,
+      popoverLeft: popover.left, popoverRight: popover.right, popoverTop: popover.top, popoverBottom: popover.bottom };
   });
   check(fit.popoverLeft >= fit.viewerLeft - 1 && fit.popoverRight <= fit.viewerRight + 1,
     'Image adjustments are clipped at ' + width + 'px');
+  check(fit.popoverTop >= fit.viewerTop - 1 && fit.popoverBottom <= fit.viewerBottom + 1,
+    'Image adjustments are vertically clipped at ' + width + 'px');
   // The implicit label wraps both the caption and live percentage value.
   const brightness = page.getByRole('slider', { name: /^Brightness/ });
   const initial = Number(await brightness.inputValue());
@@ -166,6 +169,33 @@ export async function checkViewerKeyboard(page, origin, width) {
   await page.keyboard.press('Enter');
   check(!(await page.locator('[data-action=download-image]').isVisible()), 'Object mode did not return');
   return { width, fit, keyboardControls: 'passed', currentPage: 2 };
+}
+
+export async function checkViewerAfterResize(page, origin, sidebarPosition) {
+  await checkRecordLayout(page, origin, '/repositories/2/archival_objects/4100', 1280, sidebarPosition, 2);
+  const slider = page.getByRole('slider', { name: 'resizable sidebar handle' });
+  await slider.scrollIntoViewIfNeeded();
+  const handle = await slider.boundingBox();
+  const row = await page.locator('#notes_row').boundingBox();
+  const target = sidebarPosition === 'left' ? row.x + row.width - 300 : row.x + 300;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target, handle.y + handle.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const root = page.locator('.digital-viewer-container').first();
+  await root.getByRole('button', { name: 'Adjust image', exact: true }).click();
+  const result = await page.evaluate(function () {
+    const pane = document.querySelector('.resizable-content-pane').getBoundingClientRect();
+    const viewer = document.querySelector('.digital-viewer-container').getBoundingClientRect();
+    const popover = document.querySelector('.dv-adjust-popover').getBoundingClientRect();
+    return { paneWidth: pane.width, viewerWidth: viewer.width, scrollWidth: document.documentElement.scrollWidth,
+      popoverFits: popover.left >= viewer.left - 1 && popover.right <= viewer.right + 1
+        && popover.top >= viewer.top - 1 && popover.bottom <= viewer.bottom + 1 };
+  });
+  check(result.paneWidth <= 310, 'Resize did not exercise a narrow desktop content pane');
+  check(result.viewerWidth >= Math.min(270, result.paneWidth - 30), 'Resized viewer became too narrow');
+  check(result.scrollWidth <= 1281 && result.popoverFits, 'Resized viewer clips image adjustments');
+  return { sidebarPosition, ...result };
 }
 
 export async function checkTreeNavigation(page, origin) {
@@ -242,5 +272,6 @@ export async function runLocalLayoutChecks(page, {
     keyboard.push(await checkViewerKeyboard(page, origin, width));
   }
   return { sidebarPosition, publicUrls, layout, notesAndResize, keyboard,
+    viewerAfterResize: await checkViewerAfterResize(page, origin, sidebarPosition),
     tree: await checkTreeNavigation(page, origin) };
 }

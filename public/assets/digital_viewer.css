@@ -23,6 +23,11 @@
   flex-wrap: wrap;
 }
 
+/* The stock 40% float must remain usable after desktop sidebar resizing. */
+#main-content.objects .available-digital-objects {
+  min-width: min(100%, 300px);
+}
+
 @media (max-width: 767px) {
   #main-content.objects #notes_row {
     flex-direction: column;
@@ -50,13 +55,14 @@
 
 #notes_row > .resizable-content-pane.dv-enhanced-pane {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 2rem;
 }
 
 #notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-metadata-column,
 #notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-viewer-column {
-  min-width: 0;
+  min-width: min(100%, 300px);
 }
 
 #notes_row > .resizable-content-pane.dv-enhanced-pane > .dv-metadata-column {
@@ -99,6 +105,7 @@
 
 /* ── Viewer container ────────────────────────────────────────────────────── */
 .digital-viewer-container {
+  overflow-wrap: normal;
   margin: 1.25rem 0;
   border-radius: 6px;
   overflow: hidden;
@@ -172,7 +179,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  min-width: 42px;
+  min-width: max-content;
 }
 
 .digital-viewer-container .dv-zoom-label {
@@ -348,6 +355,8 @@
   right: 16px;
   bottom: calc(100% - 8px);
   width: min(calc(100% - 32px), 300px);
+  max-height: 380px;
+  overflow-y: auto;
   padding: 14px;
   border-radius: 16px;
   background: rgba(246, 247, 248, 0.96);
@@ -559,10 +568,6 @@
   .digital-viewer-container .dv-ctrl-btn {
     width: 32px;
     height: 32px;
-  }
-
-  .digital-viewer-container .dv-controls-status {
-    min-width: 42px;
   }
 
   .digital-viewer-container .dv-adjust-popover {
