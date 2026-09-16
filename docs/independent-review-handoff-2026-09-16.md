@@ -4,6 +4,8 @@ Prepared: 2026-09-16. Product: ArchivesSpace PUI plugin `digital_viewer`; target
 
 This is an **implementer-prepared packet, not an independent review or release approval**. Claude or another reviewer should inspect the code and reproduce the claims. Rob remains the approver for code acceptance, exceptions and installation. No hosted deployment is authorized by this document.
 
+Review returned: the external report supplied by Rob found no R03 runtime defects and verified its claims, but did not find the candidate ready for Lyrasis test installation. See the [recorded review and disposition](staging-release-evidence.md#external-review-returned--recorded-2026-09-16). The documentation-only browser-context defect identified in that review is corrected below. Rob's acceptance decision remains separate.
+
 ## 1. Review scopes and exact versions
 
 Return a separate conclusion for each scope:
@@ -128,7 +130,8 @@ import { chromium } from 'playwright';
 import { runSourceRequestOwnership } from './test/browser/source-request-ownership.mjs';
 const browser = await chromium.launch();
 try {
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   console.log(await runSourceRequestOwnership(page, process.cwd()));
   await assert.rejects(
     runSourceRequestOwnership(page, process.env.REVIEW_BASELINE_ROOT),
@@ -140,6 +143,8 @@ try {
 }
 NODE
 ```
+
+Use an explicit context because the harness creates more pages in `page.context()`; `browser.newPage()` creates an implicit context that cannot host them. The `finally` block closes the browser and its contexts.
 
 Expected: the candidate returns two passing scenarios; the baseline fails with the exact expected defect. A missing browser/file, timeout or unrelated exception is **not** a successful negative control. Retain the temporary directory's explicit path with the review notes; remove only that directory when no longer needed.
 
@@ -199,4 +204,4 @@ Suggested handoff prompt:
 
 > Independently review the pinned digital_viewer candidate described here. Do not accept implementer conclusions as proof. Inspect the final R03 diff and relevant cumulative changes, reproduce the Node and real-OSD positive/negative controls where your environment permits, and report concrete findings and evidence gaps separately. Do not modify code, publish records, restart shared services, push commits or deploy as part of this review. Rob is the approver; your role is to validate claims and identify what remains before a Lyrasis test install.
 
-Reviewer / date: pending. Rob's decision / date / accepted scope: pending.
+Reviewer: external report supplied by Rob, recorded 2026-09-16; reviewer name and execution date were not separately supplied. R03: no runtime findings, claims verified; test-install readiness: not ready. Full cumulative diff review remains outstanding. Rob's decision / date / accepted scope: pending.

@@ -14,13 +14,18 @@ import { chromium } from 'playwright';
 import { runSourceRequestOwnership } from './test/browser/source-request-ownership.mjs';
 const browser = await chromium.launch();
 try {
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   console.log(await runSourceRequestOwnership(page, process.cwd()));
 } finally {
   await browser.close();
 }
 NODE
 ```
+
+Use an explicit context: the harness opens additional pages in `page.context()`.
+The implicit context created by `browser.newPage()` cannot host those pages.
+The `finally` block closes the browser and its contexts, including on failure.
 
 The Node DOM suite remains dependency-free (`node --test test/*.mjs`); this
 separate check does not install or add Playwright as a plugin dependency.

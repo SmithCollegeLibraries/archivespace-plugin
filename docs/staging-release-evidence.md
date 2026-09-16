@@ -6,7 +6,39 @@ Current branch: `codex/lyr-05-config-assets`
 
 This file records implementation evidence for the Lyrasis staging launch task list. It does not grant Gate A or Gate B approval.
 
-Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). This evidence was collected by the implementer; external validation and Rob's approval remain pending.
+Independent-review entry point: [review handoff, exact commits and reproduction instructions](independent-review-handoff-2026-09-16.md). The implementation observations below are supplemented by the external report recorded here. Rob's acceptance and installation approval remain pending.
+
+## External review returned — recorded 2026-09-16
+
+Source: independent review report supplied by Rob in the conversation. The reviewer name and execution date were not separately supplied. This section records that report; it does not represent another independent review by the implementing assistant.
+
+**Scope 1, R03:** no runtime findings; implementation claims verified. The reviewer considers R03 acceptable on the evidence. **Scope 2, Lyrasis test installation:** not ready; the remaining blockers are integration evidence, fixtures and release/host/content gates, not additional confirmed code defects. Rob's decision remains separate; neither release gate is closed.
+
+### Reviewer-reported checks
+
+- Environment: Node 26.8.1, Ruby 2.6.10, Playwright 1.64 from the npx cache, installed Chrome reported as HeadlessChrome 151, vendored OSD 5.0.1.
+- Reviewed commits: runtime `2134fb4`, baseline `a134cc4`, documentation/branch head `ad61e2e`. The runtime at that head matched `2134fb4`.
+- Four recorded file fingerprints and the asset-version digest matched. Parser, Ruby and whitespace checks passed, including the fix commit's `git show --check`.
+- Both copies passed 60 Node tests. The candidate test file against the extracted baseline runtime failed exactly five tests, confirming the reported negative cases.
+- Browser positive controls passed both scenarios on candidate and parent; the baseline reproduced the expected negative control. Parent parity passed the documented `diff`/`cmp` checks.
+- The OSD source inspection confirmed that source-open error events retain the options identity, `goToPage` sets the sequence index before `open`, and close clears the pending-image queue. That queue prevents a retired successful request becoming a world item; retired error callbacks can still run, which is the boundary protected by the plugin guard.
+
+### Finding and disposition
+
+**Low severity, documentation only:** both reproduction snippets used `browser.newPage()`, whose implicit context cannot host the additional pages created by the harness. Changed both snippets to `browser.newContext()` followed by `context.newPage()` and mirrored the browser README into the parent plugin. The browser-closing `finally` remains in place. No runtime or test-harness behavior changed. Shell and embedded JavaScript syntax are checked locally; the full standalone CLI launch is not claimed as rerun for this documentation correction.
+
+**Optional coverage improvement:** add a real-OSD delayed HTTP success after the replacement request has failed, to pin OSD's queue behavior across upgrades. Clarification: the existing Node test `same-source retired failures are ignored before replacement opens` already invokes `retired.options.success(...)` after `replacement.fail()` and asserts that the current error remains. That is callback-level coverage, not the proposed real-network/OSD success-path check. This optional improvement is not a reported runtime defect.
+
+### Still open
+
+- Final-candidate ASpace 4.2.0 startup/render and actual record/browser checks. The earlier render used an older candidate and temporary ports; the reviewer reported ASpace stopped and standard port 8081 occupied.
+- Missing linked Archival Object/edge-case fixtures, including two-object grouping, children, representative and thumbnail-only cases, PDF, unsupported-link and no-content cases. Earlier Digital Object pilot records do not close those gaps.
+- Full browser, keyboard and layout matrix. Safari, Firefox, JRuby, real hosted CORS/CSP and content-boundary validation were not run by this reviewer.
+- Full cumulative diff review; earlier changes were checked through correction reproduction/regression tests, not a complete line-by-line cumulative review.
+- Parent mirror commit and standalone guide tracking. The reviewer suggested the parent index was writable; this agent session's access policy still marks the parent `.git` read-only. No permission changes or broad parent commit were attempted. The untracked standalone guide is still omitted from `git archive`.
+- Lyrasis PUI origin/config/CSP and operating agreement, approved public/restricted-content boundary, final archive/checksum and extracted-package tests, rollback evidence, and dependency/notice inventory.
+
+Next bounded implementation step: prepare the missing approved local fixtures and verify the final candidate on ASpace; coordinate host/content answers in parallel. Do not reopen R03 as a speculative runtime rewrite or treat its acceptance recommendation as permission to deploy.
 
 ## Latest R03 correction — 2026-09-16
 
