@@ -96,6 +96,17 @@ function loadHooks(options = {}) {
       },
     };
 
+    Object.defineProperty(element, 'innerHTML', {
+      configurable: true,
+      get() { return element._innerHTML || ''; },
+      set(value) {
+        element._innerHTML = String(value);
+        if (value === '') {
+          element.children.forEach(child => { child.parentNode = null; });
+          element.children = [];
+        }
+      },
+    });
     element.classList = {
       add() {
         Array.prototype.forEach.call(arguments, function (token) {
@@ -259,6 +270,17 @@ function makeInitDocument(uris = ['https://example.org/image.jpg'], leaf = false
         if (!this.parentNode) return null;
         const index = this.parentNode.children.indexOf(this);
         return index === -1 ? null : this.parentNode.children[index + 1] || null;
+      },
+    });
+    Object.defineProperty(node, 'innerHTML', {
+      configurable: true,
+      get() { return node._innerHTML || ''; },
+      set(value) {
+        node._innerHTML = String(value);
+        if (value === '') {
+          node.children.forEach(child => { child.parentNode = null; });
+          node.children = [];
+        }
       },
     });
     node.classList = {
@@ -886,6 +908,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
 test('later page failures stay page-scoped and clear after recovery', async function () {
   let viewer;
   const pageItems = [{}, {}];
+  let currentPageItem = pageItems[0];
   const fakeOpenSeadragon = () => {
     const handlers = {};
     viewer = {
@@ -898,7 +921,7 @@ test('later page failures stay page-scoped and clear after recovery', async func
       setFullPage() {},
       forceRedraw() {},
       world: {
-        getIndexOfItem(item) { return pageItems.indexOf(item); },
+        getItemAt() { return currentPageItem; },
       },
       addHandler(name, handler) {
         if (!handlers[name]) handlers[name] = [];
@@ -917,16 +940,18 @@ test('later page failures stay page-scoped and clear after recovery', async func
   ], { loadingTimeoutMs: 20 });
 
   viewer.handlers.open.forEach(handler => handler());
+  currentPageItem = pageItems[1];
   viewer.handlers.page.forEach(handler => handler({ page: 1 }));
   await mounting;
 
+  const failedTile = {};
   viewer.handlers['tile-load-failed'].forEach(handler => handler({
     tile: {},
     tiledImage: pageItems[0],
   }));
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
   viewer.handlers['tile-load-failed'].forEach(handler => handler({
-    tile: {},
+    tile: failedTile,
     tiledImage: pageItems[1],
   }));
   assert.equal(container.querySelector('.dv-tile-error-msg').textContent, 'This page is unavailable.');
@@ -940,7 +965,78 @@ test('later page failures stay page-scoped and clear after recovery', async func
     tile: {},
     tiledImage: pageItems[1],
   }));
+  assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
+  viewer.handlers['tile-ready'].forEach(handler => handler({
+    tile: failedTile,
+    tiledImage: pageItems[1],
+  }));
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
+});
+
+test('an entirely unavailable manifest falls back to a working alternative', async function () {
+  const documentStub = makeInitDocument([
+    'https://compass-prod-i2-files.s3.amazonaws.com/workbench-lite/test/manifests/unavailable.json',
+    'https://example.org/fallback.jpg',
+  ]);
+  let viewer;
+  let currentItem;
+  const fakeOpenSeadragon = () => {
+    const handlers = {};
+    viewer = {
+      canvas: { style: {} },
+      viewport: {
+        zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+        toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+      },
+      isFullPage() { return false; }, setFullPage() {}, forceRedraw() {},
+      world: { getItemAt() { return currentItem; } },
+      addHandler(name, handler) {
+        if (!handlers[name]) handlers[name] = [];
+        handlers[name].push(handler);
+      },
+      open() {
+        currentItem = {};
+        (handlers.open || []).forEach(handler => handler({ source: 'placeholder' }));
+      },
+      destroy() {},
+      handlers,
+    };
+    return viewer;
+  };
+  const hooks = loadHooks({
+    document: documentStub,
+    config: { cantaloupeBaseUrl: '' },
+    OpenSeadragon: fakeOpenSeadragon,
+    fetch() {
+      return Promise.resolve({
+        ok: true,
+        json() {
+          return Promise.resolve({
+            sequences: [{
+              canvases: [{
+                images: [{
+                  resource: {
+                    service: {
+                      id: 'https://compass.fivecolleges.edu/cantaloupe/iiif/2/https%3A%2F%2Fcompass.fivecolleges.edu%2Fsystem%2Ffiles%2Flegacy.tif',
+                    },
+                  },
+                }],
+              }],
+            }],
+          });
+        },
+      });
+    },
+  });
+
+  hooks.init();
+  for (let i = 0; i < 10; i += 1) await Promise.resolve();
+
+  const container = documentStub.host.children[1];
+  assert.equal(container.querySelectorAll('img').length, 1);
+  assert.equal(container.querySelector('.dv-error-msg'), null);
+  container.querySelector('img').onload();
+  await Promise.resolve();
 });
 
 test('source failure diagnostics omit raw errors, URLs, and query strings', async function () {

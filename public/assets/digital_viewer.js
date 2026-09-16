@@ -874,6 +874,12 @@
     return !!(tileSource && tileSource.unavailable);
   }
 
+  function hasRenderablePages(tileSources) {
+    return Array.isArray(tileSources) && tileSources.some(function (tileSource) {
+      return tileSource && !isUnavailableTileSource(tileSource) && !!getTileSourceValue(tileSource);
+    });
+  }
+
   function buildThumbnailUrl(tileSource) {
     var infoUrl;
 
@@ -1320,6 +1326,9 @@
     var attempt = mountOptions.attempt;
     var activePageIndex = 0;
     var pageErrorMessage = null;
+    var pageErrorState = null;
+    var imagePageOwners = [];
+    var currentTiledImage = null;
     resetContainer(container);
     container.classList.add('dv-active');
 
@@ -1389,55 +1398,136 @@
         reject(error || new Error('OSD_OPEN_FAILED'));
       }
 
-      function eventPageIndex(data) {
-        var tiledImage = data && data.tiledImage;
+      function getCurrentTiledImage() {
+        if (!viewer.world || typeof viewer.world.getItemAt !== 'function') return null;
+        return viewer.world.getItemAt(0) || null;
+      }
+
+      function rememberCurrentTiledImage(pageIndex) {
+        var tiledImage = getCurrentTiledImage();
+        var owner;
+        var changed;
+
+        if (!tiledImage) return null;
+        changed = currentTiledImage !== tiledImage;
+        currentTiledImage = tiledImage;
+        owner = imagePageOwners.filter(function (entry) {
+          return entry.tiledImage === tiledImage;
+        })[0];
+        if (!owner) {
+          owner = { tiledImage: tiledImage, pageIndex: pageIndex };
+          imagePageOwners.push(owner);
+        }
+        if (changed) clearPageErrorForReload(pageIndex, tiledImage);
+        return tiledImage;
+      }
+
+      function sourcePageIndex(source) {
+        var index;
+        var candidate;
+
+        if (!source) return null;
+        for (index = 0; index < osdTileSources.length; index += 1) {
+          candidate = osdTileSources[index];
+          if (candidate === source) return index;
+          if (typeof candidate === 'string' && typeof source === 'string' && candidate === source) return index;
+          if (candidate && source && candidate.url && source.url && candidate.url === source.url) return index;
+        }
+        return null;
+      }
+
+      function eventPageInfo(data) {
+        var tiledImage = data && (data.tiledImage || (data.tile && data.tile.tiledImage));
         var source = data && (data.source || data.tileSource);
+        var owner;
         var index;
 
         if (tiledImage) {
-          if (viewer.world && typeof viewer.world.getIndexOfItem === 'function') {
-            index = viewer.world.getIndexOfItem(tiledImage);
-            if (index !== -1) return index;
+          owner = imagePageOwners.filter(function (entry) {
+            return entry.tiledImage === tiledImage;
+          })[0];
+          if (owner) {
+            return {
+              pageIndex: owner.pageIndex,
+              current: tiledImage === currentTiledImage,
+              tiledImage: tiledImage,
+              tile: data && data.tile,
+            };
           }
-          if (viewer.world && typeof viewer.world.getItemAt === 'function') {
-            for (index = 0; index < tileSources.length; index += 1) {
-              if (viewer.world.getItemAt(index) === tiledImage) return index;
-            }
-          }
-          if (tiledImage.source) {
-            index = osdTileSources.indexOf(tiledImage.source);
-            if (index !== -1) return index;
+          if (tiledImage === getCurrentTiledImage()) {
+            rememberCurrentTiledImage(activePageIndex);
+            return {
+              pageIndex: activePageIndex,
+              current: true,
+              tiledImage: tiledImage,
+              tile: data && data.tile,
+            };
           }
           return null;
         }
-        if (data && typeof data.page === 'number') return data.page;
-        if (data && data.source && typeof data.source.index === 'number') return data.source.index;
-        if (data && data.item && typeof data.item.index === 'number') return data.item.index;
+        if (data && typeof data.page === 'number') {
+          return { pageIndex: data.page, current: true, tile: data.tile };
+        }
+        if (data && data.source && typeof data.source.index === 'number') {
+          return { pageIndex: data.source.index, current: data.source.index === activePageIndex, tile: data.tile };
+        }
+        if (data && data.item && typeof data.item.index === 'number') {
+          return { pageIndex: data.item.index, current: data.item.index === activePageIndex, tile: data.tile };
+        }
         if (data && data.item && data.item.source && typeof data.item.source.index === 'number') {
-          return data.item.source.index;
+          return { pageIndex: data.item.source.index, current: data.item.source.index === activePageIndex, tile: data.tile };
         }
-        if (source) {
-          index = osdTileSources.indexOf(source);
-          if (index !== -1) return index;
-          return null;
-        }
-        return activePageIndex;
+        index = sourcePageIndex(source);
+        if (index !== null) return { pageIndex: index, current: index === activePageIndex, tile: data && data.tile };
+        return { pageIndex: activePageIndex, current: true, tile: data && data.tile };
       }
 
-      function clearPageError(pageIndex) {
-        if (!pageErrorMessage || Number(pageErrorMessage.getAttribute('data-page-index')) !== pageIndex) return;
-        if (pageErrorMessage.parentNode) pageErrorMessage.parentNode.removeChild(pageErrorMessage);
+      function removePageError() {
+        if (pageErrorMessage && pageErrorMessage.parentNode) pageErrorMessage.parentNode.removeChild(pageErrorMessage);
         pageErrorMessage = null;
+        pageErrorState = null;
+      }
+
+      function clearPageErrorForReload(pageIndex, tiledImage) {
+        if (!pageErrorState || pageErrorState.pageIndex !== pageIndex || !tiledImage) return;
+        if (pageErrorState.tiledImage !== tiledImage) removePageError();
+      }
+
+      function clearPageError(data, info) {
+        var failedTileIndex;
+
+        info = info || eventPageInfo(data);
+        if (!pageErrorState || !info || info.pageIndex !== pageErrorState.pageIndex || info.current === false) return;
+        if (pageErrorState.tiledImage && info.tiledImage && pageErrorState.tiledImage !== info.tiledImage) return;
+        if (pageErrorState.requiresReload) return;
+        if (info.tile) {
+          failedTileIndex = pageErrorState.tiles.indexOf(info.tile);
+          if (failedTileIndex !== -1) pageErrorState.tiles.splice(failedTileIndex, 1);
+          if (pageErrorState.tiles.length > 0) return;
+        }
+        removePageError();
       }
 
       function showPageError(data) {
-        var pageIndex = eventPageIndex(data);
+        var info = eventPageInfo(data);
         var message;
 
-        if (pageIndex === null || pageIndex !== activePageIndex || pageErrorMessage) return;
+        if (!info || info.pageIndex === null || info.pageIndex !== activePageIndex || info.current === false) return;
+        if (!pageErrorState || pageErrorState.pageIndex !== info.pageIndex ||
+            (pageErrorState.tiledImage && info.tiledImage && pageErrorState.tiledImage !== info.tiledImage)) {
+          pageErrorState = {
+            pageIndex: info.pageIndex,
+            tiledImage: info.tiledImage || currentTiledImage,
+            tiles: [],
+            requiresReload: false,
+          };
+        }
+        if (info.tile && pageErrorState.tiles.indexOf(info.tile) === -1) pageErrorState.tiles.push(info.tile);
+        if (!info.tile) pageErrorState.requiresReload = true;
+        if (pageErrorMessage) return;
         message = document.createElement('p');
         message.className = 'dv-tile-error-msg';
-        message.setAttribute('data-page-index', String(pageIndex));
+        message.setAttribute('data-page-index', String(info.pageIndex));
         message.textContent = 'This page is unavailable.';
         container.appendChild(message);
         pageErrorMessage = message;
@@ -1445,10 +1535,12 @@
 
       viewer.addHandler('open', function () {
         if (!isAttemptActive(attempt)) return;
+        rememberCurrentTiledImage(activePageIndex);
         settleOpen();
       });
       viewer.addHandler('open-failed', function (data) {
         if (!isAttemptActive(attempt)) return;
+        rememberCurrentTiledImage(activePageIndex);
         if (settled) showPageError(data);
         else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
       });
@@ -1456,22 +1548,22 @@
         if (!isAttemptActive(attempt)) return;
         if (!data || typeof data.page !== 'number') return;
         activePageIndex = data.page;
-        if (pageErrorMessage && pageErrorMessage.parentNode) {
-          pageErrorMessage.parentNode.removeChild(pageErrorMessage);
-        }
-        pageErrorMessage = null;
+        rememberCurrentTiledImage(activePageIndex);
+        removePageError();
         if (isUnavailableTileSource(tileSources[activePageIndex])) {
           showPageError({ page: activePageIndex });
         }
       });
       viewer.addHandler('tile-ready', function (data) {
+        var info;
+
         if (!isAttemptActive(attempt)) return;
-        var pageIndex = eventPageIndex(data);
-        if (pageIndex === null) return;
+        info = eventPageInfo(data);
+        if (!info || info.pageIndex === null || info.current === false) return;
         firstTileReady = true;
         if (tileTimerId !== null) clearTimeout(tileTimerId);
         clearLoadingNotice(container);
-        if (!isUnavailableTileSource(tileSources[pageIndex])) clearPageError(pageIndex);
+        if (!isUnavailableTileSource(tileSources[info.pageIndex])) clearPageError(data, info);
       });
       viewer.addHandler('tile-load-failed', function (data) {
         if (!isAttemptActive(attempt)) return;
@@ -2101,7 +2193,7 @@
       .then(function (manifest) {
         if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         var tileSources = extractCompassTileSources(manifest);
-        if (tileSources.length === 0) throw new Error('No image services in manifest');
+        if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
         return mountOsdViewer(container, tileSources, mountOptions);
       })
       .catch(function (err) {
@@ -2139,7 +2231,7 @@
       .then(function (manifest) {
         if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
         var tileSources = extractCompassTileSources(manifest);
-        if (tileSources.length === 0) throw new Error('No image services in manifest');
+        if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
         return mountOsdViewer(container, tileSources, mountOptions);
       })
       .catch(function (err) {
