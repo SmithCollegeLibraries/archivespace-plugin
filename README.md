@@ -8,7 +8,18 @@ The current staging launch inventory and evidence record are `docs/fixture-ledge
 
 ## Install on a test instance
 
-1. Clone https://github.com/SmithCollegeLibraries/archivespace-plugin.git into `plugins/digital_viewer` in the ArchivesSpace installation. The on-disk directory name must be `digital_viewer`.
+1. Obtain Rob's approved release record, including the **full 40-character commit ID** and package checksum. No candidate in this README is implicitly approved. In a new plugin directory, clone without checking out the moving default branch, then check out that exact commit in detached-HEAD mode. The on-disk directory name must be `digital_viewer`. Do not overwrite an existing installation; follow the agreed backup/update/rollback procedure instead.
+
+   Run from the ArchivesSpace installation directory after setting `APPROVED_PLUGIN_COMMIT` to the approved full commit ID:
+
+   ```sh
+   : "${APPROVED_PLUGIN_COMMIT:?Set this to the approved full 40-character commit ID}"
+   git clone --no-checkout https://github.com/SmithCollegeLibraries/archivespace-plugin.git plugins/digital_viewer
+   git -C plugins/digital_viewer checkout --detach "$APPROVED_PLUGIN_COMMIT"
+   test "$(git -C plugins/digital_viewer rev-parse HEAD)" = "$APPROVED_PLUGIN_COMMIT"
+   ```
+
+   Stop if any command fails or the resolved ID differs. Do not substitute `main`, a branch tip or a shortened ID. If the approved commit is not available from the repository, obtain the approved pinned archive and verify its checksum before extraction; do not fall back to a different revision. Record the resolved ID before enabling the plugin. Archive/extracted-package approval remains a separate Gate A check.
 2. Append `digital_viewer` to the existing `AppConfig[:plugins]` array in `config/config.rb`; preserve other enabled plugins.
 3. Have the host set the configuration below in the ArchivesSpace process environment, then restart using its normal procedure. The plugin currently reads environment variables only; AppConfig mapping is not implemented.
 4. Inspect the generated `window.DigitalViewer` values and asset requests in the PUI. Verify digital-object and linked archival-object pages against the agreed fixtures.
@@ -38,6 +49,8 @@ node --test test/*.mjs
 ```
 
 The tests use Node's built-in test runner and a DOM shim. They do not substitute for real browser or hosted ArchivesSpace tests.
+
+Thumbnail requests run one at a time per viewer (only visible/near-visible previews are queued when IntersectionObserver is available). Each gets a fixed 10-second timeout, independent of `DIGITAL_VIEWER_LOADING_TIMEOUT_MS`. Timeout or disposal removes the active image's `src`, clears its timer/listeners and advances only if the viewer is still active. A timed-out preview is not automatically retried; its numbered button and the full-size page remain available. Browser scheduling can delay a timeout in an inactive tab. See [focused browser regressions](test/browser/README.md) for real-request recovery and cancellation checks.
 
 ## Test and rollback
 

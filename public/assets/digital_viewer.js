@@ -72,6 +72,7 @@
   var PDF_RE = /\.pdf(\?.*)?$/i;
   var SEQUENCE_PRELOAD_DISTANCE = 2;
   var THUMBNAIL_SIZE = 160;
+  var THUMBNAIL_TIMEOUT_MS = 10000;
   var IMAGE_ADJUSTMENT_STEP = 20;
   var DEFAULT_IMAGE_ADJUSTMENTS = {
     brightness: 100,
@@ -1178,23 +1179,33 @@
     var track = document.createElement('div');
     var buttons = [];
     var thumbnailQueue = [];
-    var thumbnailLoading = false;
+    var cancelActiveThumbnail = null;
     var disposed = false;
     var thumbnailObserver;
 
     function loadNextThumbnail() {
-      if (disposed || thumbnailLoading || thumbnailQueue.length === 0) return;
+      if (disposed || cancelActiveThumbnail || thumbnailQueue.length === 0) return;
       var image = thumbnailQueue.shift();
       var completed = false;
-      thumbnailLoading = true;
-      function finish() {
+      var timerId;
+
+      function finish(cancelRequest) {
         if (completed) return;
         completed = true;
-        thumbnailLoading = false;
+        clearTimeout(timerId);
+        image.removeEventListener('load', onComplete);
+        image.removeEventListener('error', onComplete);
+        // Retire the stalled request before releasing the serial queue slot.
+        // Keep its numbered page button: a failed preview is not a failed page.
+        if (cancelRequest) image.removeAttribute('src');
+        cancelActiveThumbnail = null;
         loadNextThumbnail();
       }
-      image.addEventListener('load', finish, { once: true });
-      image.addEventListener('error', finish, { once: true });
+      function onComplete() { finish(false); }
+      cancelActiveThumbnail = function () { finish(true); };
+      image.addEventListener('load', onComplete, { once: true });
+      image.addEventListener('error', onComplete, { once: true });
+      timerId = setTimeout(cancelActiveThumbnail, THUMBNAIL_TIMEOUT_MS);
       image.src = image.dataset.thumbnailUrl;
     }
 
@@ -1311,6 +1322,7 @@
       disposed = true;
       thumbnailQueue = [];
       if (thumbnailObserver) thumbnailObserver.disconnect();
+      if (cancelActiveThumbnail) cancelActiveThumbnail();
     });
   }
 

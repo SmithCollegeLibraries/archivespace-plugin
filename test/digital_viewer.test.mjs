@@ -42,6 +42,9 @@ function loadHooks(options = {}) {
       addEventListener(eventName, handler) {
         this['on' + eventName] = handler;
       },
+      removeEventListener(eventName, handler) {
+        if (this['on' + eventName] === handler) delete this['on' + eventName];
+      },
       setAttribute(name, value) {
         this.attributes[name] = value;
         this[name] = value;
@@ -52,9 +55,6 @@ function loadHooks(options = {}) {
       },
       getAttribute(name) {
         return this.attributes[name];
-      },
-      removeAttribute(name) {
-        delete this.attributes[name];
       },
       querySelector(selector) {
         return this.querySelectorAll(selector)[0] || null;
@@ -183,8 +183,8 @@ function loadHooks(options = {}) {
     AbortController,
     Array,
     Object,
-    setTimeout,
-    clearTimeout,
+    setTimeout: options.setTimeout || setTimeout,
+    clearTimeout: options.clearTimeout || clearTimeout,
     isFinite,
     decodeURIComponent,
     encodeURIComponent,
@@ -1043,7 +1043,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
   assert.equal(viewer.destroyed, undefined);
 });
 
-test('later page failures stay page-scoped and clear after recovery', async function () {
+test('later page failures stay page-scoped and clear after recovery', async function (t) {
   let viewer;
   const pageItems = [{}, {}];
   let currentPageItem = pageItems[0];
@@ -1076,6 +1076,7 @@ test('later page failures stay page-scoped and clear after recovery', async func
     { tileSource: 'page-1', imageUrl: 'https://example.org/page-1.jpg' },
     { tileSource: 'page-2', imageUrl: 'https://example.org/page-2.jpg' },
   ], { loadingTimeoutMs: 20 });
+  t.after(() => viewer.handlers['before-destroy'].forEach(handler => handler()));
 
   viewer.handlers.open.forEach(handler => handler());
   currentPageItem = pageItems[1];
@@ -1111,7 +1112,7 @@ test('later page failures stay page-scoped and clear after recovery', async func
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
 
-test('rapid sequence navigation ignores retired image events while the world is empty', async function () {
+test('rapid sequence navigation ignores retired image events while the world is empty', async function (t) {
   let viewer;
   const originalA = {};
   const replacementA = {};
@@ -1145,6 +1146,7 @@ test('rapid sequence navigation ignores retired image events while the world is 
     { tileSource: 'page-a', imageUrl: 'https://example.org/page-a.jpg' },
     { tileSource: 'page-b', imageUrl: 'https://example.org/page-b.jpg' },
   ], { loadingTimeoutMs: 20 });
+  t.after(() => viewer.handlers['before-destroy'].forEach(handler => handler()));
 
   viewer.handlers.open.forEach(handler => handler());
   await mounting;
@@ -1275,7 +1277,7 @@ test('the current initial source failure still rejects the mount', async functio
   await rejected;
 });
 
-test('unavailable sequence canvases show an error when their placeholders open', async function () {
+test('unavailable sequence canvases show an error when their placeholders open', async function (t) {
   let viewer;
   const pageItems = [{}, {}];
   let currentPageItem = pageItems[0];
@@ -1315,6 +1317,7 @@ test('unavailable sequence canvases show an error when their placeholders open',
       pageIndex: 1,
     },
   ], { loadingTimeoutMs: 20 });
+  t.after(() => viewer.handlers['before-destroy'].forEach(handler => handler()));
 
   viewer.handlers.open.forEach(handler => handler());
   await mounting;
@@ -2122,17 +2125,144 @@ test('continues proxying Compass manifests when the resolver is configured', fun
 });
 
 function makeThumbnailFixture(options = {}) {
-  const hooks = loadHooks(options);
+  let now = 0;
+  let timerId = 0;
+  const timers = new Map();
+  const hooks = loadHooks({
+    setTimeout(callback, delay) {
+      timers.set(++timerId, { callback, due: now + delay });
+      return timerId;
+    },
+    clearTimeout(id) { timers.delete(id); },
+    fetch: async () => ({ ok: true, text: async () => '{}' }),
+    ...options,
+  });
+  function advance(milliseconds) {
+    const until = now + milliseconds;
+    while (timers.size) {
+      const [id, timer] = [...timers].sort((a, b) => a[1].due - b[1].due)[0];
+      if (timer.due > until) break;
+      now = timer.due;
+      timers.delete(id);
+      timer.callback();
+    }
+    now = until;
+  }
   const container = hooks.makeElement('div');
   const handlers = {};
-  const viewer = { addHandler(name, handler) { handlers[name] = handler; }, goToPage() {} };
-  const pages = Array.from({ length: 77 }, (_, i) => ({
+  const navigated = [];
+  const viewer = { addHandler(name, handler) { handlers[name] = handler; }, goToPage(index) { navigated.push(index); } };
+  const pages = Array.from({ length: options.pageCount || 77 }, (_, i) => ({
     tileSource: 'https://digital.smith.edu/iiif/2/page' + i + '/info.json',
     thumbnailUrl: 'https://digital.smith.edu/iiif/2/page' + i + '/full/150,/0/default.jpg',
   }));
   hooks.addThumbnailCarousel(container, viewer, pages);
-  return { hooks, container, handlers, pages, images: container.querySelectorAll('img') };
+  return { hooks, container, handlers, pages, navigated, timers, advance, images: container.querySelectorAll('img') };
 }
+
+for (const withObserver of [false, true]) {
+  for (const stalledIndex of [0, 1]) {
+    test(`thumbnail timeout advances after stalled ${stalledIndex === 0 ? 'first' : 'middle'} image (${withObserver ? 'observer' : 'fallback'})`, function () {
+      let observer;
+      class Observer {
+        constructor(callback) { this.callback = callback; observer = this; }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      const fixture = makeThumbnailFixture({ IntersectionObserver: withObserver ? Observer : undefined });
+      const { images, advance, timers, container } = fixture;
+      if (observer) observer.callback(images.slice(0, 3).map(target => ({ target, isIntersecting: true })));
+      if (stalledIndex === 1) images[0].onload();
+      const stalled = images[stalledIndex];
+      const lateLoad = stalled.onload;
+      const lateError = stalled.onerror;
+      const lateTimeout = [...timers.values()][0]?.callback;
+      advance(9999);
+      assert.equal(images[stalledIndex + 1].src, undefined, 'only one request before deadline');
+      advance(1);
+      assert.equal(images[stalledIndex + 1].src, fixture.pages[stalledIndex + 1].thumbnailUrl, 'stalled request must not block the queue');
+      assert.equal(stalled.src, undefined, 'retire stalled request before starting another');
+      assert.equal(stalled.onload, undefined);
+      assert.equal(stalled.onerror, undefined);
+      assert.equal(timers.size, 1);
+      lateLoad();
+      lateError();
+      lateTimeout();
+      assert.equal(images[stalledIndex + 2].src, undefined, 'late callbacks must not release the replacement slot');
+      if (observer) observer.callback([{ target: stalled, isIntersecting: true }]);
+      assert.equal(stalled.src, undefined, 'duplicate observer entries must not retry retired work');
+      const buttons = container.querySelectorAll('.dv-thumbnail-btn');
+      assert.equal(buttons.length, 77);
+      assert.deepEqual(buttons.map(button => button.children[1].textContent), Array.from({ length: 77 }, (_, i) => String(i + 1)));
+      buttons[stalledIndex].onclick();
+      buttons[76].onclick();
+      assert.deepEqual(fixture.navigated, [stalledIndex, 76], 'failed thumbnail must not disable or renumber page navigation');
+      fixture.handlers['before-destroy']();
+      assert.equal(timers.size, 0);
+    });
+  }
+}
+
+test('thumbnail completion clears both listeners and timer and gives the next request a full budget', function () {
+  const { images, timers, advance, handlers } = makeThumbnailFixture({ pageCount: 3 });
+  advance(8000);
+  const lateError = images[0].onerror;
+  images[0].onload();
+  assert.equal(images[0].onerror, undefined);
+  assert.equal(images[0].onload, undefined);
+  assert.equal(timers.size, 1);
+  lateError();
+  advance(9999);
+  assert.equal(images[2].src, undefined);
+  images[1].onerror();
+  assert.equal(images[1].onload, undefined);
+  assert.equal(timers.size, 1);
+  images[2].onload();
+  assert.equal(timers.size, 0);
+  advance(10000);
+  handlers['before-destroy']();
+});
+
+test('all stalled thumbnails drain once, including the last entry, with no leftover timer', function () {
+  const { images, timers, advance } = makeThumbnailFixture({ pageCount: 3 });
+  advance(30000);
+  assert.equal(images.filter(image => image.dataset.thumbnailQueued).length, 3);
+  assert.equal(images.filter(image => image.src).length, 0, 'even the final stalled request is retired');
+  assert.equal(timers.size, 0);
+  advance(30000);
+  assert.equal(images.filter(image => image.src).length, 0);
+});
+
+test('thumbnail disposal cancels active work and ignores saved events, timer and observer callbacks', function () {
+  let observer;
+  class Observer {
+    constructor(callback) { this.callback = callback; this.disconnected = false; observer = this; }
+    observe() {}
+    unobserve() {}
+    disconnect() { this.disconnected = true; }
+  }
+  const { images, timers, advance, handlers } = makeThumbnailFixture({ IntersectionObserver: Observer });
+  observer.callback(images.slice(0, 3).map(target => ({ target, isIntersecting: true })));
+  const lateLoad = images[0].onload;
+  const lateError = images[0].onerror;
+  const lateTimeout = [...timers.values()][0]?.callback;
+  handlers['before-destroy']();
+  assert.equal(images[0].src, undefined, 'disposal retires the in-flight image');
+  assert.equal(images[0].onload, undefined);
+  assert.equal(images[0].onerror, undefined);
+  assert.equal(timers.size, 0);
+  assert.equal(observer.disconnected, true);
+  assert.equal(typeof lateTimeout, 'function', 'active request owned a timeout');
+  lateLoad();
+  lateError();
+  lateTimeout();
+  observer.callback(images.map(target => ({ target, isIntersecting: true })));
+  advance(30000);
+  handlers['before-destroy']();
+  assert.equal(images.filter(image => image.src).length, 0);
+  assert.equal(timers.size, 0);
+});
 
 test('multipage thumbnails wait for visibility and load one at a time', function () {
   let observer;

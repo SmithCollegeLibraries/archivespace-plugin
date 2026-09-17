@@ -1,4 +1,45 @@
-# Source-request ownership browser regression
+# Focused browser regressions
+
+## Thumbnail queue recovery
+
+`thumbnail-queue.mjs` exports `runThumbnailQueueChecks(page, pluginRoot)`. It holds
+real thumbnail HTTP responses open while running the unmodified plugin and OSD.
+Use an explicit context and installed Chrome. All requests are intercepted at
+`http://digital-viewer.test`; no ASpace, external content or server is required.
+
+Run from the plugin root with Playwright available in the execution environment:
+
+```sh
+node --input-type=module <<'NODE'
+import { chromium } from 'playwright';
+import { runThumbnailQueueChecks } from './test/browser/thumbnail-queue.mjs';
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  console.log(await runThumbnailQueueChecks(page, process.env.PLUGIN_RUNTIME_ROOT || process.cwd()));
+} finally {
+  await browser.close();
+}
+NODE
+```
+
+Allow about 45 seconds: four scenarios wait the actual 10-second timeout, not an
+accelerated browser clock. First/middle stalls and disposal run with native
+IntersectionObserver and with it disabled. Assertions cover serial request order,
+subsequent decoded images, browser request cancellation, page labels/navigation,
+original links and no restart after a late response. Disposal checks are immediate;
+the Node suite separately proves timer/listener cleanup and ignores saved callbacks.
+The browser fixture has three pages; Node coverage keeps the 77 numbered buttons.
+
+Negative control: extract reviewed candidate
+`fb46a57ed8a69ecacd36155fc1e29432c132349b` into a separate directory and set
+`PLUGIN_RUNTIME_ROOT` to that absolute root while running the **new** harness above.
+It must fail with `thumbnail queue stalled beyond budget ... requested=0`.
+Do not change the checked-out runtime to run the control. This is not a complete
+ASpace, cross-browser or hosted acceptance test, and does not close Gate A/B.
+
+## Source-request ownership
 
 `source-request-ownership.mjs` exports `runSourceRequestOwnership(page, pluginRoot)`.
 Pass a Playwright `Page` and an absolute plugin root. It opens and closes its own
