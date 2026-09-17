@@ -13,9 +13,10 @@ The current staging launch inventory and evidence record are `docs/fixture-ledge
    Run from the ArchivesSpace installation directory after setting `APPROVED_PLUGIN_COMMIT` to the approved full commit ID:
 
    ```sh
-   : "${APPROVED_PLUGIN_COMMIT:?Set this to the approved full 40-character commit ID}"
-   git clone --no-checkout https://github.com/SmithCollegeLibraries/archivespace-plugin.git plugins/digital_viewer
-   git -C plugins/digital_viewer checkout --detach "$APPROVED_PLUGIN_COMMIT"
+   : "${APPROVED_PLUGIN_COMMIT:?Set this to the approved full 40-character commit ID}" &&
+   test "${#APPROVED_PLUGIN_COMMIT}" -eq 40 &&
+   git clone --no-checkout https://github.com/SmithCollegeLibraries/archivespace-plugin.git plugins/digital_viewer &&
+   git -C plugins/digital_viewer checkout --detach "$APPROVED_PLUGIN_COMMIT" &&
    test "$(git -C plugins/digital_viewer rev-parse HEAD)" = "$APPROVED_PLUGIN_COMMIT"
    ```
 

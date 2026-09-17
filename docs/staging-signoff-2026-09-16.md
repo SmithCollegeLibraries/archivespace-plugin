@@ -1,5 +1,7 @@
 # Staging checkpoint: acceptance and next steps
 
+> **Follow-up — 2026-09-17:** the cumulative reviewer recommended HOLD / Lyrasis NOT READY for `fb46a57`. The reproduced thumbnail-queue blocker is corrected in `2b863370bed0f57db3069a071b641dae0cf13754`; [corrective review packet and new verification](thumbnail-queue-correction-2026-09-17.md). Corrective independent review and Rob's merge decision remain pending. The current digest/test counts are in that packet; the dated baseline below is retained. No Gate A/B, remaining matrix, host/content, package or rollback requirement is waived.
+
 Recorded: 2026-09-16. Product: ArchivesSpace PUI plugin `digital_viewer`, not the discovery prototype. Approver: Rob O'Connell. This is a documentation reconciliation; no runtime, record, server or policy changes, and no new execution of the previously recorded tests.
 
 ## 1. Decision recorded

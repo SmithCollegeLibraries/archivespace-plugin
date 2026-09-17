@@ -1,5 +1,7 @@
 # Claude handoff: independent pre-merge review
 
+> **Follow-up:** this pinned review returned HOLD / Lyrasis NOT READY for a stalled thumbnail queue. The correction is `2b863370bed0f57db3069a071b641dae0cf13754`; use the [corrective review packet](thumbnail-queue-correction-2026-09-17.md) for its exact diff, evidence and remaining decisions. The original review targets below are historical and intentionally unchanged.
+
 Prepared: 2026-09-17. Product: ArchivesSpace PUI plugin `digital_viewer`.
 
 This brief requests a cumulative pre-merge review, not another review limited to the earlier R03 fix. It records the review request, not a completed review or release approval. Saving this brief may add a documentation-only commit after the candidate below; the review target remains explicitly pinned.

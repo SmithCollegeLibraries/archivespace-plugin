@@ -1,5 +1,11 @@
 # Staging release evidence
 
+## Current correction / external review — 2026-09-17
+
+The supplied cumulative review of `fb46a57ed8a69ecacd36155fc1e29432c132349b` recommended **HOLD / Lyrasis NOT READY** because a never-completing thumbnail blocked later thumbnails. The corrective commit is `2b863370bed0f57db3069a071b641dae0cf13754`: bounded per-thumbnail recovery/cleanup, seven persistent Node regressions, a real-Chrome held-response harness and approved-commit installation instructions. **Independent corrective review and Rob's decision remain pending.** Optional global document-listener cleanup is deferred, not fixed.
+
+See [correction report, exact fingerprints, reproduction and remaining gates](thumbnail-queue-correction-2026-09-17.md). Implementer verification: 70 Node tests per copy, six thumbnail browser cases and both existing R03 browser cases per copy, old-runtime negative control, Ruby asset test, syntax/parity and corrective whitespace checks. Fresh local PUI 18081 navigation rendered/mounted four pilot DO pages, and all three served assets matched the corrected disk bytes. Asset digest: `d7f8a3b09a215c196f269cf2dcba592ca4a351dda340a93b693604e2b98c1868`. This focused smoke does not repeat the full layout/PDF/AO/browser matrix, approve an archive, complete rollback or close Gates A/B. No merge or push was performed. Earlier dated hashes/counts below are historical.
+
 Date started: 2026-09-15  
 Release scope: ArchivesSpace PUI plugin `digital_viewer`, targeting ArchivesSpace 4.2.0  
 Current branch: `codex/lyr-05-config-assets`
