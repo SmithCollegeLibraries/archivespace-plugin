@@ -6,6 +6,8 @@ Status: local demonstration accepted by Rob on 2026-09-16; tested locally with A
 
 The current staging launch inventory and evidence record are `docs/fixture-ledger.md` and `docs/staging-release-evidence.md`.
 
+For a plain-language explanation of the languages, page/content flow, every plugin file, settings and troubleshooting, see [How digital_viewer works and how to troubleshoot it](docs/plugin-maintenance-guide.md).
+
 ## Install on a test instance
 
 1. Obtain Rob's approved release record, including the **full 40-character commit ID** and package checksum. No candidate in this README is implicitly approved. In a new plugin directory, clone without checking out the moving default branch, then check out that exact commit in detached-HEAD mode. The on-disk directory name must be `digital_viewer`. Do not overwrite an existing installation; follow the agreed backup/update/rollback procedure instead.
