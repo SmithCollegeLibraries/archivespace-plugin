@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01 design complete (2026-09-18); DV-M02–DV-M08 implementation remains OPEN.
+Status: DV-M01 design complete; DV-M02 IN PROGRESS (direct-file checkpoint 2026-09-18); DV-M03–DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -51,7 +51,9 @@ Acceptance:
 
 ## DV-M02 — Provide understandable access when the viewer cannot run
 
-Status: OPEN. Dependencies: none. Related: WBL-0904; M06/M08/M13/M14.
+Status: IN PROGRESS (2026-09-18). Dependencies: none. Related: WBL-0904; M06/M08/M13/M14.
+
+Partial evidence: [direct-file fallback checkpoint](fallback-access-2026-09-18.md). Direct image/PDF explanations are rendered server-side, with disabled-JS text. Six Ruby tests, 70 existing Node tests and 28 deterministic browser cases pass. Manifest-only policy is pending Rob's response, and actual-ASpace/remaining source-path checks remain open. No full acceptance criterion below is claimed complete from this subset.
 
 Problem: retained links preserve navigation, but a manifest URL is not a readable substitute for the viewer. Disabled JS and selective blockers behave differently.
 

@@ -164,3 +164,41 @@ can also change upstream; compare the report's dated fingerprints.
 
 No full-resolution download completion, full accessibility/cross-browser audit,
 hosted policy, restricted-content boundary or release approval is implied.
+
+## Access when viewer scripts cannot run (DV-M02)
+
+`fallback-access.mjs` exports `runFallbackAccessChecks(browser, pluginRoot)`.
+It creates and closes its own contexts, renders the actual plugin ERB using
+`test/support/render_digital_fixture.rb`, and intercepts every HTTP request.
+Ruby and Playwright with Chrome must be available; no ASpace or content server
+is required. Use an explicit cached Playwright module path if the bare package
+name does not resolve, as described in the maintenance guide.
+
+```js
+import { chromium } from 'playwright';
+import { runFallbackAccessChecks } from './test/browser/fallback-access.mjs';
+const browser = await chromium.launch({ channel: 'chrome' });
+try {
+  console.log(await runFallbackAccessChecks(browser, process.cwd()));
+} finally {
+  await browser.close();
+}
+```
+
+The 28 cases cover Digital Object/Archival Object × image/PDF × disabled JS,
+blocked viewer script, blocked OSD, absent config, blocked embedded content,
+a synchronous initialization exception and normal startup. They verify visible
+server-rendered access instructions and record metadata, the appropriate
+`noscript` message, expected viewer startup, and keyboard activation of the
+original link into its original destination. Images must decode. PDF navigation
+and page load are checked; complete native-PDF usability is not claimed.
+
+Content-blocking cases block embeds while allowing direct navigation. A blocker
+that also blocks the original URL cannot be bypassed by this fallback. The
+fixture substitutes Rails helpers and the stock representative-file partial;
+it is not real-ASpace render evidence. Manifest-only records, host CSP/CORS and
+actual-ASpace appearance remain outstanding DV-M02 checks.
+
+Template checks: `ruby test/fallback_template_test.rb` (standard-library ERB and
+bundled Minitest). This checks representative, entry and thumbnail-link branches;
+thumbnail-only records receive no invented destination.

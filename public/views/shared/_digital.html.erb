@@ -36,6 +36,7 @@
         :caption => rfv['caption'],
         :dig_materials_link => dig_materials_link
       } %>
+      <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: a_uri } %>
     </div>
   </div>
 </div>
@@ -66,6 +67,7 @@
               </p>
             </div>
           </a>
+          <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: d_file['out'] } %>
         </div>
       <% else %>
         <div class="objectimage" data-dv-source-group="digital-<%= index %>">
@@ -77,6 +79,7 @@
               <%= (d_file['caption'] || t('enumerations.instance_instance_type.digital_object')).html_safe %>
             </div>
           </div>
+          <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: d_file['out'] } %>
         </div>
       <% end %>
     <% elsif !d_file['thumb'].blank? %>

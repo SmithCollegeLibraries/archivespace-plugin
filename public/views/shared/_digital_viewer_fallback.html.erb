@@ -1,0 +1,15 @@
+<%# Keep access instructions independent of viewer JavaScript and CSS. %>
+<%
+  dv_fallback_uri = uri.to_s
+  dv_file_kind = if dv_fallback_uri.match(/\.pdf(?:[?#].*)?\z/i)
+    'PDF'
+  elsif dv_fallback_uri.match(/\.(?:jpe?g|png|gif|webp)(?:[?#].*)?\z/i)
+    'image'
+  end
+%>
+<% if dv_file_kind %>
+<p class="dv-access-help">
+  If the viewer is unavailable, use the original <%= dv_file_kind %> link above to open the file directly.
+  <noscript>The embedded viewer requires JavaScript, which is disabled in this browser.</noscript>
+</p>
+<% end %>

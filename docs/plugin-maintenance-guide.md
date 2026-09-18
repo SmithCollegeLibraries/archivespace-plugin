@@ -2,6 +2,8 @@
 
 Prepared 17 September 2026 for Rob, Special Collections, Lyrasis and future maintainers.
 
+Development update, 18 September: DV-M02 adds [server-rendered direct-file access instructions](fallback-access-2026-09-18.md) through `public/views/shared/_digital_viewer_fallback.html.erb`, called by `_digital.html.erb`. This unapproved development checkpoint preserves original links when scripts fail; manifest-only policy and actual-ASpace verification remain open. The published baseline described below is unchanged.
+
 This guide describes the plugin at published commit `553e0f33916e005e3ce529213c50e2d3e93084a6`, with runtime changes last made in `2b863370bed0f57db3069a071b641dae0cf13754`. Target: ArchivesSpace **4.2.0**; bundled image viewer: OpenSeadragon **5.0.1**. Check the installed version before applying these details to a later release.
 
 The corrective code and its evidence have passed independent review, and Rob approved merging and publishing that candidate. That is **not permission to install on Lyrasis**: the staging-install checklist, Gate A, remains open. Older dated evidence may still say review is pending; it records an earlier point in time.
