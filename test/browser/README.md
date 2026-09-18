@@ -185,19 +185,20 @@ try {
 }
 ```
 
-The 28 cases cover Digital Object/Archival Object × image/PDF × disabled JS,
+The 42 cases cover Digital Object/Archival Object × image/PDF/manifest × disabled JS,
 blocked viewer script, blocked OSD, absent config, blocked embedded content,
 a synchronous initialization exception and normal startup. They verify visible
 server-rendered access instructions and record metadata, the appropriate
 `noscript` message, expected viewer startup, and keyboard activation of the
-original link into its original destination. Images must decode. PDF navigation
+explicit fallback text link into the unchanged original destination. Images must decode. PDF navigation
 and page load are checked; complete native-PDF usability is not claimed.
 
 Content-blocking cases block embeds while allowing direct navigation. A blocker
 that also blocks the original URL cannot be bypassed by this fallback. The
 fixture substitutes Rails helpers and the stock representative-file partial;
-it is not real-ASpace render evidence. Manifest-only records, host CSP/CORS and
-actual-ASpace appearance remain outstanding DV-M02 checks.
+it is not real-ASpace render evidence. Host CSP/CORS remain deployment checks. `runLocalFallbackChecks(browser)`
+checks the existing local Rails fixtures under disabled JS and separately blocked
+viewer/OSD scripts; it requires the local PUI on port 18081.
 
 Template checks: `ruby test/fallback_template_test.rb` (standard-library ERB and
 bundled Minitest). This checks representative, entry and thumbnail-link branches;

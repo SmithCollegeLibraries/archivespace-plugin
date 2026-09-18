@@ -31,7 +31,21 @@ class DigitalFixture
   def dig_objs; @options.fetch('files', []); end
   def t(key, **options); key; end
   def strip_mixed_content(value); ERB::Util.html_escape(value); end
-  def representative_link_to_digital_materials?(record); false; end
+  def representative_link_to_digital_materials?(record); !!@options['browse']; end
+  def n_digital_objects; 3; end
+  def params; { rid: 2, id: 3 }; end
+  def app_prefix(path); path; end
+  def fvs; @options.fetch('files', []); end
+  def link_to(label, uri, **options)
+    attributes = options.map do |key, value|
+      if key == :data
+        value.map { |name, content| ' data-' + name.to_s + '="' + ERB::Util.html_escape(content.to_s) + '"' }.join
+      else
+        ' ' + key.to_s + '="' + ERB::Util.html_escape(value.to_s) + '"'
+      end
+    end.join
+    '<a href="' + ERB::Util.html_escape(uri.to_s) + '"' + attributes + '>' + ERB::Util.html_escape(label.to_s) + '</a>'
+  end
 
   def render(partial:, locals: {})
     if partial == 'shared/representative_file_version_record'
@@ -46,7 +60,7 @@ class DigitalFixture
   end
 
   def html
-    render(partial: 'shared/digital')
+    render(partial: @options['additional'] ? 'digital_objects/additional_file_versions' : 'shared/digital')
   end
 end
 

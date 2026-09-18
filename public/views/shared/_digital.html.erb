@@ -36,7 +36,9 @@
         :caption => rfv['caption'],
         :dig_materials_link => dig_materials_link
       } %>
-      <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: a_uri } %>
+      <% unless dig_materials_link %>
+        <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: a_uri } %>
+      <% end %>
     </div>
   </div>
 </div>

@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01 design complete; DV-M02 IN PROGRESS (direct-file checkpoint 2026-09-18); DV-M03–DV-M08 OPEN.
+Status: DV-M01 and DV-M02 complete (2026-09-18); DV-M03–DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -51,9 +51,9 @@ Acceptance:
 
 ## DV-M02 — Provide understandable access when the viewer cannot run
 
-Status: IN PROGRESS (2026-09-18). Dependencies: none. Related: WBL-0904; M06/M08/M13/M14.
+Status: COMPLETE (2026-09-18). Dependencies: none. Related: WBL-0904; M06/M08/M13/M14.
 
-Partial evidence: [direct-file fallback checkpoint](fallback-access-2026-09-18.md). Direct image/PDF explanations are rendered server-side, with disabled-JS text. Six Ruby tests, 70 existing Node tests and 28 deterministic browser cases pass. Manifest-only policy is pending Rob's response, and actual-ASpace/remaining source-path checks remain open. No full acceptance criterion below is claimed complete from this subset.
+Completion evidence: [fallback access report](fallback-access-2026-09-18.md) and [recorded results](evidence/dv-m02-2026-09-18.json). Rob approved the enable-JavaScript message; 42 deterministic browser cases, 27 real-ASpace cases, four exclusion checks, 11 Ruby tests and 70 Node tests pass. Parent `preservica/docs/workbench-lite/finished.md` records the completion commit. Hosted checks remain release gates.
 
 Problem: retained links preserve navigation, but a manifest URL is not a readable substitute for the viewer. Disabled JS and selective blockers behave differently.
 
@@ -63,12 +63,12 @@ Decision owner: Rob O'Connell approves the manifest-only fallback content/access
 
 Acceptance:
 
-- [ ] Record a fallback destination policy for each record type using available, approved published URLs. For manifest-only records, decide whether to supply a human-readable alternate page, approved image/PDF link, or an explicit limited-access message/help route. Record unresolved content decisions as blockers; never present raw JSON as equivalent viewing access.
-- [ ] Preserve original links, record metadata and keyboard access with JS disabled, the viewer script blocked, OSD blocked, configuration missing, or initialization failing. Do not require the failed viewer bundle itself to create the fallback.
-- [ ] Hide any fallback explanation only after the appropriate viewer is ready; preserve useful access during failures after partial setup. Distinguish disabled JS from content/network failure in user wording where knowable.
-- [ ] Verify actual clicks/destinations, not merely anchor presence, on Digital Object and linked Archival Object pages. Include a manifest-only sequence and a direct PDF/image.
-- [ ] Confirm fallbacks respect publication/access and download policy; do not invent public originals, signed links or bulk sequence downloads.
-- [ ] Record fresh deterministic browser evidence for disabled JS, each script blocked separately, and content requests blocked. Reuse prior M06/PDF evidence as baseline and state remaining hosted checks.
+- [x] Record a fallback destination policy for each record type using available, approved published URLs. For manifest-only records, decide whether to supply a human-readable alternate page, approved image/PDF link, or an explicit limited-access message/help route. Record unresolved content decisions as blockers; never present raw JSON as equivalent viewing access.
+- [x] Preserve original links, record metadata and keyboard access with JS disabled, the viewer script blocked, OSD blocked, configuration missing, or initialization failing. Do not require the failed viewer bundle itself to create the fallback.
+- [x] Hide any fallback explanation only after the appropriate viewer is ready; preserve useful access during failures after partial setup. Distinguish disabled JS from content/network failure in user wording where knowable.
+- [x] Verify actual clicks/destinations, not merely anchor presence, on Digital Object and linked Archival Object pages. Include a manifest-only sequence and a direct PDF/image.
+- [x] Confirm fallbacks respect publication/access and download policy; do not invent public originals, signed links or bulk sequence downloads.
+- [x] Record fresh deterministic browser evidence for disabled JS, each script blocked separately, and content requests blocked. Reuse prior M06/PDF evidence as baseline and state remaining hosted checks.
 
 ## DV-M03 — Make template-to-viewer markup an explicit contract
 

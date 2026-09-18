@@ -1,9 +1,9 @@
 # DV-M02 direct-file fallback checkpoint — 2026-09-18
 
-Status: partial implementation, ticket remains IN PROGRESS. Manifest-only policy
-awaits Rob's response; no alternative public destination is invented. Real-ASpace
-rendering remains unverified: Docker daemon was unavailable and the attempted
-application launch did not start it. No hosted changes or release approval.
+Historical checkpoint: the first direct-file implementation below was partial.
+The approved-policy follow-up below supersedes its pending content decision.
+Final verification and completion status are recorded at the end. No hosted
+changes or release approval.
 
 ## Implemented behavior
 
@@ -58,3 +58,47 @@ not newly handled by this partial implementation.
 4. Record hosted limitations and the accepted content/access policy. Only then
    close the ticket criteria. This checkpoint does not assert equivalent access
    when the destination itself is blocked.
+
+## Approved policy and completion follow-up
+
+Rob approved asking visitors to enable JavaScript for the digital viewer. The
+`noscript` message is: “This digital viewer requires JavaScript. Please enable
+JavaScript in your browser and reload this page to view the digital content.”
+Google documents enabling JavaScript for required functionality ([Google help](https://support.google.com/accounts/answer/7675428?co=GENIE.Platform%3DDesktop&hl=en));
+MDN recommends a minimum noscript explanation ([developer guidance](https://developer.mozilla.org/en-US/docs/Web/HTML/How_to/Add_JavaScript_to_your_web_page)).
+This does not mean a blocked individual script disables JavaScript, so persistent
+conditional guidance separately mentions blocked scripts. Existing manifest links
+remain available and are described as potentially containing viewing data, not
+as equivalent readable access. No alternate public-content destination is created.
+
+The final follow-up covers the additional-file-version partial too, preserving
+ArchivesSpace 4.2.0 caption/use-statement/data-URL display precedence, using Rails
+`link_to` to escape text. Collection browse, local record-navigation and
+thumbnail-only paths do not promise an embedded viewer.
+
+Real-page inspection found a representative anchor could have no visible bounds
+while its image was unavailable. The fallback now supplies an explicit escaped
+“Open original link” to the **same published HTTP(S) or root-relative destination**.
+It creates no link for other schemes. Access instructions remain visible during
+normal rendering and failures; there is no readiness-dependent hiding and no
+false claim that a PDF embed loaded successfully.
+
+### Final result — COMPLETE locally
+
+- 11 Ruby tests / 54 assertions; 70 Node tests; Ruby asset-version check: pass.
+- Final fixture matrix: 42/42 pass, including manifest sequences and keyboard
+  activation of the explicit text link with the same destination.
+- Real ArchivesSpace 4.2.0 at local PUI 18081: 27/27 pass (nine DO/AO fixtures,
+  including 871/874 representative/additional versions, under no-JS, viewer
+  blocked and OSD blocked). Readable text links match existing published URLs,
+  can receive keyboard focus, and no viewer mounts under blocked startup.
+- Four real exclusions pass: DO 872, AO 4103, AO 4102 and resource 3 have no
+  misleading viewer guidance. No records were edited. Docker is left running.
+- Normal-page screenshot reviewed for placement; this is not an assertion of
+  complete remote-content load. Working/failed/partial startup is covered by the
+  intercepted fixture matrix; local rendering and link visibility are verified
+  separately. Browser: Chrome 151.0.7922.174. Hosted access/CSP/CORS, full PDF
+  usability and release approval remain separate deployment checks.
+- [Recorded results](evidence/dv-m02-2026-09-18.json); exact implementation commit
+  is in the parent completion ledger. Seven runtime/test files mirrored with
+  byte identity. User-approved scope needs no invented alternate content URL.

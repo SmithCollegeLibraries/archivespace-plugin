@@ -1,0 +1,17 @@
+<%# ArchivesSpace 4.2.0 additional-file-version display rules, with access guidance. %>
+<ul>
+  <% fvs.each do |fv| %>
+    <%
+      uri_text = fv['file_uri'].to_s.start_with?('data:') ? t('digital_object._public.url_encoded_data') : fv['file_uri']
+      if fv['caption'].present?
+        uri_text = fv['caption']
+      elsif fv['use_statement'].present?
+        uri_text = fv['use_statement']
+      end
+    %>
+    <li data-additional-file-version>
+      <%= link_to uri_text, fv['file_uri'], target: 'new', title: 'Link to digital object' %>
+      <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: fv['file_uri'] } %>
+    </li>
+  <% end %>
+</ul>

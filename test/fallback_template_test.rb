@@ -13,6 +13,7 @@ class FallbackTemplateTest < Minitest::Test
     html = render_fallback('https://example.test/paper.PDF?download=1')
     assert_includes html, 'original PDF link'
     assert_includes html, '<noscript>'
+    assert_includes html, 'Please enable JavaScript in your browser and reload this page'
     refute_match(/<script\b/, html)
   end
 
@@ -21,15 +22,32 @@ class FallbackTemplateTest < Minitest::Test
     assert_includes html, 'original image link'
   end
 
+  def test_manifest_only_has_enable_javascript_message_without_promising_readable_content
+    html = render_fallback('https://example.test/manifests/sequence.json')
+    assert_includes html, 'Please enable JavaScript in your browser and reload this page'
+    assert_includes html, 'viewing data'
+    refute_includes html, 'open the file directly'
+    assert_includes html, 'blocked'
+  end
+
   def test_thumbnail_without_destination_does_not_promise_a_link
     assert_empty render_fallback(nil).strip
     assert_empty render_fallback('').strip
   end
 
-  def test_source_urls_are_not_copied_into_instructions
-    html = render_fallback('https://example.test/photo.jpg?token=private')
-    assert_includes html, 'original image link'
-    refute_includes html, 'private'
+  def test_record_navigation_is_not_described_as_a_viewer_source
+    assert_empty render_fallback('/repositories/2/digital_objects/871').strip
+  end
+
+  def test_text_link_survives_a_missing_thumbnail_and_escapes_its_destination
+    html = render_fallback('https://example.test/photo.jpg?a=1&b=2')
+    assert_includes html, 'class="dv-original-link"'
+    assert_includes html, '>Open original link</a>'
+    assert_includes html, 'href="https://example.test/photo.jpg?a=1&amp;b=2"'
+  end
+
+  def test_unsafe_schemes_do_not_get_a_new_link
+    html = render_fallback('javascript:alert(1)')
     refute_includes html, '<a '
   end
 end
@@ -50,5 +68,26 @@ class DigitalFallbackIntegrationTest < Minitest::Test
     html = DigitalFixture.new('representative' => { 'file_uri' => 'https://example.test/preview.jpg',
       'derived_from' => 'https://example.test/document.pdf' }).html
     assert_includes html, 'original PDF link'
+  end
+end
+
+class AdditionalFallbackTest < Minitest::Test
+  def test_additional_file_versions_retain_labels_links_and_fallback
+    path = File.expand_path('../public/views/digital_objects/_additional_file_versions.html.erb', __dir__)
+    html = File.exist?(path) ? DigitalFixture.new('additional' => true, 'files' => [
+      { 'file_uri' => 'https://example.test/manifests/book.json', 'caption' => '<script>bad()</script>' }
+    ]).html : ''
+    assert_includes html, 'Please enable JavaScript'
+    assert_includes html, 'data-additional-file-version'
+    assert_includes html, 'href="https://example.test/manifests/book.json"'
+    refute_includes html, '<script>bad()'
+    assert_includes html, '&lt;script&gt;'
+  end
+
+  def test_collection_browse_does_not_promise_an_embedded_viewer
+    html = DigitalFixture.new('browse' => true, 'representative' => {
+      'file_uri' => 'https://example.test/preview.jpg', 'derived_from' => 'https://example.test/collection'
+    }).html
+    refute_includes html, 'dv-access-help'
   end
 end
