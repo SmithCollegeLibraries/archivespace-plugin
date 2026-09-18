@@ -17,7 +17,7 @@ entry.mjs           read configuration; start when the DOM is ready
         lifecycle.mjs       cancellation and resource disposal
 ```
 
-`runtime.mjs` is now a 65-line composition root. `init.mjs` is approximately 100
+`runtime.mjs` is now a 66-line composition root. `init.mjs` is approximately 100
 lines and names the startup steps explicitly. Factories own their local state;
 no cross-module mutable global or browser test hook is introduced. Lifecycle
 receives a layout-release callback, and layout receives the current active states

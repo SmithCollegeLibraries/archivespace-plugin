@@ -7,9 +7,17 @@ Reviewer of record: Claude, validating claims and evidence.\
 Historical correction assignee: luna-high; subsequent implementation and fixture evidence is recorded in the linked reports.\
 Product: ArchivesSpace PUI plugin `digital_viewer`, targeting ArchivesSpace 4.2.0.
 
-Current continuation: Rob accepted the demonstrated local examples on 2026-09-16. The current disposition and ordered NEXT-01–06 work are in standalone `docs/staging-signoff-2026-09-16.md`. Runtime remains `0c1ca14`, with fixture evidence at `a338829`. Do not restart completed R01–R06 fixes or recreate accepted fixtures. Checked items below mean the stated local criterion has evidence, not full-task, independent-review or release approval. Historical checkpoints/prompts are retained as history; current work follows the sign-off checkpoint. Rob's Special Collections clarification limits pilot object types to an image sequence, a single image, or a PDF, with no mixed-media requirement.
+Historical 2026-09-16 continuation: Rob accepted the demonstrated local examples on 2026-09-16. The current disposition and ordered NEXT-01–06 work are in standalone `docs/staging-signoff-2026-09-16.md`. Runtime remains `0c1ca14`, with fixture evidence at `a338829`. Do not restart completed R01–R06 fixes or recreate accepted fixtures. Checked items below mean the stated local criterion has evidence, not full-task, independent-review or release approval. Historical checkpoints/prompts are retained as history; current work follows the sign-off checkpoint. Rob's Special Collections clarification limits pilot object types to an image sequence, a single image, or a PDF, with no mixed-media requirement.
 
 Historical correction handoff: [Correction handoff — resume here](#correction-handoff--resume-here). This revision turns the six findings from the review of `af7b2834b97f5af6eb4e12a24756feeb86c3afab` into implementable corrections; it does not ask the assignee to restart completed work from the original baseline. The parent copy at `docs/lyrasis-staging-launch-task-list.md` is the source guide; keep the same-named standalone copy synchronized for handoff.
+
+## Current source navigation (DV-M08, 2026-09-18)
+
+The DV refactor is a local development candidate, separate from the historical
+release/correction candidates below. Follow [the current developer map](plugin-maintenance-guide.md)
+and [release verification](plugin-release-workflow.md). Historical hashes and line
+numbers below describe their dated review targets, not the current generated bundle.
+No local refactor completion closes Gates A/B or changes Rob's approval role.
 
 ## 1. Outcome and scope
 
@@ -119,7 +127,7 @@ Use the existing Node VM/DOM harness and add only the hooks needed to drive real
 
 #### LYR-R01 — Cover the entire pending candidate with the loading threshold
 
-Maps to LYR-04; matrix M08–M10/M12. Review anchor: `public/assets/digital_viewer.js`, `mountCompassManifest` near line 1922; also `mountCompass`, `mountPreservica`, `mountOsdViewer` and the candidate loop.
+Maps to LYR-04; matrix M08–M10/M12. Historical review anchor: `public/assets/digital_viewer.js`, `mountCompassManifest` near line 1922; also `mountCompass`, `mountPreservica`, `mountOsdViewer` and the candidate loop. Current navigation: `src/adapters/manifest.mjs::mountManifest`, `src/adapters/compass.mjs::mountCompass`, `src/adapters/preservica.mjs::mountPreservica`, `src/mount-sequence.mjs::mountRankedSources`.
 
 Reproduced: a manifest fetch that never settles schedules no loading timer or abort signal. Even with another candidate available, fallback never occurs and no loading note appears. A response whose body never finishes is another pre-OSD pending phase.
 
@@ -139,7 +147,7 @@ Required regression evidence:
 
 #### LYR-R02 — Disable legacy key rewriting without a usable Cantaloupe base
 
-Maps to LYR-05; matrix M14/M15 and M11 for mixed sequences. Review anchor: `toLocalCantaloupeInfoUrl` near line 1455 and `extractCompassTileSources` in `public/assets/digital_viewer.js`.
+Maps to LYR-05; matrix M14/M15 and M11 for mixed sequences. Historical review anchor: `toLocalCantaloupeInfoUrl` near line 1455 and `extractCompassTileSources` in `public/assets/digital_viewer.js`. Current navigation: `src/adapters/compass.mjs::toLocalCantaloupeInfoUrl` and `src/manifest.mjs::extractManifestPages`.
 
 Reproduced: with `cantaloupeBaseUrl: ''`, the existing doubly encoded Compass-service fixture becomes `/2023-08%2Fsmith%3A1358443.tif/info.json`. That is an unintended request to the PUI origin. Guarding only `detectSource` does not fix the manifest path.
 
@@ -158,7 +166,7 @@ Required regression evidence:
 
 #### LYR-R03 — Separate initial-open settlement from active-page failure state
 
-Maps to LYR-04; matrix M09/M11. Review anchors: `settleOpenFailure` near line 1338 and `tile-load-failed` near line 1357 in `public/assets/digital_viewer.js`.
+Maps to LYR-04; matrix M09/M11. Historical review anchors: `settleOpenFailure` near line 1338 and `tile-load-failed` near line 1357 in `public/assets/digital_viewer.js`. Current navigation: `src/viewer.mjs::mountOsdViewer` (open failure and tile-load-failed handlers).
 
 Reproduced: after the first successful open, a later page's `open-failed` is ignored by the settled initial promise. A `tile-load-failed` message also remains after navigating to and drawing a working page.
 
@@ -176,7 +184,7 @@ Required regression evidence:
 
 #### LYR-R04 — Own and dispose each mount; make initialization idempotent
 
-Maps to LYR-03/04 and LYR-02 layout teardown; matrix M07/M10/M12. Review anchors: `before-destroy` near line 1366 and `init` near line 2185 in `public/assets/digital_viewer.js`.
+Maps to LYR-03/04 and LYR-02 layout teardown; matrix M07/M10/M12. Historical review anchors: `before-destroy` near line 1366 and `init` near line 2185 in `public/assets/digital_viewer.js`. Current navigation: `src/lifecycle.mjs::disposeAttempt`, `src/viewer.mjs::mountOsdViewer`, `src/events.mjs::createViewerScope`, `src/init.mjs::init`.
 
 Reproduced: destroying a viewer before `open` leaves the initial timer alive, which later inserts `Still loading`. Calling initialization twice creates two viewer containers. These require implementation changes, not only extra coverage.
 
@@ -195,7 +203,7 @@ Required regression evidence:
 
 #### LYR-R05 — Route synchronous mount errors through the same fallback boundary
 
-Maps to LYR-04; matrix M08/M09. Review anchor: `tryMount` near line 2208 in `public/assets/digital_viewer.js`.
+Maps to LYR-04; matrix M08/M09. Historical review anchor: `tryMount` near line 2208 in `public/assets/digital_viewer.js`. Current navigation: `src/mount-sequence.mjs::mountRankedSources` and `src/lifecycle.mjs::scheduleAttemptTimeout`.
 
 Reproduced: a throwing OSD constructor escapes `init()` before `.catch()` can run; an available direct-image alternative never mounts.
 

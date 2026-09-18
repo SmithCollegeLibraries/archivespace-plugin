@@ -237,3 +237,12 @@ consumers, preserved compatibility paths and the upgrade smoke checklist.
 ## Startup orchestration (DV-M07)
 
 `runStartupChecks(browser, pluginRoot)` from `startup.mjs` tests stock/leaf/inline layouts, repeated DOM-ready initialization, changed-source replacement and isolated setup/renderer/request failures. It runs the unmodified bundle and checks original metadata/links and keyboard navigation to an original destination. Pair it with the source-contract, request-ownership and fallback runners.
+
+## Consolidated verification (DV-M08)
+
+Use `node scripts/verify-browser.mjs --suite deterministic --output /tmp/browser.json`
+from the plugin root, with `PLAYWRIGHT_MODULE` pointing to the QA environment's
+Playwright entry and `CHROME_PATH` to its installed Chrome. `--plugin-root` can
+point to an extracted package. `--suite local` uses existing PUI 18081 and
+loopback-content 18090 fixtures. See the maintenance/release guides.
+`diagnostics.mjs` verifies absent/valid/missing source contracts and safe warnings.

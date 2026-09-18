@@ -74,7 +74,7 @@ export function createInitializer({ config, document, console, OpenSeadragon,
 
   function init() {
     if (typeof OpenSeadragon === 'undefined') {
-      console.warn('[digital_viewer] OpenSeadragon not loaded — viewer will not mount.');
+      console.warn('[digital_viewer] stage=startup code=osd-unavailable (OpenSeadragon not loaded)');
       return;
     }
     const groups = sources.collectGroups();

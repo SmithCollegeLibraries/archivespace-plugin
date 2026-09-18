@@ -9,7 +9,7 @@
         uri_text = fv['use_statement']
       end
     %>
-    <li data-additional-file-version data-file-uri="<%= ERB::Util.html_escape(fv['file_uri']) %>">
+    <li data-additional-file-version data-dv-source-expected="true" data-file-uri="<%= ERB::Util.html_escape(fv['file_uri']) %>">
       <%= link_to uri_text, fv['file_uri'], target: 'new', title: 'Link to digital object' %>
       <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: fv['file_uri'] } %>
     </li>

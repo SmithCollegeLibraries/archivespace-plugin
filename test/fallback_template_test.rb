@@ -96,6 +96,7 @@ class SourceAttributeContractTest < Minitest::Test
   def test_entry_and_thumbnail_link_supply_explicit_source
     [nil, 'https://example.test/thumb.jpg'].each do |thumb|
       html = DigitalFixture.new('files' => [{ 'out' => 'https://example.test/image.jpg?a=1&b=2', 'thumb' => thumb }]).html
+      assert_includes html, 'data-dv-source-expected="true"'
       assert_includes html, 'data-file-uri="https://example.test/image.jpg?a=1&amp;b=2"'
       assert_includes html, 'data-dv-source-group="digital-object-entries"'
     end
@@ -104,6 +105,7 @@ class SourceAttributeContractTest < Minitest::Test
   def test_representative_source_survives_stock_partial_wrapping
     html = DigitalFixture.new('representative' => { 'file_uri' => 'https://example.test/thumb.jpg',
       'derived_from' => 'https://example.test/manifests/book.json' }).html
+    assert_includes html, 'data-dv-source-expected="true"'
     assert_includes html, 'data-file-uri="https://example.test/manifests/book.json"'
   end
 
@@ -118,6 +120,7 @@ class SourceAttributeContractTest < Minitest::Test
 
   def test_additional_versions_supply_explicit_source
     html = DigitalFixture.new('additional' => true, 'files' => [{ 'file_uri' => 'https://example.test/document.pdf' }]).html
+    assert_includes html, 'data-dv-source-expected="true"'
     assert_includes html, 'data-file-uri="https://example.test/document.pdf"'
   end
 end

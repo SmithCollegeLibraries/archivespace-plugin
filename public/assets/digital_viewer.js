@@ -1989,7 +1989,7 @@
   }
 
   // src/page-sources.mjs
-  function createPageSources({ document: document2, getPageContext, onDiscoveryError }) {
+  function createPageSources({ document: document2, getPageContext, onDiscoveryError, onContractFailure }) {
     var sourceGroupCount = 0;
     function collectSourceAnchors(root) {
       var selectors = [
@@ -2053,7 +2053,18 @@
       }
       return root;
     }
+    function auditSourceContract() {
+      const expected = document2.querySelectorAll("[data-dv-source-expected]");
+      for (const element of expected) {
+        const uri = element.getAttribute("data-file-uri");
+        if (!uri || !uri.trim()) {
+          if (onContractFailure) onContractFailure("source-contract-missing");
+          return;
+        }
+      }
+    }
     function collectGroups() {
+      auditSourceContract();
       var fileUris = collectFileUris();
       var groups = [];
       fileUris.forEach(function(item) {
@@ -2366,7 +2377,7 @@
     }
     function init() {
       if (typeof OpenSeadragon === "undefined") {
-        console2.warn("[digital_viewer] OpenSeadragon not loaded \u2014 viewer will not mount.");
+        console2.warn("[digital_viewer] stage=startup code=osd-unavailable (OpenSeadragon not loaded)");
         return;
       }
       const groups = sources.collectGroups();
@@ -2538,6 +2549,9 @@
     const sources = createPageSources({
       document: document2,
       getPageContext: pageLayout.getPageContext,
+      onContractFailure() {
+        console2.warn("[digital_viewer] stage=discovery code=source-contract-missing");
+      },
       onDiscoveryError() {
         console2.warn("[digital_viewer] stage=startup code=source-unavailable");
       }
@@ -2590,4 +2604,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=fd2256466219d196401664ee4e323b35af40622d474f33527e3c843514fdb649
+//# sourceMappingURL=digital_viewer.js.map?v=4856c0d359c98ecb2eb6867fbd3abd47b56fe2e3cc8cbffab38afad169572aa9

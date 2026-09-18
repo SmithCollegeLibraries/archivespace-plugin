@@ -79,3 +79,13 @@ checks. Confirm both Digital Object and Archival Object page types, representati
 and additional-version branches, child vs leaf layout, readable original links,
 collection browse navigation and absence of unpublished source URLs. Preserve
 fixture identities and record exact runtime/ASpace/browser versions in evidence.
+
+## DV-M08 diagnostic expectation
+
+Source-producing wrappers also emit `data-dv-source-expected="true"` beside
+`data-file-uri`. `page-sources.mjs` audits this marker before discovery. If the
+URI attribute disappears or becomes blank, one fixed
+`stage=discovery code=source-contract-missing` warning is logged per scan. No
+source URLs or metadata are logged. A normal page with no producers stays quiet;
+browse-only and thumbnail-only wrappers do not acquire an expectation marker.
+Compatibility discovery still runs after a warning, preserving original access.

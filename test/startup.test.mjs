@@ -26,3 +26,16 @@ for(const [name,factory] of [['page-layout','createPageLayout'],['init','createI
     assert.equal(typeof (await module(name))[factory],'function');
   });
 }
+
+test('source contract distinguishes absent sources from missing explicit hints without exposing destinations', async function () {
+  const { createPageSources }=await module('page-sources');
+  let expected=[];const warnings=[];
+  const sources=createPageSources({document:{querySelectorAll:selector=>selector==='[data-dv-source-expected]'?expected:[]},
+    getPageContext:()=>({}),onContractFailure:code=>warnings.push(code)});
+  sources.collectGroups();assert.deepEqual(warnings,[]);
+  expected=[{getAttribute:()=>null}];sources.collectGroups();
+  assert.deepEqual(warnings,['source-contract-missing']);
+  warnings.length=0;
+  expected=[{getAttribute:()=> 'https://files.test/private?token=secret'}];sources.collectGroups();
+  assert.deepEqual(warnings,[]);
+});

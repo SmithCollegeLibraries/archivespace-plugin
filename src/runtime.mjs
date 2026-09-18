@@ -50,6 +50,7 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
   }
 
   const sources = createPageSources({ document, getPageContext: pageLayout.getPageContext,
+    onContractFailure() { console.warn('[digital_viewer] stage=discovery code=source-contract-missing'); },
     onDiscoveryError() { console.warn('[digital_viewer] stage=startup code=source-unavailable'); },
   });
   const { mountRankedSources } = createMountSequence({ lifecycle, mountDescriptor, reportFailure });

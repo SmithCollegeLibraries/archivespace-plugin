@@ -78,3 +78,5 @@ For the source request and rendering path after DV-M05, see [the adapter trace](
 Viewer controls, thumbnail loading and cancellation are mapped in [the lifecycle guide](docs/plugin-viewer-lifecycle.md).
 
 Start with [the page-load trace](docs/plugin-startup.md) to follow the current initialization path.
+
+For reproducible package checks and local rollback, use [the release workflow](docs/plugin-release-workflow.md).

@@ -27,7 +27,7 @@ step is needed on its host. CSS, Ruby templates and OpenSeadragon remain separat
 
 The runtime factory returns an explicit capability object for source tests and
 later module extraction. Entry uses only `init`; no test hooks are attached to
-`window`. DV-M07 reduces the composition root to 65 lines. Follow [page startup](plugin-startup.md) and the [viewer ownership guide](plugin-viewer-lifecycle.md). Current function names remain searchable in the modules above. Generic manifest
+`window`. DV-M07 reduces the composition root to 66 lines. Follow [page startup](plugin-startup.md) and the [viewer ownership guide](plugin-viewer-lifecycle.md). Current function names remain searchable in the modules above. Generic manifest
 functions are now `extractManifestPages` and `mountManifest`; the historical
 `compass-manifest` descriptor value is preserved for compatibility.
 

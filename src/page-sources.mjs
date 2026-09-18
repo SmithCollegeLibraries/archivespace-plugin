@@ -1,5 +1,5 @@
 // The template attribute contract and legacy selectors live here.
-export function createPageSources({ document, getPageContext, onDiscoveryError }) {
+export function createPageSources({ document, getPageContext, onDiscoveryError, onContractFailure }) {
   var sourceGroupCount = 0;
 
   function collectSourceAnchors(root) {
@@ -81,7 +81,19 @@ export function createPageSources({ document, getPageContext, onDiscoveryError }
     return root;
   }
 
+  function auditSourceContract() {
+    const expected = document.querySelectorAll('[data-dv-source-expected]');
+    for (const element of expected) {
+      const uri = element.getAttribute('data-file-uri');
+      if (!uri || !uri.trim()) {
+        if (onContractFailure) onContractFailure('source-contract-missing');
+        return;
+      }
+    }
+  }
+
   function collectGroups() {
+    auditSourceContract();
     var fileUris = collectFileUris();
     var groups = [];
 
