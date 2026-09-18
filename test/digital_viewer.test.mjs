@@ -1,18 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import vm from 'node:vm';
-import { fileURLToPath } from 'node:url';
-
-const sourcePath = fileURLToPath(new URL('../public/assets/digital_viewer.js', import.meta.url));
+import { readConfig, parseCompassHost } from '../src/config.mjs';
+import { detectSource, pickBestDescriptor, buildDescriptorSelection } from '../src/source-selection.mjs';
+import { createViewerRuntime } from '../src/runtime.mjs';
 
 function loadHooks(options = {}) {
-  const source = fs.readFileSync(sourcePath, 'utf8');
-  const instrumented = source.replace(
-    /\}\)\(\);\s*$/,
-    "window.__digitalViewerTestHooks = { detectSource: detectSource, parseCompassHost: parseCompassHost, pickBestDescriptor: pickBestDescriptor, buildDescriptorSelection: buildDescriptorSelection, extractCompassTileSources: extractCompassTileSources, addViewerModeActions: addViewerModeActions, toLocalCantaloupeInfoUrl: toLocalCantaloupeInfoUrl, getPreloadPageIndexes: getPreloadPageIndexes, buildThumbnailUrl: buildThumbnailUrl, addControls: addControls, mountCompassManifest: mountCompassManifest, addThumbnailCarousel: addThumbnailCarousel, warmSequenceCache: warmSequenceCache, classifyPageContext: classifyPageContext, collectSourceAnchors: collectSourceAnchors, mountOsdViewer: mountOsdViewer, mountStaticImage: mountStaticImage, mountDescriptor: mountDescriptor, disposeMountState: disposeMountState, init: init, makeElement: document.createElement };\n})();"
-  );
-
   function makeElement(tagName) {
     const element = {
       tagName,
@@ -190,8 +182,14 @@ function loadHooks(options = {}) {
     encodeURIComponent,
   };
 
-  vm.runInNewContext(instrumented, context, { filename: sourcePath });
-  return context.window.__digitalViewerTestHooks;
+  const config = readConfig(context.window.DigitalViewer);
+  const runtime = createViewerRuntime({ ...context, config });
+  assert.equal(typeof runtime.init, 'function', 'Runtime API missing: tests must not silently lose coverage');
+  return {
+    ...runtime, parseCompassHost, pickBestDescriptor, buildDescriptorSelection,
+    detectSource: uri => detectSource(uri, config),
+    makeElement: context.document.createElement,
+  };
 }
 
 function normalize(value) {

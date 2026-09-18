@@ -92,7 +92,7 @@ Acceptance:
 
 ## DV-M04 — Establish modules and extract configuration/source selection
 
-Status: OPEN. Dependencies: DV-M01, DV-M03. Related: WBL-0901/0902.
+Status: COMPLETE locally (2026-09-18). Dependencies: DV-M01, DV-M03. Related: WBL-0901/0902.
 
 Scope: implement the selected build/loading approach, extract configuration parsing, URL detection and ranking, and keep the remaining code behind an explicit entry point.
 
@@ -100,12 +100,14 @@ Test migration deliverable: `test/digital_viewer.test.mjs` currently reads `publ
 
 Acceptance:
 
-- [ ] Pure detection/ranking tests import source modules directly; preserve URL classifications, encoded identifiers, priority, companion/download decisions and empty-config behavior.
-- [ ] Migrate the existing text/VM harness explicitly, mapping its regressions to module tests or artifact integration tests without losing lifecycle, fallback or DOM coverage. Assert that intended hooks/tests actually execute; a failed text replacement must not silently reduce coverage. Document and verify the new build-before-test commands in the guide and parent `CLAUDE.md`/`AGENTS.md`.
-- [ ] A clean checkout produces the deployable assets with documented, locked tooling. The archive runs without Node or a build step on the host.
-- [ ] Keep one source of truth; mark generated assets and document how standalone changes reach the Docker mirror. Reconcile legacy copies through WBL-0901.
-- [ ] Test the served artifact in addition to source modules, with Ruby asset-version checks and real-ASpace startup. Asset cache invalidation covers every runtime output.
-- [ ] Browser source maps resolve to the maintained modules. Verify PUI prefix/CSP assumptions and release-package contents for the chosen loading strategy.
+- [x] Pure detection/ranking tests import source modules directly; preserve URL classifications, encoded identifiers, priority, companion/download decisions and empty-config behavior.
+- [x] Migrate the existing text/VM harness explicitly, mapping its regressions to module tests or artifact integration tests without losing lifecycle, fallback or DOM coverage. Assert that intended hooks/tests actually execute; a failed text replacement must not silently reduce coverage. Document and verify the new build-before-test commands in the guide and parent `CLAUDE.md`/`AGENTS.md`.
+- [x] A clean checkout produces the deployable assets with documented, locked tooling. The archive runs without Node or a build step on the host.
+- [x] Keep one source of truth; mark generated assets and document how standalone changes reach the Docker mirror. Reconcile legacy copies through WBL-0901.
+- [x] Test the served artifact in addition to source modules, with Ruby asset-version checks and real-ASpace startup. Asset cache invalidation covers every runtime output.
+- [x] Browser source maps resolve to the maintained modules. Verify PUI prefix/CSP assumptions and release-package contents for the chosen loading strategy.
+
+Implementation and harness mapping: [build guide](plugin-build.md). [Local evidence](evidence/dv-m04-2026-09-18.json): 79 Node tests, 15 Ruby template tests/72 assertions, asset-version checks, clean-package build, watch/stale checks, browser regressions and live ASpace startup pass. Legacy copies are explicitly marked pending WBL-0901; hosted deployment and remote CI remain separate gates. Completion commit is recorded in the parent ledger.
 
 ## DV-M05 — Extract source adapters and manifest parsing
 

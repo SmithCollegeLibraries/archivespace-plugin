@@ -1,5 +1,7 @@
 # DV-M01: module boundaries and build decision
 
+Implementation: DV-M04 establishes this build and first extraction; see [current build instructions](plugin-build.md).
+
 Date: 2026-09-18. Product: ArchivesSpace PUI `digital_viewer`.
 Design baseline: standalone commit `190a536`; runtime remains `2b863370bed0f57db3069a071b641dae0cf13754`. This document specifies future implementation under DV-M03–DV-M08. No modules, build scripts or dependencies have been installed by DV-M01.
 

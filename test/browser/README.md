@@ -225,3 +225,7 @@ version. No fixture records are modified.
 
 See [the attribute contract](../../docs/plugin-source-contract.md) for producers,
 consumers, preserved compatibility paths and the upgrade smoke checklist.
+
+## Module build smoke (DV-M04)
+
+`runModuleBuildChecks(browser, pluginRoot, puiBase)` from `module-build.mjs` checks the local PDF fixture (DO 876), generated startup, root/prefixed source-map URLs and self-only script CSP. It uses the caller-owned Playwright browser. The local fixture must exist; production proxy/CSP still requires deployment verification.

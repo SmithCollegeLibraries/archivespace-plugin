@@ -1,0 +1,495 @@
+{
+  "browser": "151.0.7922.174",
+  "contract": [
+    {
+      "name": "entry",
+      "changedMarkup": false,
+      "mounts": 1
+    },
+    {
+      "name": "entry",
+      "changedMarkup": true,
+      "mounts": 1
+    },
+    {
+      "name": "thumbnail-link",
+      "changedMarkup": false,
+      "mounts": 1
+    },
+    {
+      "name": "thumbnail-link",
+      "changedMarkup": true,
+      "mounts": 1
+    },
+    {
+      "name": "representative",
+      "changedMarkup": false,
+      "mounts": 1
+    },
+    {
+      "name": "representative",
+      "changedMarkup": true,
+      "mounts": 1
+    },
+    {
+      "name": "thumbnail-only",
+      "changedMarkup": false,
+      "mounts": 0
+    },
+    {
+      "name": "thumbnail-only",
+      "changedMarkup": true,
+      "mounts": 0
+    },
+    {
+      "name": "browse-only",
+      "changedMarkup": false,
+      "mounts": 0
+    },
+    {
+      "name": "browse-only",
+      "changedMarkup": true,
+      "mounts": 0
+    },
+    {
+      "name": "additional-version",
+      "changedMarkup": false,
+      "mounts": 1
+    },
+    {
+      "name": "additional-version",
+      "changedMarkup": true,
+      "mounts": 1
+    },
+    {
+      "name": "separate-objects-same-url",
+      "changedMarkup": false,
+      "mounts": 2
+    },
+    {
+      "name": "separate-objects-same-url",
+      "changedMarkup": true,
+      "mounts": 2
+    },
+    {
+      "name": "leaf-alternatives",
+      "changedMarkup": false,
+      "mounts": 1
+    },
+    {
+      "name": "leaf-alternatives",
+      "changedMarkup": true,
+      "mounts": 1
+    },
+    {
+      "name": "parent-object",
+      "changedMarkup": false,
+      "mounts": 2
+    },
+    {
+      "name": "parent-object",
+      "changedMarkup": true,
+      "mounts": 2
+    },
+    {
+      "name": "separate-image-pdf",
+      "changedMarkup": false,
+      "mounts": 2
+    },
+    {
+      "name": "separate-image-pdf",
+      "changedMarkup": true,
+      "mounts": 2
+    }
+  ],
+  "fallback": [
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "png",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "pdf",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "DigitalObject",
+      "format": "manifest",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "png",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "pdf",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "no-js",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "viewer-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "osd-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "config-absent",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "content-blocked",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "init-failed",
+      "originalDestinationOpened": true
+    },
+    {
+      "recordType": "ArchivalObject",
+      "format": "manifest",
+      "scenario": "working",
+      "originalDestinationOpened": true
+    }
+  ],
+  "ownership": [
+    {
+      "scenario": "failure before replacement open",
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "failure after replacement draw",
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    }
+  ],
+  "thumbnails": [
+    {
+      "scenario": "first stall",
+      "withObserver": true,
+      "requested": [
+        0,
+        1,
+        2
+      ],
+      "cancelled": true,
+      "elapsedMs": 10134,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "middle stall",
+      "withObserver": true,
+      "requested": [
+        0,
+        1,
+        2
+      ],
+      "cancelled": true,
+      "elapsedMs": 10146,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "dispose while stalled",
+      "withObserver": true,
+      "requested": [
+        0
+      ],
+      "cancelled": true,
+      "elapsedMs": 30,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "first stall",
+      "withObserver": false,
+      "requested": [
+        0,
+        1,
+        2
+      ],
+      "cancelled": true,
+      "elapsedMs": 10171,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "middle stall",
+      "withObserver": false,
+      "requested": [
+        0,
+        1,
+        2
+      ],
+      "cancelled": true,
+      "elapsedMs": 10142,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    },
+    {
+      "scenario": "dispose while stalled",
+      "withObserver": false,
+      "requested": [
+        0
+      ],
+      "cancelled": true,
+      "elapsedMs": 30,
+      "passed": true,
+      "osd": "5.0.1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+    }
+  ],
+  "moduleBuild": [
+    {
+      "case": "real ArchivesSpace PDF startup",
+      "script": "/assets/digital_viewer.js?v=452ca1a85d6b3f3cfa8321a615c1e9fea696879052564e2da968186f491dc74c",
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "/pui",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    }
+  ],
+  "verification": {
+    "nodeTests": 79,
+    "rubyTemplateTests": 15,
+    "rubyAssertions": 72,
+    "assetVersion": "passed",
+    "cleanPackage": "npm ci, check:generated and 79 tests passed",
+    "staleOutputCheck": "fails without repair",
+    "watch": "rebuilds changed source, restores original bytes",
+    "servedScriptAndMap": "local PUI byte-identical",
+    "limits": "Prefix/CSP are browser fixtures; hosted proxy/CSP and remote CI remain release gates. Live PDF verifies viewer startup, not unavailable fixture PDF delivery."
+  }
+}

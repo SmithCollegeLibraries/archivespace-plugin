@@ -10,6 +10,8 @@ The corrective code and its evidence have passed independent review, and Rob app
 
 DV-M03 adds an [explicit source attribute contract](plugin-source-contract.md) for plugin-owned markup, with compatibility selectors retained for stock/theme output.
 
+DV-M04 moves maintained JavaScript to `src/` and adds the [locked build, source maps and migrated test workflow](plugin-build.md). Older file/function descriptions below describe responsibilities; use source modules for edits, not the generated asset.
+
 Start here:
 
 - [Quick overview](#quick-overview)
@@ -67,7 +69,7 @@ Within the plugin, `public/` contains the tested public-site implementation. The
 | Markdown (`.md`) | Installation, evidence and maintenance documentation | Documentation only |
 | PNG (`.png`) | Bundled button images retained with the viewer assets | Static image files |
 
-There is no React, TypeScript, PHP application, database migration, or JavaScript build step inside this plugin. The larger parent project has a React/PHP prototype and companion services, but those are separate products. Node.js is used for testing; it is not a server the installed plugin needs to run.
+There is no React, TypeScript, PHP application or database migration inside this plugin. DV-M04 adds a developer-only JavaScript build step; installed ArchivesSpace hosts still need no Node/npm. The larger parent project has a React/PHP prototype and companion services, but those are separate products. Node.js is used for testing; it is not a server the installed plugin needs to run.
 
 OpenSeadragon is the included JavaScript library that handles zooming and image tiles. It is not Mirador. PDFs use the browser's own PDF support, not OpenSeadragon.
 
@@ -249,7 +251,9 @@ From the standalone plugin root:
 ```sh
 git rev-parse HEAD
 git status --short
-node --test test/*.mjs
+npm ci
+npm run check:generated
+npm test
 ruby test/asset_version_test.rb
 ruby -r ./public/views/digital_viewer_asset_version -e 'puts DigitalViewerAssetVersion.for_plugin_root(Dir.pwd)'
 shasum -a 256 public/assets/digital_viewer.js public/assets/digital_viewer.css public/assets/openseadragon.min.js

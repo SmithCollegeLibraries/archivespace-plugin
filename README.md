@@ -10,7 +10,7 @@ For a plain-language explanation of the languages, page/content flow, every plug
 
 Planned module extraction, markup compatibility and access without a working viewer are tracked in [maintainability and fallback tickets](docs/plugin-maintainability-tickets.md).
 
-DV-M01's [module map and build decision](docs/plugin-module-design.md) define the planned refactor. The current runtime still has no JavaScript build step; DV-M04 will introduce the documented build workflow.
+DV-M01's [module map and build decision](docs/plugin-module-design.md) define the planned refactor. DV-M04 implements the [module build and testing workflow](docs/plugin-build.md).
 
 ## Install on a test instance
 
@@ -47,15 +47,19 @@ Direct converted manifests on libtools2 are fetched by the browser; they do not 
 
 ## Source and tests
 
-The authoritative viewer is `public/assets/digital_viewer.js`; asset injection is `public/views/layout_head.html.erb`. Legacy copies remain under `frontend/`; WBL-0901 reconciliation is outstanding. Keep the currently tested package intact until that task is verified. The on-disk plugin directory must be named `digital_viewer`, and the target ArchivesSpace version is 4.2.0.
+The authoritative JavaScript source is `src/`; `public/assets/digital_viewer.js` and its map are generated and committed. Asset injection remains `public/views/layout_head.html.erb`. See [build, source map and test instructions](docs/plugin-build.md). The installed plugin directory must still be named `digital_viewer`.
 
-From this repository root:
+From this repository root, using Node 26.8.2 and npm 11.19.1:
 
 ```sh
-node --test test/*.mjs
+npm ci
+npm run check:generated
+npm test
+ruby test/asset_version_test.rb
+ruby test/fallback_template_test.rb
 ```
 
-The tests use Node's built-in test runner and a DOM shim. They do not substitute for real browser or hosted ArchivesSpace tests.
+Node's test runner uses explicit source APIs, a DOM shim and unmodified artifact startup tests. Browser helpers test the generated script. These do not substitute for hosted acceptance. Legacy `frontend/` copies are marked historical and remain outside this build pending WBL-0901.
 
 Thumbnail requests run one at a time per viewer (only visible/near-visible previews are queued when IntersectionObserver is available). Each gets a fixed 10-second timeout, independent of `DIGITAL_VIEWER_LOADING_TIMEOUT_MS`. Timeout or disposal removes the active image's `src`, clears its timer/listeners and advances only if the viewer is still active. A timed-out preview is not automatically retried; its numbered button and the full-size page remain available. Browser scheduling can delay a timeout in an inactive tab. See [focused browser regressions](test/browser/README.md) for real-request recovery and cancellation checks.
 
