@@ -2453,3 +2453,25 @@ test('adapter registry rejects inherited property names as unsupported descripto
     await assert.rejects(Promise.resolve().then(() => hooks.mountDescriptor(hooks.makeElement('div'), {type})), /UNSUPPORTED_DESCRIPTOR/);
   }
 });
+
+test('control document listeners are removed on viewer destruction and saved callbacks become inert', function () {
+  const base=loadHooks();const listeners=new Map();const saved={};const handlers={};
+  const document={createElement:base.makeElement,
+    addEventListener(type,fn){listeners.set(type,fn);saved[type]=fn;},
+    removeEventListener(type,fn){assert.equal(listeners.get(type),fn);listeners.delete(type);},
+  };
+  const hooks=loadHooks({document});const container=base.makeElement('div');
+  const viewer={canvas:{style:{}},viewport:{getRotation(){return 0;},getFlip(){return false;}},isFullPage(){return false;},
+    addHandler(name,fn){handlers[name]=fn;},removeHandler(){},
+  };
+  hooks.addControls(container,viewer);
+  const controls=container.children[0];const adjust=controls.querySelector('[data-icon="adjust"]') || controls.children[0].children[0].children[3];
+  adjust.onclick();
+  const popover=controls.querySelector('.dv-adjust-popover');
+  assert.equal(popover.getAttribute('aria-hidden'),'false');
+  assert.equal(typeof handlers['before-destroy'],'function');
+  handlers['before-destroy']();
+  assert.equal(listeners.size,0);
+  saved.keydown({key:'Escape'});
+  assert.equal(popover.getAttribute('aria-hidden'),'false');
+});

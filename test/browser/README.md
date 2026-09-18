@@ -229,3 +229,7 @@ consumers, preserved compatibility paths and the upgrade smoke checklist.
 ## Module build smoke (DV-M04)
 
 `runModuleBuildChecks(browser, pluginRoot, puiBase)` from `module-build.mjs` checks the local PDF fixture (DO 876), generated startup, root/prefixed source-map URLs and self-only script CSP. It uses the caller-owned Playwright browser. The local fixture must exist; production proxy/CSP still requires deployment verification.
+
+## Viewer lifecycle and keyboard controls (DV-M06)
+
+`runViewerLifecycleChecks(browser, pluginRoot)` from `viewer-lifecycle.mjs` uses deterministic manifests/images and the generated bundle. At desktop/mobile widths it checks keyboard image adjustments, Escape, page navigation/download destination and removal of document listeners on viewer destruction. Run alongside `source-request-ownership.mjs` and `thumbnail-queue.mjs` for replacement races and bounded preview disposal.

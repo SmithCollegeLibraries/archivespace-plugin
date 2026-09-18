@@ -179,6 +179,15 @@
     };
   }
 
+  // src/urls.mjs
+  function sanitizeUrl(url) {
+    var trimmed = typeof url === "string" ? url.trim() : "";
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^\//.test(trimmed)) return trimmed;
+    return "";
+  }
+
   // src/manifest.mjs
   var UNAVAILABLE_TILE_SOURCE = {
     type: "image",
@@ -276,15 +285,6 @@
     return Array.isArray(tileSources) && tileSources.some(function(tileSource) {
       return tileSource && !tileSource.unavailable && !!(tileSource.tileSource || tileSource);
     });
-  }
-
-  // src/urls.mjs
-  function sanitizeUrl(url) {
-    var trimmed = typeof url === "string" ? url.trim() : "";
-    if (!trimmed) return "";
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    if (/^\//.test(trimmed)) return trimmed;
-    return "";
   }
 
   // src/adapters/compass.mjs
@@ -638,22 +638,200 @@
     };
   }
 
-  // src/runtime.mjs
-  function createViewerRuntime({
-    config: cfg,
-    document: document2,
-    console: console2,
-    fetch,
-    OpenSeadragon,
-    IntersectionObserver,
-    Image,
+  // src/tile-sources.mjs
+  var THUMBNAIL_SIZE = 160;
+  function getTileSourceValue(tileSource) {
+    if (!tileSource) return tileSource;
+    if (tileSource.tileSource) return tileSource.tileSource;
+    return tileSource;
+  }
+  function isUnavailableTileSource(tileSource) {
+    return !!(tileSource && tileSource.unavailable);
+  }
+  function buildThumbnailUrl(tileSource) {
+    var infoUrl;
+    if (!tileSource) return "";
+    if (tileSource.unavailable) return "";
+    if (tileSource.thumbnailUrl) {
+      return tileSource.thumbnailUrl;
+    }
+    if (tileSource.tileSource) {
+      return buildThumbnailUrl(tileSource.tileSource);
+    }
+    if (typeof tileSource === "string") {
+      infoUrl = tileSource;
+    } else if (tileSource.url) {
+      return tileSource.url;
+    } else if (tileSource["@id"]) {
+      infoUrl = tileSource["@id"];
+    } else if (tileSource.id) {
+      infoUrl = tileSource.id;
+    }
+    if (!infoUrl) return "";
+    if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
+      return infoUrl.replace(/\/info\.json(?:\?.*)?$/i, "/full/!" + THUMBNAIL_SIZE + "," + THUMBNAIL_SIZE + "/0/default.jpg");
+    }
+    return infoUrl;
+  }
+  function getTileSourceImageUrl(tileSource) {
+    var infoUrl;
+    if (!tileSource) return "";
+    if (tileSource.imageUrl) {
+      return sanitizeUrl(tileSource.imageUrl);
+    }
+    if (tileSource.tileSource) {
+      return getTileSourceImageUrl(tileSource.tileSource);
+    }
+    if (typeof tileSource === "string") {
+      infoUrl = tileSource;
+    } else if (tileSource.url) {
+      return sanitizeUrl(tileSource.url);
+    } else if (tileSource["@id"]) {
+      infoUrl = tileSource["@id"];
+    } else if (tileSource.id) {
+      infoUrl = tileSource.id;
+    }
+    if (!infoUrl) return "";
+    if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
+      return sanitizeUrl(infoUrl.replace(/\/info\.json(?:\?.*)?$/i, "/full/full/0/default.jpg"));
+    }
+    return sanitizeUrl(infoUrl);
+  }
+  function getCompanionPdfUrl(selection) {
+    var companions = selection && Array.isArray(selection.companionCandidates) ? selection.companionCandidates : [];
+    var pdfUrl = "";
+    companions.some(function(candidate) {
+      var descriptor = candidate && candidate.descriptor;
+      if (!descriptor || descriptor.type !== "static-pdf" || !descriptor.url) return false;
+      pdfUrl = sanitizeUrl(descriptor.url);
+      if (!pdfUrl) return false;
+      return true;
+    });
+    return pdfUrl;
+  }
+
+  // src/lifecycle.mjs
+  function createLifecycle({
     AbortController,
     setTimeout,
-    clearTimeout
+    clearTimeout,
+    showLoadingNotice,
+    restoreLeafLayoutIfUnused
   }) {
-    var SEQUENCE_PRELOAD_DISTANCE = 2;
-    var THUMBNAIL_SIZE = 160;
-    var THUMBNAIL_TIMEOUT_MS = 1e4;
+    var activeMountStates = [];
+    function createAttempt() {
+      return {
+        active: true,
+        disposed: false,
+        viewer: null,
+        controller: typeof AbortController !== "undefined" ? new AbortController() : null,
+        timers: [],
+        cleanups: [],
+        timeoutId: null
+      };
+    }
+    function disposeViewer(viewer) {
+      if (viewer && typeof viewer.destroy === "function") viewer.destroy();
+    }
+    function isAttemptActive(attempt) {
+      return !attempt || attempt.active !== false;
+    }
+    function registerAttemptCleanup(attempt, cleanup) {
+      if (!attempt || typeof cleanup !== "function") return;
+      attempt.cleanups.push(cleanup);
+    }
+    function disposeAttempt(attempt) {
+      var cleanups;
+      if (!attempt || attempt.disposed) return;
+      attempt.disposed = true;
+      attempt.active = false;
+      clearAttemptTimeout(attempt);
+      (attempt.timers || []).forEach(function(timerId) {
+        clearTimeout(timerId);
+      });
+      attempt.timers = [];
+      if (attempt.controller && typeof attempt.controller.abort === "function") {
+        attempt.controller.abort();
+      }
+      try {
+        if (attempt.viewer) disposeViewer(attempt.viewer);
+      } catch (err) {
+      }
+      cleanups = (attempt.cleanups || []).slice();
+      attempt.cleanups = [];
+      cleanups.forEach(function(cleanup) {
+        try {
+          cleanup();
+        } catch (err) {
+        }
+      });
+    }
+    function clearAttemptTimeout(attempt) {
+      if (!attempt || attempt.timeoutId === null || typeof attempt.timeoutId === "undefined") return;
+      clearTimeout(attempt.timeoutId);
+      attempt.timeoutId = null;
+    }
+    function scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback) {
+      attempt.timeoutId = setTimeout(function() {
+        if (!isAttemptActive(attempt) || attempt.completed || attempt.timedOut) return;
+        attempt.timeoutId = null;
+        attempt.timedOut = true;
+        if (allowFallback) {
+          disposeAttempt(attempt);
+          onFallback();
+        } else {
+          showLoadingNotice(container);
+        }
+      }, timeout);
+    }
+    function disposeMountState(state, options) {
+      var activeIndex;
+      if (!state || state.disposed) return;
+      state.disposed = true;
+      disposeAttempt(state.attempt);
+      if (state.container) {
+        state.container.__dvMountState = null;
+        if (state.container.parentNode && typeof state.container.parentNode.removeChild === "function") {
+          state.container.parentNode.removeChild(state.container);
+        }
+      }
+      if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
+      activeIndex = activeMountStates.indexOf(state);
+      if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
+      if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
+    }
+    return { activeMountStates, createAttempt, disposeViewer, isAttemptActive, registerAttemptCleanup, disposeAttempt, clearAttemptTimeout, scheduleAttemptTimeout, disposeMountState };
+  }
+
+  // src/events.mjs
+  function createViewerScope(viewer, attempt, registerAttemptCleanup) {
+    let disposed = false;
+    const cleanups = [];
+    function listen(target, event, callback) {
+      function guarded(eventData) {
+        if (disposed || attempt && attempt.active === false) return;
+        callback(eventData);
+      }
+      target.addEventListener(event, guarded);
+      cleanups.push(function() {
+        if (typeof target.removeEventListener === "function") target.removeEventListener(event, guarded);
+      });
+    }
+    function dispose() {
+      if (disposed) return;
+      disposed = true;
+      cleanups.splice(0).forEach(function(cleanup) {
+        cleanup();
+      });
+      if (viewer && typeof viewer.removeHandler === "function") viewer.removeHandler("before-destroy", dispose);
+    }
+    if (viewer && typeof viewer.addHandler === "function") viewer.addHandler("before-destroy", dispose);
+    registerAttemptCleanup(attempt, dispose);
+    return { listen, dispose };
+  }
+
+  // src/controls.mjs
+  function createControls({ document: document2, isAttemptActive, registerAttemptCleanup }) {
     var IMAGE_ADJUSTMENT_STEP = 20;
     var DEFAULT_IMAGE_ADJUSTMENTS = {
       brightness: 100,
@@ -662,21 +840,7 @@
       grayscale: 0,
       invert: 0
     };
-    var warmedResourceUrls = {};
     var viewerControlInstanceCount = 0;
-    var sourceGroupCount = 0;
-    var activeMountStates = [];
-    function createFallbackLink(url, label) {
-      var safeUrl = sanitizeUrl(url);
-      var link;
-      if (!safeUrl) return null;
-      link = document2.createElement("a");
-      link.href = safeUrl;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = label;
-      return link;
-    }
     function makeButton(icon, title, onClick) {
       var btn = document2.createElement("button");
       btn.type = "button";
@@ -1066,6 +1230,7 @@
       return toggle;
     }
     function addControls(container, viewer, options) {
+      var scope = createViewerScope(viewer, options && options.attempt, registerAttemptCleanup);
       var bar = document2.createElement("div");
       var state = {
         root: bar,
@@ -1084,14 +1249,14 @@
       state.toggleButton = buildControlsToggle(viewer, state);
       bar.appendChild(state.toggleButton);
       if (document2 && typeof document2.addEventListener === "function") {
-        document2.addEventListener("click", function(event) {
+        scope.listen(document2, "click", function(event) {
           if (!state.isPopoverOpen) return;
           if (!event || !event.target) return;
           if (!isElementInside(bar, event.target)) {
             setAdjustPopoverOpen(state, false);
           }
         });
-        document2.addEventListener("keydown", function(event) {
+        scope.listen(document2, "keydown", function(event) {
           if (!state.isPopoverOpen || !event) return;
           if (event.key === "Escape" || event.keyCode === 27) {
             setAdjustPopoverOpen(state, false);
@@ -1150,102 +1315,11 @@
         nextBtn.disabled = data.page === total - 1;
       });
     }
-    function getPreloadPageIndexes(activeIndex, total, distance) {
-      var indexes = [];
-      var radius = typeof distance === "number" ? distance : SEQUENCE_PRELOAD_DISTANCE;
-      var offset;
-      if (total <= 0) return indexes;
-      indexes.push(activeIndex);
-      for (offset = 1; offset <= radius; offset += 1) {
-        if (activeIndex - offset >= 0) {
-          indexes.push(activeIndex - offset);
-        }
-        if (activeIndex + offset < total) {
-          indexes.push(activeIndex + offset);
-        }
-      }
-      return indexes;
-    }
-    function getTileSourceValue(tileSource) {
-      if (!tileSource) return tileSource;
-      if (tileSource.tileSource) return tileSource.tileSource;
-      return tileSource;
-    }
-    function isUnavailableTileSource(tileSource) {
-      return !!(tileSource && tileSource.unavailable);
-    }
-    function buildThumbnailUrl(tileSource) {
-      var infoUrl;
-      if (!tileSource) return "";
-      if (tileSource.unavailable) return "";
-      if (tileSource.thumbnailUrl) {
-        return tileSource.thumbnailUrl;
-      }
-      if (tileSource.tileSource) {
-        return buildThumbnailUrl(tileSource.tileSource);
-      }
-      if (typeof tileSource === "string") {
-        infoUrl = tileSource;
-      } else if (tileSource.url) {
-        return tileSource.url;
-      } else if (tileSource["@id"]) {
-        infoUrl = tileSource["@id"];
-      } else if (tileSource.id) {
-        infoUrl = tileSource.id;
-      }
-      if (!infoUrl) return "";
-      if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
-        return infoUrl.replace(/\/info\.json(?:\?.*)?$/i, "/full/!" + THUMBNAIL_SIZE + "," + THUMBNAIL_SIZE + "/0/default.jpg");
-      }
-      return infoUrl;
-    }
-    function getTileSourceImageUrl(tileSource) {
-      var infoUrl;
-      if (!tileSource) return "";
-      if (tileSource.imageUrl) {
-        return sanitizeUrl(tileSource.imageUrl);
-      }
-      if (tileSource.tileSource) {
-        return getTileSourceImageUrl(tileSource.tileSource);
-      }
-      if (typeof tileSource === "string") {
-        infoUrl = tileSource;
-      } else if (tileSource.url) {
-        return sanitizeUrl(tileSource.url);
-      } else if (tileSource["@id"]) {
-        infoUrl = tileSource["@id"];
-      } else if (tileSource.id) {
-        infoUrl = tileSource.id;
-      }
-      if (!infoUrl) return "";
-      if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
-        return sanitizeUrl(infoUrl.replace(/\/info\.json(?:\?.*)?$/i, "/full/full/0/default.jpg"));
-      }
-      return sanitizeUrl(infoUrl);
-    }
-    function getCompanionPdfUrl(selection) {
-      var companions = selection && Array.isArray(selection.companionCandidates) ? selection.companionCandidates : [];
-      var pdfUrl = "";
-      companions.some(function(candidate) {
-        var descriptor = candidate && candidate.descriptor;
-        if (!descriptor || descriptor.type !== "static-pdf" || !descriptor.url) return false;
-        pdfUrl = sanitizeUrl(descriptor.url);
-        if (!pdfUrl) return false;
-        return true;
-      });
-      return pdfUrl;
-    }
-    function getContainerViewerOptions(container) {
-      var mountOptions = container && container.__dvMountOptions || {};
-      var attempt = mountOptions.attempt;
-      return {
-        objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
-        loadingTimeoutMs: mountOptions.loadingTimeoutMs,
-        allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
-        attempt,
-        signal: attempt && attempt.controller ? attempt.controller.signal : void 0
-      };
-    }
+    return { addControls, addPageNav };
+  }
+
+  // src/viewer-modes.mjs
+  function createViewerModes({ document: document2, isAttemptActive }) {
     function setElementHidden(element, hidden) {
       if (!element) return;
       element.setAttribute("aria-hidden", hidden ? "true" : "false");
@@ -1379,15 +1453,48 @@
       container.appendChild(root);
       return state;
     }
-    function primeResourceUrl(url, useFetch) {
-      if (!url || warmedResourceUrls[url]) return;
-      warmedResourceUrls[url] = true;
+    return { addViewerModeActions };
+  }
+
+  // src/prefetch.mjs
+  var SEQUENCE_PRELOAD_DISTANCE = 2;
+  function getPreloadPageIndexes(activeIndex, total, distance) {
+    var indexes = [];
+    var radius = typeof distance === "number" ? distance : SEQUENCE_PRELOAD_DISTANCE;
+    var offset;
+    if (total <= 0) return indexes;
+    indexes.push(activeIndex);
+    for (offset = 1; offset <= radius; offset += 1) {
+      if (activeIndex - offset >= 0) {
+        indexes.push(activeIndex - offset);
+      }
+      if (activeIndex + offset < total) {
+        indexes.push(activeIndex + offset);
+      }
+    }
+    return indexes;
+  }
+  function createPrefetch({ fetch, Image, registerAttemptCleanup }) {
+    var warmedResourceUrls = {};
+    function primeResourceUrl(url, useFetch, options) {
+      var attempt = options && options.attempt;
+      if (attempt && attempt.active === false) return;
+      var warmed = attempt ? attempt.warmedResourceUrls || (attempt.warmedResourceUrls = {}) : warmedResourceUrls;
+      if (!url || warmed[url]) return;
+      warmed[url] = true;
       if (useFetch && typeof fetch === "function") {
-        fetch(url, { cache: "force-cache" }).then(function(res) {
+        var request;
+        try {
+          request = fetch(url, { cache: "force-cache", signal: attempt && attempt.controller ? attempt.controller.signal : void 0 });
+        } catch (err) {
+          delete warmed[url];
+          return;
+        }
+        Promise.resolve(request).then(function(res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           return res.text();
         }).catch(function() {
-          delete warmedResourceUrls[url];
+          delete warmed[url];
         });
         return;
       }
@@ -1395,18 +1502,35 @@
         var image = new Image();
         image.decoding = "async";
         image.loading = "eager";
+        if (attempt && registerAttemptCleanup) registerAttemptCleanup(attempt, function() {
+          image.removeAttribute("src");
+        });
         image.src = url;
       }
     }
-    function warmSequenceCache(tileSources, activeIndex) {
+    function warmSequenceCache(tileSources, activeIndex, options) {
       getPreloadPageIndexes(activeIndex, tileSources.length, SEQUENCE_PRELOAD_DISTANCE).forEach(function(index) {
         var tileSource = tileSources[index];
         var osdTileSource = getTileSourceValue(tileSource);
         if (typeof osdTileSource === "string" && /\/info\.json(?:\?.*)?$/i.test(osdTileSource)) {
-          primeResourceUrl(osdTileSource, true);
+          primeResourceUrl(osdTileSource, true, options);
         }
       });
     }
+    return { primeResourceUrl, warmSequenceCache };
+  }
+
+  // src/thumbnails.mjs
+  function createThumbnails({
+    document: document2,
+    IntersectionObserver,
+    setTimeout,
+    clearTimeout,
+    isAttemptActive,
+    registerAttemptCleanup,
+    warmSequenceCache
+  }) {
+    var THUMBNAIL_TIMEOUT_MS = 1e4;
     function addThumbnailCarousel(container, viewer, tileSources, options) {
       var carousel = document2.createElement("div");
       var prevBtn = document2.createElement("button");
@@ -1507,8 +1631,9 @@
         button.className = "dv-thumbnail-btn";
         button.setAttribute("aria-label", "Go to image " + (index + 1));
         button.addEventListener("click", function() {
+          if (disposed || !isAttemptActive(options && options.attempt)) return;
           viewer.goToPage(index);
-          warmSequenceCache(tileSources, index);
+          warmSequenceCache(tileSources, index, options);
         });
         image.className = "dv-thumbnail-img";
         image.alt = "Thumbnail " + (index + 1);
@@ -1536,16 +1661,41 @@
       updateActive(0);
       updateArrowState();
       viewer.addHandler("page", function(data) {
-        if (!isAttemptActive(options && options.attempt)) return;
+        if (disposed || !isAttemptActive(options && options.attempt)) return;
         updateActive(data.page);
       });
-      viewer.addHandler("before-destroy", function() {
+      function disposeThumbnails() {
+        if (disposed) return;
         disposed = true;
         thumbnailQueue = [];
         if (thumbnailObserver) thumbnailObserver.disconnect();
         if (cancelActiveThumbnail) cancelActiveThumbnail();
-      });
+      }
+      viewer.addHandler("before-destroy", disposeThumbnails);
+      registerAttemptCleanup(options && options.attempt, disposeThumbnails);
     }
+    return { addThumbnailCarousel };
+  }
+
+  // src/viewer.mjs
+  function createViewer({
+    document: document2,
+    OpenSeadragon,
+    setTimeout,
+    clearTimeout,
+    resetContainer,
+    showLoadingNotice,
+    clearLoadingNotice,
+    isAttemptActive,
+    disposeViewer,
+    registerAttemptCleanup,
+    addControls,
+    addPageNav,
+    addViewerModeActions,
+    addThumbnailCarousel,
+    warmSequenceCache,
+    primeResourceUrl
+  }) {
     function mountOsdViewer(container, tileSources, options) {
       var openPromise;
       var mountOptions = options || {};
@@ -1853,6 +2003,11 @@
         viewer.addHandler("before-destroy", function() {
           viewerDisposed = true;
           activeSourceRequest = null;
+          if (timeoutId !== null) clearTimeout(timeoutId);
+          if (!settled) {
+            settled = true;
+            reject(new Error("ATTEMPT_DISPOSED"));
+          }
           if (tileTimerId !== null) clearTimeout(tileTimerId);
         });
         registerAttemptCleanup(attempt, function() {
@@ -1869,15 +2024,54 @@
       if (isSequence) {
         addPageNav(container, viewer, tileSources.length, mountOptions);
         addThumbnailCarousel(container, viewer, tileSources, mountOptions);
-        warmSequenceCache(tileSources, 0);
+        warmSequenceCache(tileSources, 0, mountOptions);
         viewer.addHandler("page", function(data) {
           if (!isAttemptActive(attempt)) return;
-          warmSequenceCache(tileSources, data.page);
+          warmSequenceCache(tileSources, data.page, mountOptions);
         });
       } else if (buildThumbnailUrl(tileSources)) {
-        primeResourceUrl(buildThumbnailUrl(tileSources), false);
+        primeResourceUrl(buildThumbnailUrl(tileSources), false, mountOptions);
       }
       return openPromise;
+    }
+    return { mountOsdViewer };
+  }
+
+  // src/runtime.mjs
+  function createViewerRuntime({
+    config: cfg,
+    document: document2,
+    console: console2,
+    fetch,
+    OpenSeadragon,
+    IntersectionObserver,
+    Image,
+    AbortController,
+    setTimeout,
+    clearTimeout
+  }) {
+    var sourceGroupCount = 0;
+    function createFallbackLink(url, label) {
+      var safeUrl = sanitizeUrl(url);
+      var link;
+      if (!safeUrl) return null;
+      link = document2.createElement("a");
+      link.href = safeUrl;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = label;
+      return link;
+    }
+    function getContainerViewerOptions(container) {
+      var mountOptions = container && container.__dvMountOptions || {};
+      var attempt = mountOptions.attempt;
+      return {
+        objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
+        loadingTimeoutMs: mountOptions.loadingTimeoutMs,
+        allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
+        attempt,
+        signal: attempt && attempt.controller ? attempt.controller.signal : void 0
+      };
     }
     function showError(container, message) {
       var paragraph;
@@ -1920,79 +2114,59 @@
       if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = false;
       if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
     }
-    function disposeViewer(viewer) {
-      if (viewer && typeof viewer.destroy === "function") viewer.destroy();
-    }
-    function isAttemptActive(attempt) {
-      return !attempt || attempt.active !== false;
-    }
-    function registerAttemptCleanup(attempt, cleanup) {
-      if (!attempt || typeof cleanup !== "function") return;
-      attempt.cleanups.push(cleanup);
-    }
-    function disposeAttempt(attempt) {
-      var cleanups;
-      if (!attempt || attempt.disposed) return;
-      attempt.disposed = true;
-      attempt.active = false;
-      clearAttemptTimeout(attempt);
-      (attempt.timers || []).forEach(function(timerId) {
-        clearTimeout(timerId);
-      });
-      attempt.timers = [];
-      if (attempt.controller && typeof attempt.controller.abort === "function") {
-        attempt.controller.abort();
-      }
-      if (attempt.viewer) disposeViewer(attempt.viewer);
-      cleanups = (attempt.cleanups || []).slice();
-      attempt.cleanups = [];
-      cleanups.forEach(function(cleanup) {
-        try {
-          cleanup();
-        } catch (err) {
-        }
-      });
-    }
-    function clearAttemptTimeout(attempt) {
-      if (!attempt || attempt.timeoutId === null || typeof attempt.timeoutId === "undefined") return;
-      clearTimeout(attempt.timeoutId);
-      attempt.timeoutId = null;
-    }
-    function scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback) {
-      attempt.timeoutId = setTimeout(function() {
-        if (!isAttemptActive(attempt) || attempt.completed || attempt.timedOut) return;
-        attempt.timeoutId = null;
-        attempt.timedOut = true;
-        if (allowFallback) {
-          disposeAttempt(attempt);
-          onFallback();
-        } else {
-          showLoadingNotice(container);
-        }
-      }, timeout);
-    }
-    function disposeMountState(state, options) {
-      var activeIndex;
-      if (!state || state.disposed) return;
-      state.disposed = true;
-      disposeAttempt(state.attempt);
-      if (state.container) {
-        state.container.__dvMountState = null;
-        if (state.container.parentNode && typeof state.container.parentNode.removeChild === "function") {
-          state.container.parentNode.removeChild(state.container);
-        }
-      }
-      if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
-      activeIndex = activeMountStates.indexOf(state);
-      if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
-      if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
-    }
     function resetContainer(container) {
       var preserveLoading = !!(container && container.querySelector && container.querySelector(".dv-loading-msg")) || !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
       container.className = "digital-viewer-container";
       container.innerHTML = "";
       if (preserveLoading) showLoadingNotice(container);
     }
+    const lifecycle = createLifecycle({
+      AbortController,
+      setTimeout,
+      clearTimeout,
+      showLoadingNotice,
+      restoreLeafLayoutIfUnused
+    });
+    const {
+      activeMountStates,
+      createAttempt,
+      isAttemptActive,
+      registerAttemptCleanup,
+      disposeAttempt,
+      clearAttemptTimeout,
+      scheduleAttemptTimeout,
+      disposeMountState
+    } = lifecycle;
+    const { addControls, addPageNav } = createControls({ document: document2, isAttemptActive, registerAttemptCleanup });
+    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive });
+    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup });
+    const { addThumbnailCarousel } = createThumbnails({
+      document: document2,
+      IntersectionObserver,
+      setTimeout,
+      clearTimeout,
+      isAttemptActive,
+      registerAttemptCleanup,
+      warmSequenceCache
+    });
+    const { mountOsdViewer } = createViewer({
+      document: document2,
+      OpenSeadragon,
+      setTimeout,
+      clearTimeout,
+      resetContainer,
+      showLoadingNotice,
+      clearLoadingNotice,
+      isAttemptActive,
+      disposeViewer: lifecycle.disposeViewer,
+      registerAttemptCleanup,
+      addControls,
+      addPageNav,
+      addViewerModeActions,
+      addThumbnailCarousel,
+      warmSequenceCache,
+      primeResourceUrl
+    });
     const adapters = createSourceAdapters({
       config: cfg,
       document: document2,
@@ -2265,15 +2439,7 @@
         }
         (function tryMount(rankIndex) {
           var mountState = container.__dvMountState;
-          var attempt = {
-            active: true,
-            disposed: false,
-            viewer: null,
-            controller: typeof AbortController !== "undefined" ? new AbortController() : null,
-            timers: [],
-            cleanups: [],
-            timeoutId: null
-          };
+          var attempt = createAttempt();
           if (!mountState || mountState.disposed) return;
           if (mountState.attempt) disposeAttempt(mountState.attempt);
           mountState.attempt = attempt;
@@ -2348,4 +2514,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=465e9a9fca6986de7617a4ff37493a62b84a0f7adeea70a3e62a5f0301953128
+//# sourceMappingURL=digital_viewer.js.map?v=de1263373e576891319977bf80abcb4be436f9c0679da71efa64342bcb043bfb

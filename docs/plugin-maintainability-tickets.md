@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01–DV-M05 complete locally (2026-09-18); DV-M06–DV-M08 OPEN.
+Status: DV-M01–DV-M06 complete locally (2026-09-18); DV-M07–DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -126,16 +126,18 @@ Implementation: [adapter trace and contracts](plugin-adapters.md). [Local eviden
 
 ## DV-M06 — Separate viewer lifecycle, controls and thumbnail loading
 
-Status: OPEN. Dependencies: DV-M05.
+Status: COMPLETE locally (2026-09-18). Dependencies: DV-M05.
 
 Scope: extract OpenSeadragon construction, navigation/download/adjustment controls, thumbnail queues and mount-attempt ownership into cohesive modules.
 
 Acceptance:
 
-- [ ] Define one owner for each request, timer, observer and document/viewer event listener, with explicit disposal. Resolve or document the existing document-listener cleanup follow-up.
-- [ ] Preserve per-group cancellation, bounded thumbnail loading, final slow-attempt retention, deadline races and stale callbacks across rapid navigation and fallback.
-- [ ] Controls consume a documented viewer interface; thumbnail errors cannot invalidate a working main viewer.
-- [ ] Existing request-ownership, thumbnail, download-policy and failure regressions pass; browser evidence covers navigation, keyboard controls and replacement/disposal.
+- [x] Define one owner for each request, timer, observer and document/viewer event listener, with explicit disposal. Resolve or document the existing document-listener cleanup follow-up.
+- [x] Preserve per-group cancellation, bounded thumbnail loading, final slow-attempt retention, deadline races and stale callbacks across rapid navigation and fallback.
+- [x] Controls consume a documented viewer interface; thumbnail errors cannot invalidate a working main viewer.
+- [x] Existing request-ownership, thumbnail, download-policy and failure regressions pass; browser evidence covers navigation, keyboard controls and replacement/disposal.
+
+Implementation: [viewer modules, ownership and controls interface](plugin-viewer-lifecycle.md). [Local evidence](evidence/dv-m06-2026-09-18.json): 132 Node tests, Ruby checks, desktop/mobile keyboard and document-listener cleanup, two source-replacement cases, six thumbnail cases, 20 source-contract and 42 fallback cases, live ASpace startup and source maps pass. Document-listener cleanup is resolved. Completion commit is recorded in the parent ledger; hosted release gates remain separate.
 
 ## DV-M07 — Reduce startup to readable orchestration
 

@@ -77,5 +77,5 @@ before and after response parsing, native media and direct-image/PDF fallback.
 `test/adapters.test.mjs` tests the adapter boundary;
 `test/digital_viewer.test.mjs` exercises the real coordinator.
 
-The distributed script and source map remain generated artifacts. Runtime/UI
-extraction continues in DV-M06–07; no deployment build step is introduced.
+The distributed script and source map remain generated artifacts. Viewer/UI extraction is documented in [DV-M06 ownership](plugin-viewer-lifecycle.md);
+page integration continues in DV-M07; no deployment build step is introduced.

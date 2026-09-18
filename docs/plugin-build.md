@@ -1,4 +1,4 @@
-# Building and debugging digital_viewer (DV-M04–05)
+# Building and debugging digital_viewer (DV-M04–06)
 
 The maintained viewer source is now `src/`. `public/assets/digital_viewer.js` and
 `digital_viewer.js.map` are generated and committed together. ArchivesSpace still
@@ -15,13 +15,16 @@ step is needed on its host. CSS, Ruby templates and OpenSeadragon remain separat
 | `src/manifest.mjs` | Presentation 2 page parsing and Presentation 3 media grouping. No DOM or configuration dependency. |
 | `src/adapters/` | Manifest, Compass, Preservica and direct media mounts. See the [adapter trace](plugin-adapters.md). |
 | `src/urls.mjs` | Shared URL policy for native media and download links. |
-| `src/runtime.mjs` | Transitional factory for viewer UI, lifecycle and page integration; these move out in DV-M06–07. Each instance owns its closure state and supplies adapter dependencies. |
+| `src/runtime.mjs` | Composition, page scanning/layout and ranked fallback loop; page integration moves out in DV-M07. |
+| `src/lifecycle.mjs`, `src/viewer.mjs` | Attempt ownership and OpenSeadragon setup/request handling. |
+| `src/controls.mjs`, `src/viewer-modes.mjs` | Navigation/adjustments and object/page/download actions. |
+| `src/thumbnails.mjs`, `src/prefetch.mjs` | Bounded preview loading and owned speculative requests. |
+| `src/events.mjs`, `src/tile-sources.mjs` | Disposable external listeners and pure tile/download helpers. |
 | `scripts/build.mjs` | Reproducible bundle/map generation, watch mode and stale-output check. |
 
 The runtime factory returns an explicit capability object for source tests and
 later module extraction. Entry uses only `init`; no test hooks are attached to
-`window`. The remaining runtime is still large—DV-M04 is the first extraction,
-not completion of the entire refactor. Current function names remain searchable in the modules above. Generic manifest
+`window`. DV-M06 reduces the runtime to about 500 lines. See the [viewer ownership guide](plugin-viewer-lifecycle.md); page integration remains for DV-M07. Current function names remain searchable in the modules above. Generic manifest
 functions are now `extractManifestPages` and `mountManifest`; the historical
 `compass-manifest` descriptor value is preserved for compatibility.
 
@@ -86,6 +89,7 @@ branch. Release tests must exercise the extracted package, not just `src/`.
 - `test/artifact.test.mjs`: runs the **unmodified** generated script in a VM to
   verify DOM readiness, blocked OSD behavior and absence of global test hooks.
 - `test/adapters.test.mjs`: pure parser contracts, explicit adapter mount/request context and Compass redirect handling. Additional coordinator regressions in `digital_viewer.test.mjs` cover request/body/renderer failures, missing configuration, cancellation and native media.
+- `test/lifecycle.test.mjs`: extracted factory boundaries, disposal/deadline and prefetch ownership/error regressions. Browser keyboard and listener-disposal checks are in `viewer-lifecycle.mjs`.
 - Browser helpers continue to load `public/assets/digital_viewer.js` unchanged,
   covering real DOM behavior, failures, grouping, requests and thumbnail cleanup.
 
