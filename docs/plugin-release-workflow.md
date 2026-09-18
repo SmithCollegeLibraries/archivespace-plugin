@@ -30,7 +30,9 @@ may refer to the tested artifact commit; explicitly verify runtime byte identity
 
 Keep the prior archive, its hash and the exact environment configuration. In a
 local rehearsal, switch the mounted plugin's assets from candidate to prior and
-back, verifying served bytes and Ruby version values at every step (B → A → B).
+back, restarting local ArchivesSpace at each switch and verifying served bytes
+and Ruby version values at every step (B → A → B). File-only swaps can retain
+cached asset-length metadata in the server and yield incomplete responses.
 Confirm prior bytes restore the prior digest even with different file mtimes.
 For template/server changes, restart the local ArchivesSpace service and verify
 markup; a complete hosted rollback must restore the **whole prior package and

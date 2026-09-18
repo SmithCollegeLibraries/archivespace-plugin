@@ -96,7 +96,7 @@ Status: COMPLETE locally (2026-09-18). Dependencies: DV-M01, DV-M03. Related: WB
 
 Scope: implement the selected build/loading approach, extract configuration parsing, URL detection and ranking, and keep the remaining code behind an explicit entry point.
 
-Test migration deliverable: `test/digital_viewer.test.mjs` currently reads `public/assets/digital_viewer.js` as text, injects hooks by replacing the closing IIFE, and executes it with `vm.runInNewContext`. Module extraction or bundling can invalidate both that text pattern and its closure-local function references. Rewrite the harness around module exports and/or retarget integration coverage at the served artifact; merely changing the input filename is insufficient if instrumentation assumptions no longer hold.
+Original test migration deliverable (before DV-M04): `test/digital_viewer.test.mjs` read `public/assets/digital_viewer.js` as text, injects hooks by replacing the closing IIFE, and executes it with `vm.runInNewContext`. Module extraction or bundling can invalidate both that text pattern and its closure-local function references. Rewrite the harness around module exports and/or retarget integration coverage at the served artifact; merely changing the input filename is insufficient if instrumentation assumptions no longer hold.
 
 Acceptance:
 
@@ -156,16 +156,18 @@ Implementation: [page-load trace and startup responsibilities](plugin-startup.md
 
 ## DV-M08 — Publish the developer map and validate the assembled plugin
 
-Status: OPEN. Dependencies: DV-M02, DV-M07. Related: WBL-0903/0904.
+Status: IN PROGRESS — implementation/package checks complete; live image-service verification blocked (2026-09-18). Dependencies: DV-M02, DV-M07. Related: WBL-0903/0904.
 
 Scope: update the maintenance guide and release workflow around the completed architecture, with symptom-to-module navigation and concrete verification evidence.
 
 Acceptance:
 
-- [ ] Document Ruby template → configuration/markup → startup → adapter → viewer → content-service flow, including fallback and disposal paths, using final filenames and APIs.
-- [ ] Map missing viewer, wrong grouping, manifest failures, stalled tiles, thumbnail errors and incorrect downloads to the responsible modules/tests.
-- [ ] Replace current troubleshooting/review navigation based on absolute line numbers with module paths and function names. Audit the Lyrasis task list's review anchors (including the historical `init` near line 2185); retain dated candidate references as history and distinguish them from navigation for the current source.
-- [ ] Diagnostics identify stage and safe error code without exposing source URLs, query strings or credentials; distinguish absent sources from failure of an expected plugin-owned source contract.
+- [x] Document Ruby template → configuration/markup → startup → adapter → viewer → content-service flow, including fallback and disposal paths, using final filenames and APIs.
+- [x] Map missing viewer, wrong grouping, manifest failures, stalled tiles, thumbnail errors and incorrect downloads to the responsible modules/tests.
+- [x] Replace current troubleshooting/review navigation based on absolute line numbers with module paths and function names. Audit the Lyrasis task list's review anchors (including the historical `init` near line 2185); retain dated candidate references as history and distinguish them from navigation for the current source.
+- [x] Diagnostics identify stage and safe error code without exposing source URLs, query strings or credentials; distinguish absent sources from failure of an expected plugin-owned source contract.
 - [ ] Run relevant Node/Ruby suites and actual-ASpace browser coverage for supported formats, startup/partial failure, no-JS and blocked scripts, source grouping and download behavior. State exact environment, artifact commit and remaining hosted checks.
-- [ ] Verify the extracted distribution, asset identity/cache invalidation and rollback to the prior artifact; preserve existing staging gates and approval requirements.
-- [ ] Update ticket completion evidence and the maintenance guide; future developers can reproduce one successful manifest render and diagnose one controlled failure from the instructions.
+- [x] Verify the extracted distribution, asset identity/cache invalidation and rollback to the prior artifact; preserve existing staging gates and approval requirements.
+- [x] Update ticket completion evidence and the maintenance guide; future developers can reproduce one successful manifest render and diagnose one controlled failure from the instructions.
+
+[Exact candidate, environment and results](refactor-validation-2026-09-18.md). Candidate `7e43830` passes 139 Node tests, Ruby checks, deterministic browser checks and real PDF/fallback checks. The actual scanned-text check timed out at `digital.smith.edu`; direct curl also timed out. Re-run the local suite when service access recovers; scanned text, separate-object and single-image verification remain open. No hosted approval is inferred.

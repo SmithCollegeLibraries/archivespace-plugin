@@ -3,7 +3,7 @@
 Implementation: DV-M04 establishes the build and first extraction; DV-M05 extracts [parsing and adapters](plugin-adapters.md); DV-M06 extracts [viewer/lifecycle modules](plugin-viewer-lifecycle.md); DV-M07 finishes [startup extraction](plugin-startup.md); see [current build instructions](plugin-build.md).
 
 Date: 2026-09-18. Product: ArchivesSpace PUI `digital_viewer`.
-Design baseline: standalone commit `190a536`; runtime remains `2b863370bed0f57db3069a071b641dae0cf13754`. This document specifies future implementation under DV-M03–DV-M08. No modules, build scripts or dependencies have been installed by DV-M01.
+Historical DV-M01 design baseline: standalone commit `190a536`; runtime remains `2b863370bed0f57db3069a071b641dae0cf13754`. This document specifies future implementation under DV-M03–DV-M08. No modules, build scripts or dependencies have been installed by DV-M01.
 
 ## Decision
 
@@ -203,7 +203,7 @@ npm run check:generated # build into a temporary directory; compare, do not over
 ruby test/asset_version_test.rb
 ```
 
-Browser checks remain separately invoked under `test/browser/README.md`; do not turn ordinary unit tests into network-dependent ASpace tests. The current test harness rewrites the closing IIFE to export closure functions into `vm.runInNewContext`. DV-M04 must replace that brittle instrumentation: import module APIs for unit tests and run the unmodified generated artifact with observable DOM/network assertions for integration coverage. A test-only entry may expose module APIs without adding hooks to the production global namespace. Map all existing regressions to the new tests before removing any old harness path.
+Browser checks remain separately invoked under `test/browser/README.md`; do not turn ordinary unit tests into network-dependent ASpace tests. The pre-M04 test harness rewrote the closing IIFE to export closure functions into `vm.runInNewContext`. DV-M04 must replace that brittle instrumentation: import module APIs for unit tests and run the unmodified generated artifact with observable DOM/network assertions for integration coverage. A test-only entry may expose module APIs without adding hooks to the production global namespace. Map all existing regressions to the new tests before removing any old harness path.
 
 At DV-M04 update the maintenance guide, README and parent `CLAUDE.md`/`AGENTS.md` with the build-before-test instructions, generated-file rule, real test paths and dependency installation. Keep current instructions accurate until then. DV-M08 updates the full symptom-to-module map and replaces current line-number navigation; dated review anchors remain explicitly historical.
 

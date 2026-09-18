@@ -1,0 +1,1455 @@
+{
+  "status": "partial: live image-service verification blocked",
+  "artifactCommit": "7e43830b8ccdd6f26ad826a6803317f67bad6fe2",
+  "priorCommit": "a5c5277",
+  "archives": {
+    "candidate": {
+      "sha256": "0ae28c83b6dd629d3eb44b77899dbba408722f6afdac33b6cd6dec372fe4207b",
+      "archiveMembers": 165
+    },
+    "prior": {
+      "sha256": "bfc4dc5b614c0a57945b9b3f216be60d251507bbd956c9b0dc354daf1ce71e96",
+      "archiveMembers": 161
+    }
+  },
+  "environment": {
+    "aspace": "4.2.0",
+    "osd": "5.0.1",
+    "node": "26.8.2",
+    "npm": "11.19.1",
+    "esbuild": "0.28.1",
+    "ruby": "2.6.10p210"
+  },
+  "nodeTests": 139,
+  "rubyTemplates": {
+    "tests": 15,
+    "assertions": 80
+  },
+  "generatedOutput": "passed",
+  "assetVersion": "passed",
+  "parentMirrorFiles": 51,
+  "deterministic": {
+    "suite": "deterministic",
+    "browser": "151.0.7922.174",
+    "node": "v26.8.2",
+    "results": {
+      "runDiagnosticChecks": [
+        {
+          "scenario": "absent",
+          "warnings": []
+        },
+        {
+          "scenario": "valid",
+          "warnings": []
+        },
+        {
+          "scenario": "missing",
+          "warnings": [
+            "[digital_viewer] stage=discovery code=source-contract-missing"
+          ]
+        }
+      ],
+      "runStartupChecks": [
+        {
+          "scenario": "stock",
+          "mounts": 2,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": true
+        },
+        {
+          "scenario": "leaf",
+          "mounts": 1,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": true
+        },
+        {
+          "scenario": "inline",
+          "mounts": 2,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": true
+        },
+        {
+          "scenario": "partial-setup-failure",
+          "mounts": 1,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": false
+        },
+        {
+          "scenario": "async-group-failure",
+          "mounts": 2,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": false
+        },
+        {
+          "scenario": "sync-group-failure",
+          "mounts": 2,
+          "metadataAndOriginalLinks": true,
+          "keyboardOriginalAccess": true,
+          "reinitAndReplacement": false
+        }
+      ],
+      "runViewerLifecycleChecks": [
+        {
+          "width": 1280,
+          "keyboardNavigation": true,
+          "downloadDestination": true,
+          "documentCleanup": {
+            "before": 2,
+            "after": 0
+          }
+        },
+        {
+          "width": 390,
+          "keyboardNavigation": true,
+          "downloadDestination": true,
+          "documentCleanup": {
+            "before": 2,
+            "after": 0
+          }
+        }
+      ],
+      "runSourceRequestOwnership": [
+        {
+          "scenario": "failure before replacement open",
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "failure after replacement draw",
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        }
+      ],
+      "runThumbnailQueueChecks": [
+        {
+          "scenario": "first stall",
+          "withObserver": true,
+          "requested": [
+            0,
+            1,
+            2
+          ],
+          "cancelled": true,
+          "elapsedMs": 10166,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "middle stall",
+          "withObserver": true,
+          "requested": [
+            0,
+            1,
+            2
+          ],
+          "cancelled": true,
+          "elapsedMs": 10166,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "dispose while stalled",
+          "withObserver": true,
+          "requested": [
+            0
+          ],
+          "cancelled": true,
+          "elapsedMs": 36,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "first stall",
+          "withObserver": false,
+          "requested": [
+            0,
+            1,
+            2
+          ],
+          "cancelled": true,
+          "elapsedMs": 10140,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "middle stall",
+          "withObserver": false,
+          "requested": [
+            0,
+            1,
+            2
+          ],
+          "cancelled": true,
+          "elapsedMs": 10181,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        },
+        {
+          "scenario": "dispose while stalled",
+          "withObserver": false,
+          "requested": [
+            0
+          ],
+          "cancelled": true,
+          "elapsedMs": 32,
+          "passed": true,
+          "osd": "5.0.1",
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+        }
+      ],
+      "runSourceContractChecks": [
+        {
+          "name": "entry",
+          "changedMarkup": false,
+          "mounts": 1
+        },
+        {
+          "name": "entry",
+          "changedMarkup": true,
+          "mounts": 1
+        },
+        {
+          "name": "thumbnail-link",
+          "changedMarkup": false,
+          "mounts": 1
+        },
+        {
+          "name": "thumbnail-link",
+          "changedMarkup": true,
+          "mounts": 1
+        },
+        {
+          "name": "representative",
+          "changedMarkup": false,
+          "mounts": 1
+        },
+        {
+          "name": "representative",
+          "changedMarkup": true,
+          "mounts": 1
+        },
+        {
+          "name": "thumbnail-only",
+          "changedMarkup": false,
+          "mounts": 0
+        },
+        {
+          "name": "thumbnail-only",
+          "changedMarkup": true,
+          "mounts": 0
+        },
+        {
+          "name": "browse-only",
+          "changedMarkup": false,
+          "mounts": 0
+        },
+        {
+          "name": "browse-only",
+          "changedMarkup": true,
+          "mounts": 0
+        },
+        {
+          "name": "additional-version",
+          "changedMarkup": false,
+          "mounts": 1
+        },
+        {
+          "name": "additional-version",
+          "changedMarkup": true,
+          "mounts": 1
+        },
+        {
+          "name": "separate-objects-same-url",
+          "changedMarkup": false,
+          "mounts": 2
+        },
+        {
+          "name": "separate-objects-same-url",
+          "changedMarkup": true,
+          "mounts": 2
+        },
+        {
+          "name": "leaf-alternatives",
+          "changedMarkup": false,
+          "mounts": 1
+        },
+        {
+          "name": "leaf-alternatives",
+          "changedMarkup": true,
+          "mounts": 1
+        },
+        {
+          "name": "parent-object",
+          "changedMarkup": false,
+          "mounts": 2
+        },
+        {
+          "name": "parent-object",
+          "changedMarkup": true,
+          "mounts": 2
+        },
+        {
+          "name": "separate-image-pdf",
+          "changedMarkup": false,
+          "mounts": 2
+        },
+        {
+          "name": "separate-image-pdf",
+          "changedMarkup": true,
+          "mounts": 2
+        }
+      ],
+      "runFallbackAccessChecks": [
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "png",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "pdf",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "DigitalObject",
+          "format": "manifest",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "png",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "pdf",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "no-js",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "viewer-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "osd-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "config-absent",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "content-blocked",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "init-failed",
+          "originalDestinationOpened": true
+        },
+        {
+          "recordType": "ArchivalObject",
+          "format": "manifest",
+          "scenario": "working",
+          "originalDestinationOpened": true
+        }
+      ]
+    }
+  },
+  "local": {
+    "suite": "local",
+    "browser": "151.0.7922.174",
+    "node": "v26.8.2",
+    "results": {
+      "runModuleBuildChecks": [
+        {
+          "case": "real ArchivesSpace PDF startup",
+          "script": "/assets/digital_viewer.js?v=88477c211b7e211a0bf533e531abe2ce5530b8fe0e8d2f9a4a666fd38ab99f27",
+          "passed": true
+        },
+        {
+          "case": "bundle/source maps with self-only script CSP",
+          "prefix": "",
+          "sources": [
+            "../../src/config.mjs",
+            "../../src/manifest.mjs",
+            "../../src/adapters/compass.mjs",
+            "../../src/urls.mjs",
+            "../../src/adapters/direct.mjs",
+            "../../src/adapters/manifest.mjs",
+            "../../src/adapters/preservica.mjs",
+            "../../src/adapters/index.mjs",
+            "../../src/tile-sources.mjs",
+            "../../src/lifecycle.mjs",
+            "../../src/events.mjs",
+            "../../src/controls.mjs",
+            "../../src/viewer-modes.mjs",
+            "../../src/prefetch.mjs",
+            "../../src/thumbnails.mjs",
+            "../../src/viewer.mjs",
+            "../../src/status.mjs",
+            "../../src/page-sources.mjs",
+            "../../src/page-layout.mjs",
+            "../../src/source-selection.mjs",
+            "../../src/init.mjs",
+            "../../src/mount-sequence.mjs",
+            "../../src/runtime.mjs",
+            "../../src/entry.mjs"
+          ],
+          "passed": true
+        },
+        {
+          "case": "bundle/source maps with self-only script CSP",
+          "prefix": "/pui",
+          "sources": [
+            "../../src/config.mjs",
+            "../../src/manifest.mjs",
+            "../../src/adapters/compass.mjs",
+            "../../src/urls.mjs",
+            "../../src/adapters/direct.mjs",
+            "../../src/adapters/manifest.mjs",
+            "../../src/adapters/preservica.mjs",
+            "../../src/adapters/index.mjs",
+            "../../src/tile-sources.mjs",
+            "../../src/lifecycle.mjs",
+            "../../src/events.mjs",
+            "../../src/controls.mjs",
+            "../../src/viewer-modes.mjs",
+            "../../src/prefetch.mjs",
+            "../../src/thumbnails.mjs",
+            "../../src/viewer.mjs",
+            "../../src/status.mjs",
+            "../../src/page-sources.mjs",
+            "../../src/page-layout.mjs",
+            "../../src/source-selection.mjs",
+            "../../src/init.mjs",
+            "../../src/mount-sequence.mjs",
+            "../../src/runtime.mjs",
+            "../../src/entry.mjs"
+          ],
+          "passed": true
+        }
+      ],
+      "runLocalSourceContractChecks": [
+        {
+          "fixture": "digital_objects/863",
+          "count": 1,
+          "match": true,
+          "entryGroup": "digital-object-entries",
+          "malformed": false
+        },
+        {
+          "fixture": "archival_objects/4097",
+          "count": 1,
+          "match": true,
+          "malformed": false
+        },
+        {
+          "fixture": "digital_objects/871",
+          "count": 2,
+          "match": true,
+          "malformed": false
+        },
+        {
+          "fixture": "digital_objects/874",
+          "count": 1,
+          "match": true,
+          "malformed": false
+        },
+        {
+          "fixture": "digital_objects/872",
+          "count": 0,
+          "match": true,
+          "malformed": false
+        },
+        {
+          "fixture": "archival_objects/4103",
+          "count": 0,
+          "match": true,
+          "malformed": false
+        },
+        {
+          "fixture": "archival_objects/4110",
+          "count": 2,
+          "match": true,
+          "malformed": false
+        }
+      ],
+      "runLocalFallbackChecks": [
+        {
+          "fixture": "digital_objects/863",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4097",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/876",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4106",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/871",
+          "scenario": "no-js",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "digital_objects/874",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/879",
+          "scenario": "no-js",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "archival_objects/4109",
+          "scenario": "no-js",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4110",
+          "scenario": "no-js",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "digital_objects/863",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4097",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/876",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4106",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/871",
+          "scenario": "viewer-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "digital_objects/874",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/879",
+          "scenario": "viewer-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "archival_objects/4109",
+          "scenario": "viewer-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4110",
+          "scenario": "viewer-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "digital_objects/863",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4097",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/876",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4106",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/871",
+          "scenario": "osd-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "digital_objects/874",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "digital_objects/879",
+          "scenario": "osd-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        },
+        {
+          "fixture": "archival_objects/4109",
+          "scenario": "osd-blocked",
+          "helpCount": 1,
+          "linkCount": 2
+        },
+        {
+          "fixture": "archival_objects/4110",
+          "scenario": "osd-blocked",
+          "helpCount": 2,
+          "linkCount": 4
+        }
+      ],
+      "runPdfChecks": [
+        {
+          "path": "/digital_objects/875",
+          "width": 1280,
+          "pdf": {
+            "pages": 35,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 573.953125,
+                "right": 932.5,
+                "width": 358.546875
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/digital_objects/875",
+          "width": 390,
+          "pdf": {
+            "pages": 35,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4105",
+          "width": 1280,
+          "pdf": {
+            "pages": 35,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 883,
+                "right": 1240,
+                "width": 357
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4105",
+          "width": 390,
+          "pdf": {
+            "pages": 35,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/having-our-say.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/digital_objects/876",
+          "width": 1280,
+          "pdf": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 573.953125,
+                "right": 932.5,
+                "width": 358.546875
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/digital_objects/876",
+          "width": 390,
+          "pdf": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4106",
+          "width": 1280,
+          "pdf": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 883,
+                "right": 1240,
+                "width": 357
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4106",
+          "width": 390,
+          "pdf": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-may-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/digital_objects/877",
+          "width": 1280,
+          "pdf": {
+            "pages": 4,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 573.953125,
+                "right": 932.5,
+                "width": 358.546875
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/digital_objects/877",
+          "width": 390,
+          "pdf": {
+            "pages": 4,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4107",
+          "width": 1280,
+          "pdf": {
+            "pages": 4,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 883,
+                "right": 1240,
+                "width": 357
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/archival_objects/4107",
+          "width": 390,
+          "pdf": {
+            "pages": 4,
+            "loadProgress": 100,
+            "firstLastNavigation": true
+          },
+          "layout": {
+            "width": 390,
+            "scrollWidth": 390,
+            "mounts": [
+              {
+                "left": 40,
+                "right": 350,
+                "width": 310
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "http://localhost:18090/pdfs/what-it-is-july-1973.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        }
+      ],
+      "runBlockedPdfChecks": [
+        {
+          "path": "digital_objects/878",
+          "frameRefusal": true,
+          "keyboardDirectAccess": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 573.953125,
+                "right": 932.5,
+                "width": 358.546875
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "archival_objects/4108",
+          "frameRefusal": true,
+          "keyboardDirectAccess": {
+            "pages": 1,
+            "loadProgress": 100,
+            "firstLastNavigation": false
+          },
+          "layout": {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "mounts": [
+              {
+                "left": 883,
+                "right": 1240,
+                "width": 357
+              }
+            ],
+            "originalLinks": [
+              {
+                "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+                "visible": true,
+                "thumbnail": false
+              },
+              {
+                "href": "https://compass.fivecolleges.edu/system/files/2024-11/smith_ssc_ms00730_as506331_001.pdf",
+                "visible": true,
+                "thumbnail": false
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "liveImageFailure": {
+    "check": "runScannedTextChecks, DO 879 initial page",
+    "browserTimeoutMs": 30000,
+    "directCurl": "Connection timed out after 25006 ms; HTTP 000",
+    "remaining": [
+      "scanned-text rendering/page downloads",
+      "separate image/PDF object check",
+      "single-image render"
+    ]
+  },
+  "imageRequests": {
+    "requests": [
+      [
+        "http://localhost:18090/manifests/20-20-1983.json",
+        {
+          "type": "fetch",
+          "state": "finished"
+        }
+      ],
+      [
+        "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0001.tif/info.json",
+        {
+          "type": "xhr",
+          "state": "pending"
+        }
+      ],
+      [
+        "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0002.tif/info.json",
+        {
+          "type": "fetch",
+          "state": "pending"
+        }
+      ],
+      [
+        "https://digital.smith.edu/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541945_p0003.tif/info.json",
+        {
+          "type": "fetch",
+          "state": "pending"
+        }
+      ]
+    ],
+    "state": {
+      "text": "100%\nOBJECT VIEW\nOpen page 1\n\u2039 Prev\n1 / 6\nNext \u203a\n\u2039\n1\n2\n3\n4\n5\n6\n\u203a",
+      "items": 0
+    }
+  },
+  "rollback": [
+    {
+      "step": "candidate B",
+      "version": "88477c211b7e211a0bf533e531abe2ce5530b8fe0e8d2f9a4a666fd38ab99f27",
+      "sha256": {
+        "digital_viewer.js": "3b23b8d1b6c56534eff5f4274b5b198f0fd3e570acfb95243d66ebdf070aab62",
+        "digital_viewer.css": "9ea4fd5dd578f2eb634d4a9fd35da58ccfb0ad3fa19a1bde45304aa08ede9cf7",
+        "openseadragon.min.js": "cd6e48562264cc518224380d745a620bcf7828235c232d94964e3c9d9e7bdb63",
+        "digital_viewer.js.map": "4856c0d359c98ecb2eb6867fbd3abd47b56fe2e3cc8cbffab38afad169572aa9"
+      }
+    },
+    {
+      "step": "prior A",
+      "version": "7b5e3e5b348d36ff9373eaff01f1bebaf98854045959f397b414be8dbe179859",
+      "sha256": {
+        "digital_viewer.js": "9528be5b5b3ba44d512daebcc00edd19960c1668323b3fe5677e856ef6a322c0",
+        "digital_viewer.css": "9ea4fd5dd578f2eb634d4a9fd35da58ccfb0ad3fa19a1bde45304aa08ede9cf7",
+        "openseadragon.min.js": "cd6e48562264cc518224380d745a620bcf7828235c232d94964e3c9d9e7bdb63",
+        "digital_viewer.js.map": "fd2256466219d196401664ee4e323b35af40622d474f33527e3c843514fdb649"
+      }
+    },
+    {
+      "step": "restored B",
+      "version": "88477c211b7e211a0bf533e531abe2ce5530b8fe0e8d2f9a4a666fd38ab99f27",
+      "sha256": {
+        "digital_viewer.js": "3b23b8d1b6c56534eff5f4274b5b198f0fd3e570acfb95243d66ebdf070aab62",
+        "digital_viewer.css": "9ea4fd5dd578f2eb634d4a9fd35da58ccfb0ad3fa19a1bde45304aa08ede9cf7",
+        "openseadragon.min.js": "cd6e48562264cc518224380d745a620bcf7828235c232d94964e3c9d9e7bdb63",
+        "digital_viewer.js.map": "4856c0d359c98ecb2eb6867fbd3abd47b56fe2e3cc8cbffab38afad169572aa9"
+      }
+    }
+  ],
+  "restoredSmoke": [
+    {
+      "case": "real ArchivesSpace PDF startup",
+      "script": "/assets/digital_viewer.js?v=88477c211b7e211a0bf533e531abe2ce5530b8fe0e8d2f9a4a666fd38ab99f27",
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/manifest.mjs",
+        "../../src/adapters/compass.mjs",
+        "../../src/urls.mjs",
+        "../../src/adapters/direct.mjs",
+        "../../src/adapters/manifest.mjs",
+        "../../src/adapters/preservica.mjs",
+        "../../src/adapters/index.mjs",
+        "../../src/tile-sources.mjs",
+        "../../src/lifecycle.mjs",
+        "../../src/events.mjs",
+        "../../src/controls.mjs",
+        "../../src/viewer-modes.mjs",
+        "../../src/prefetch.mjs",
+        "../../src/thumbnails.mjs",
+        "../../src/viewer.mjs",
+        "../../src/status.mjs",
+        "../../src/page-sources.mjs",
+        "../../src/page-layout.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/init.mjs",
+        "../../src/mount-sequence.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "/pui",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/manifest.mjs",
+        "../../src/adapters/compass.mjs",
+        "../../src/urls.mjs",
+        "../../src/adapters/direct.mjs",
+        "../../src/adapters/manifest.mjs",
+        "../../src/adapters/preservica.mjs",
+        "../../src/adapters/index.mjs",
+        "../../src/tile-sources.mjs",
+        "../../src/lifecycle.mjs",
+        "../../src/events.mjs",
+        "../../src/controls.mjs",
+        "../../src/viewer-modes.mjs",
+        "../../src/prefetch.mjs",
+        "../../src/thumbnails.mjs",
+        "../../src/viewer.mjs",
+        "../../src/status.mjs",
+        "../../src/page-sources.mjs",
+        "../../src/page-layout.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/init.mjs",
+        "../../src/mount-sequence.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    }
+  ],
+  "rollbackNote": "Initial file-only swap returned IncompleteRead from cached asset length; finally restored candidate. Repeat with restart at each switch passed B-A-B. Hosted whole-package/config rollback remains open."
+}
