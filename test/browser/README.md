@@ -233,3 +233,7 @@ consumers, preserved compatibility paths and the upgrade smoke checklist.
 ## Viewer lifecycle and keyboard controls (DV-M06)
 
 `runViewerLifecycleChecks(browser, pluginRoot)` from `viewer-lifecycle.mjs` uses deterministic manifests/images and the generated bundle. At desktop/mobile widths it checks keyboard image adjustments, Escape, page navigation/download destination and removal of document listeners on viewer destruction. Run alongside `source-request-ownership.mjs` and `thumbnail-queue.mjs` for replacement races and bounded preview disposal.
+
+## Startup orchestration (DV-M07)
+
+`runStartupChecks(browser, pluginRoot)` from `startup.mjs` tests stock/leaf/inline layouts, repeated DOM-ready initialization, changed-source replacement and isolated setup/renderer/request failures. It runs the unmodified bundle and checks original metadata/links and keyboard navigation to an original destination. Pair it with the source-contract, request-ownership and fallback runners.

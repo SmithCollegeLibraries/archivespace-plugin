@@ -2475,3 +2475,29 @@ test('control document listeners are removed on viewer destruction and saved cal
   saved.keydown({key:'Escape'});
   assert.equal(popover.getAttribute('aria-hidden'),'false');
 });
+
+test('one group insertion failure leaves original links intact and lets the next group mount', async function () {
+  const document=makeInitDocument(['https://files.test/one.pdf','https://files.test/two.pdf']);
+  const anchors=document.sourceGroup.children.slice();
+  const groups=anchors.map(anchor=>{
+    const group=document.createElement('div');document.sourceGroup.appendChild(group);group.appendChild(anchor);
+    anchor.closest=selector=>selector==='[data-dv-browse-only]'?null:group;
+    return group;
+  });
+  const insert=document.sourceGroup.insertBefore;let calls=0;
+  document.sourceGroup.insertBefore=function(child,reference){
+    if(++calls===1) throw new Error('broken first group insertion');
+    return insert.call(this,child,reference);
+  };
+  const warnings=[];
+  const hooks=loadHooks({document,console:{warn:message=>warnings.push(message)}});
+  assert.doesNotThrow(()=>hooks.init());
+  for(let i=0;i<20;i++) await Promise.resolve();
+  assert.equal(groups[0].__dvMountState,null);
+  assert.equal(groups[1].__dvMountState.container.querySelector('iframe').src,anchors[1].href);
+  assert.equal(anchors[0].parentNode,groups[0]);
+  assert.equal(anchors[1].parentNode,groups[1]);
+  assert.equal(warnings.length,1);
+  assert.ok(!warnings[0].includes('broken first group'));
+  hooks.disposeMountState(groups[1].__dvMountState);
+});

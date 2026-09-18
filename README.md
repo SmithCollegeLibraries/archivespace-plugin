@@ -76,3 +76,5 @@ Keep repository location, source commit, archive checksum and installed configur
 For the source request and rendering path after DV-M05, see [the adapter trace](docs/plugin-adapters.md).
 
 Viewer controls, thumbnail loading and cancellation are mapped in [the lifecycle guide](docs/plugin-viewer-lifecycle.md).
+
+Start with [the page-load trace](docs/plugin-startup.md) to follow the current initialization path.

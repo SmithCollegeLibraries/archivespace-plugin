@@ -1,7 +1,6 @@
 # Viewer modules and resource ownership (DV-M06)
 
-The remaining `src/runtime.mjs` is about 500 lines: composition, page scanning,
-layout and the ranked fallback loop. DV-M07 will separate its page integration.
+DV-M07 moves page scanning/layout and ranked mounting into [startup modules](plugin-startup.md); `src/runtime.mjs` is now a 65-line composition root.
 The viewer implementation is now divided by responsibility:
 
 | Module | Responsibility |

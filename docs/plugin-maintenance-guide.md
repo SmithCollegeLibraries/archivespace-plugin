@@ -85,7 +85,7 @@ OpenSeadragon is the included JavaScript library that handles zooming and image 
 - **Asset:** a browser file such as JavaScript, CSS or an icon.
 - **Mount:** create a viewer in a page. **Dispose:** remove that viewer and stop work belonging to it.
 
-For current implementation boundaries, see the [adapter trace](plugin-adapters.md) and [viewer/lifecycle ownership](plugin-viewer-lifecycle.md).
+For the current page-load sequence, start with [startup orchestration](plugin-startup.md). For implementation boundaries, see the [adapter trace](plugin-adapters.md) and [viewer/lifecycle ownership](plugin-viewer-lifecycle.md).
 
 ## What happens when someone opens a record
 

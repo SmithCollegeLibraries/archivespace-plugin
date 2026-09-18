@@ -5,7 +5,7 @@ ready. The runtime discovers record sources, calls `source-selection.mjs`, creat
 an owned mount attempt, and calls `mountDescriptor` for the chosen candidate.
 
 ```text
-runtime.init → ranked candidate → owned attempt → runtime.mountDescriptor
+init.init → ranked candidate → mount-sequence → runtime.mountDescriptor
   → adapters/index.mjs registry
     → manifest.mjs    generic manifest request → parse pages → OpenSeadragon
     → compass.mjs     Compass proxy/redirect → parse pages → OpenSeadragon
@@ -78,4 +78,4 @@ before and after response parsing, native media and direct-image/PDF fallback.
 `test/digital_viewer.test.mjs` exercises the real coordinator.
 
 The distributed script and source map remain generated artifacts. Viewer/UI extraction is documented in [DV-M06 ownership](plugin-viewer-lifecycle.md);
-page integration continues in DV-M07; no deployment build step is introduced.
+page integration is documented in [DV-M07 startup](plugin-startup.md); no deployment build step is introduced.

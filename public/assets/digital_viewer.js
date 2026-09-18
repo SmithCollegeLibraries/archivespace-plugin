@@ -67,127 +67,6 @@
     return cfg;
   }
 
-  // src/source-selection.mjs
-  var UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-  var DEEP_ZOOM_RE = /\.(tiff?|jp2)(\?.*)?$/i;
-  var STATIC_IMAGE_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
-  var PDF_RE = /\.pdf(\?.*)?$/i;
-  function detectSource(fileUri, cfg) {
-    var uriUrl;
-    if (!fileUri) return null;
-    var normalizedUri = fileUri.replace(/^\/\//, "https://");
-    try {
-      uriUrl = new URL(normalizedUri);
-    } catch (err) {
-      uriUrl = null;
-    }
-    var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
-    if (/^https?:\/\//i.test(normalizedUri) && PDF_RE.test(normalizedUri)) {
-      return { type: "static-pdf", url: normalizedUri };
-    }
-    if (isCompassHost && cfg.cantaloupeBaseUrl && normalizedUri.indexOf("/system/files/") !== -1) {
-      var marker = "/system/files/";
-      var pos = normalizedUri.indexOf(marker);
-      if (pos !== -1) {
-        var s3Key = normalizedUri.slice(pos + marker.length);
-        if (DEEP_ZOOM_RE.test(s3Key)) {
-          var infoUrl = cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
-          return { type: "cantaloupe", infoUrl };
-        }
-        if (STATIC_IMAGE_RE.test(s3Key)) {
-          return { type: "static-image", imageUrl: normalizedUri };
-        }
-      }
-    }
-    if (/^https?:\/\//i.test(normalizedUri) && STATIC_IMAGE_RE.test(normalizedUri)) {
-      return { type: "static-image", imageUrl: normalizedUri };
-    }
-    if (isCompassHost && (normalizedUri.indexOf("/islandora/object/") !== -1 || normalizedUri.indexOf("/object/") !== -1)) {
-      var compassObjectUrl = normalizedUri;
-      if (normalizedUri.indexOf("/islandora/object/") === -1) {
-        compassObjectUrl = normalizedUri.replace("/object/", "/islandora/object/");
-      }
-      return {
-        type: "compass",
-        compassUrl: compassObjectUrl
-      };
-    }
-    if (isCompassHost && normalizedUri.indexOf("/node/") !== -1 && /\/manifest(?:-single)?(?:\?.*)?$/i.test(normalizedUri)) {
-      return { type: "compass-manifest", manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://") };
-    }
-    if (isCompassHost && /\/node\/\d+(?:\?.*)?$/i.test(normalizedUri)) {
-      return {
-        type: "compass-manifest",
-        manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://").replace(/\/?(?:\?.*)?$/i, "") + "/manifest"
-      };
-    }
-    if (/^https?:\/\/.+\/manifests\/.+\.json(?:\?.*)?$/i.test(normalizedUri)) {
-      return { type: "compass-manifest", manifestUrl: normalizedUri };
-    }
-    var uuidMatch = normalizedUri.match(UUID_RE);
-    if (uuidMatch) {
-      return { type: "preservica", uuid: uuidMatch[0] };
-    }
-    return null;
-  }
-  function descriptorPriority(descriptor) {
-    if (!descriptor) return -1;
-    switch (descriptor.type) {
-      case "compass-manifest":
-        return 600;
-      case "static-pdf":
-        return 500;
-      case "cantaloupe":
-        return 400;
-      case "compass":
-        return 350;
-      case "static-image":
-        return 300;
-      case "preservica":
-        return 50;
-      default:
-        return 0;
-    }
-  }
-  function descriptorSelectionPriority(descriptor, hasNonPdfCandidate) {
-    if (hasNonPdfCandidate && descriptor && descriptor.type === "static-pdf") {
-      return -1;
-    }
-    return descriptorPriority(descriptor);
-  }
-  function buildDescriptorSelection(candidates) {
-    var rankedCandidates;
-    var primaryCandidate;
-    var companionCandidates = [];
-    var hasNonPdfCandidate = candidates.some(function(candidate) {
-      return candidate && candidate.descriptor && candidate.descriptor.type !== "static-pdf";
-    });
-    rankedCandidates = candidates.slice().sort(function(left, right) {
-      return descriptorSelectionPriority(right.descriptor, hasNonPdfCandidate) - descriptorSelectionPriority(left.descriptor, hasNonPdfCandidate);
-    });
-    primaryCandidate = rankedCandidates[0] || null;
-    rankedCandidates.forEach(function(candidate) {
-      if (!candidate || candidate === primaryCandidate || !candidate.descriptor) return;
-      if (hasNonPdfCandidate && candidate.descriptor.type === "static-pdf") {
-        companionCandidates.push(candidate);
-      }
-    });
-    return {
-      primaryCandidate,
-      rankedCandidates,
-      companionCandidates
-    };
-  }
-
-  // src/urls.mjs
-  function sanitizeUrl(url) {
-    var trimmed = typeof url === "string" ? url.trim() : "";
-    if (!trimmed) return "";
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    if (/^\//.test(trimmed)) return trimmed;
-    return "";
-  }
-
   // src/manifest.mjs
   var UNAVAILABLE_TILE_SOURCE = {
     type: "image",
@@ -368,6 +247,15 @@
       });
     }
     return { mountCompass, fetchManifestUrl, parsePages };
+  }
+
+  // src/urls.mjs
+  function sanitizeUrl(url) {
+    var trimmed = typeof url === "string" ? url.trim() : "";
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^\//.test(trimmed)) return trimmed;
+    return "";
   }
 
   // src/adapters/direct.mjs
@@ -2037,20 +1925,8 @@
     return { mountOsdViewer };
   }
 
-  // src/runtime.mjs
-  function createViewerRuntime({
-    config: cfg,
-    document: document2,
-    console: console2,
-    fetch,
-    OpenSeadragon,
-    IntersectionObserver,
-    Image,
-    AbortController,
-    setTimeout,
-    clearTimeout
-  }) {
-    var sourceGroupCount = 0;
+  // src/status.mjs
+  function createStatus({ document: document2, console: console2 }) {
     function createFallbackLink(url, label) {
       var safeUrl = sanitizeUrl(url);
       var link;
@@ -2061,17 +1937,6 @@
       link.rel = "noopener";
       link.textContent = label;
       return link;
-    }
-    function getContainerViewerOptions(container) {
-      var mountOptions = container && container.__dvMountOptions || {};
-      var attempt = mountOptions.attempt;
-      return {
-        objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
-        loadingTimeoutMs: mountOptions.loadingTimeoutMs,
-        allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
-        attempt,
-        signal: attempt && attempt.controller ? attempt.controller.signal : void 0
-      };
     }
     function showError(container, message) {
       var paragraph;
@@ -2120,79 +1985,12 @@
       container.innerHTML = "";
       if (preserveLoading) showLoadingNotice(container);
     }
-    const lifecycle = createLifecycle({
-      AbortController,
-      setTimeout,
-      clearTimeout,
-      showLoadingNotice,
-      restoreLeafLayoutIfUnused
-    });
-    const {
-      activeMountStates,
-      createAttempt,
-      isAttemptActive,
-      registerAttemptCleanup,
-      disposeAttempt,
-      clearAttemptTimeout,
-      scheduleAttemptTimeout,
-      disposeMountState
-    } = lifecycle;
-    const { addControls, addPageNav } = createControls({ document: document2, isAttemptActive, registerAttemptCleanup });
-    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive });
-    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup });
-    const { addThumbnailCarousel } = createThumbnails({
-      document: document2,
-      IntersectionObserver,
-      setTimeout,
-      clearTimeout,
-      isAttemptActive,
-      registerAttemptCleanup,
-      warmSequenceCache
-    });
-    const { mountOsdViewer } = createViewer({
-      document: document2,
-      OpenSeadragon,
-      setTimeout,
-      clearTimeout,
-      resetContainer,
-      showLoadingNotice,
-      clearLoadingNotice,
-      isAttemptActive,
-      disposeViewer: lifecycle.disposeViewer,
-      registerAttemptCleanup,
-      addControls,
-      addPageNav,
-      addViewerModeActions,
-      addThumbnailCarousel,
-      warmSequenceCache,
-      primeResourceUrl
-    });
-    const adapters = createSourceAdapters({
-      config: cfg,
-      document: document2,
-      console: console2,
-      fetch,
-      setTimeout,
-      clearTimeout,
-      mountOsdViewer,
-      reportFailure,
-      isAttemptActive,
-      showError,
-      resetContainer,
-      addViewerModeActions,
-      showLoadingNotice,
-      clearLoadingNotice,
-      registerAttemptCleanup,
-      createFallbackLink
-    });
-    function mountDescriptor(container, descriptor) {
-      resetContainer(container);
-      if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
-        return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
-      }
-      var adapter = adapters[descriptor.type];
-      return adapter(container, descriptor, getContainerViewerOptions(container));
-    }
+    return { createFallbackLink, showError, reportFailure, showLoadingNotice, clearLoadingNotice, resetContainer };
+  }
+
+  // src/page-sources.mjs
+  function createPageSources({ document: document2, getPageContext, onDiscoveryError }) {
+    var sourceGroupCount = 0;
     function collectSourceAnchors(root) {
       var selectors = [
         "[data-additional-file-version] a[href]",
@@ -2255,6 +2053,49 @@
       }
       return root;
     }
+    function collectGroups() {
+      var fileUris = collectFileUris();
+      var groups = [];
+      fileUris.forEach(function(item) {
+        var root;
+        try {
+          root = findGroupRoot(item.anchor);
+        } catch (err) {
+          if (onDiscoveryError) onDiscoveryError();
+          return;
+        }
+        var group = null;
+        var idx;
+        for (idx = 0; idx < groups.length; idx += 1) {
+          if (groups[idx].root === root) {
+            group = groups[idx];
+            break;
+          }
+        }
+        if (!group) {
+          group = { root, items: [] };
+          groups.push(group);
+        }
+        if (!group.items.some(function(existing) {
+          return existing.uri === item.uri;
+        })) {
+          group.items.push(item);
+        }
+      });
+      return groups;
+    }
+    return { collectSourceAnchors, collectFileUris, collectGroups };
+  }
+
+  // src/page-layout.mjs
+  function classifyPageContext(context) {
+    if (!context || !context.paneExists) return "inline-fallback";
+    if (context.recordType === "DigitalObject" && context.hasChildren === false) {
+      return "leaf-digital-object";
+    }
+    return "stock";
+  }
+  function createPageLayout({ document: document2 }) {
     function findInsertAfter(anchor) {
       var sourceGroup = anchor.closest ? anchor.closest("[data-dv-source-group]") : null;
       if (sourceGroup) return sourceGroup;
@@ -2266,13 +2107,6 @@
         return anchor.closest(".panel") || anchor.parentNode;
       }
       return (anchor.closest ? anchor.closest("dl, .digital-object, .instance") : null) || anchor.parentNode;
-    }
-    function classifyPageContext(context) {
-      if (!context || !context.paneExists) return "inline-fallback";
-      if (context.recordType === "DigitalObject" && context.hasChildren === false) {
-        return "leaf-digital-object";
-      }
-      return "stock";
     }
     function getPageContext() {
       var context = document2.querySelector("[data-dv-page-context]");
@@ -2311,7 +2145,7 @@
       };
       return viewerColumn;
     }
-    function restoreLeafLayoutIfUnused(pane) {
+    function restoreLeafLayoutIfUnused(pane, activeMountStates) {
       var layoutState;
       var metadataColumn;
       var viewerColumn;
@@ -2337,146 +2171,388 @@
       pane.classList.remove("dv-enhanced-pane");
       pane.__dvLeafLayoutState = null;
     }
+    return { findInsertAfter, getPageContext, prepareLeafLayout, restoreLeafLayoutIfUnused };
+  }
+
+  // src/source-selection.mjs
+  var UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  var DEEP_ZOOM_RE = /\.(tiff?|jp2)(\?.*)?$/i;
+  var STATIC_IMAGE_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
+  var PDF_RE = /\.pdf(\?.*)?$/i;
+  function detectSource(fileUri, cfg) {
+    var uriUrl;
+    if (!fileUri) return null;
+    var normalizedUri = fileUri.replace(/^\/\//, "https://");
+    try {
+      uriUrl = new URL(normalizedUri);
+    } catch (err) {
+      uriUrl = null;
+    }
+    var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
+    if (/^https?:\/\//i.test(normalizedUri) && PDF_RE.test(normalizedUri)) {
+      return { type: "static-pdf", url: normalizedUri };
+    }
+    if (isCompassHost && cfg.cantaloupeBaseUrl && normalizedUri.indexOf("/system/files/") !== -1) {
+      var marker = "/system/files/";
+      var pos = normalizedUri.indexOf(marker);
+      if (pos !== -1) {
+        var s3Key = normalizedUri.slice(pos + marker.length);
+        if (DEEP_ZOOM_RE.test(s3Key)) {
+          var infoUrl = cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
+          return { type: "cantaloupe", infoUrl };
+        }
+        if (STATIC_IMAGE_RE.test(s3Key)) {
+          return { type: "static-image", imageUrl: normalizedUri };
+        }
+      }
+    }
+    if (/^https?:\/\//i.test(normalizedUri) && STATIC_IMAGE_RE.test(normalizedUri)) {
+      return { type: "static-image", imageUrl: normalizedUri };
+    }
+    if (isCompassHost && (normalizedUri.indexOf("/islandora/object/") !== -1 || normalizedUri.indexOf("/object/") !== -1)) {
+      var compassObjectUrl = normalizedUri;
+      if (normalizedUri.indexOf("/islandora/object/") === -1) {
+        compassObjectUrl = normalizedUri.replace("/object/", "/islandora/object/");
+      }
+      return {
+        type: "compass",
+        compassUrl: compassObjectUrl
+      };
+    }
+    if (isCompassHost && normalizedUri.indexOf("/node/") !== -1 && /\/manifest(?:-single)?(?:\?.*)?$/i.test(normalizedUri)) {
+      return { type: "compass-manifest", manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://") };
+    }
+    if (isCompassHost && /\/node\/\d+(?:\?.*)?$/i.test(normalizedUri)) {
+      return {
+        type: "compass-manifest",
+        manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://").replace(/\/?(?:\?.*)?$/i, "") + "/manifest"
+      };
+    }
+    if (/^https?:\/\/.+\/manifests\/.+\.json(?:\?.*)?$/i.test(normalizedUri)) {
+      return { type: "compass-manifest", manifestUrl: normalizedUri };
+    }
+    var uuidMatch = normalizedUri.match(UUID_RE);
+    if (uuidMatch) {
+      return { type: "preservica", uuid: uuidMatch[0] };
+    }
+    return null;
+  }
+  function descriptorPriority(descriptor) {
+    if (!descriptor) return -1;
+    switch (descriptor.type) {
+      case "compass-manifest":
+        return 600;
+      case "static-pdf":
+        return 500;
+      case "cantaloupe":
+        return 400;
+      case "compass":
+        return 350;
+      case "static-image":
+        return 300;
+      case "preservica":
+        return 50;
+      default:
+        return 0;
+    }
+  }
+  function descriptorSelectionPriority(descriptor, hasNonPdfCandidate) {
+    if (hasNonPdfCandidate && descriptor && descriptor.type === "static-pdf") {
+      return -1;
+    }
+    return descriptorPriority(descriptor);
+  }
+  function buildDescriptorSelection(candidates) {
+    var rankedCandidates;
+    var primaryCandidate;
+    var companionCandidates = [];
+    var hasNonPdfCandidate = candidates.some(function(candidate) {
+      return candidate && candidate.descriptor && candidate.descriptor.type !== "static-pdf";
+    });
+    rankedCandidates = candidates.slice().sort(function(left, right) {
+      return descriptorSelectionPriority(right.descriptor, hasNonPdfCandidate) - descriptorSelectionPriority(left.descriptor, hasNonPdfCandidate);
+    });
+    primaryCandidate = rankedCandidates[0] || null;
+    rankedCandidates.forEach(function(candidate) {
+      if (!candidate || candidate === primaryCandidate || !candidate.descriptor) return;
+      if (hasNonPdfCandidate && candidate.descriptor.type === "static-pdf") {
+        companionCandidates.push(candidate);
+      }
+    });
+    return {
+      primaryCandidate,
+      rankedCandidates,
+      companionCandidates
+    };
+  }
+
+  // src/init.mjs
+  function createInitializer({
+    config,
+    document: document2,
+    console: console2,
+    OpenSeadragon,
+    sources,
+    pageLayout,
+    lifecycle,
+    mountRankedSources
+  }) {
+    const { activeMountStates, disposeMountState } = lifecycle;
+    function selectSources(group) {
+      const candidates = [];
+      group.items.forEach(function(item) {
+        const descriptor = detectSource(item.uri, config);
+        if (descriptor) candidates.push({ item, descriptor });
+      });
+      return {
+        selection: buildDescriptorSelection(candidates),
+        // Preserve discovery order independently of source ranking.
+        signature: candidates.map(function(candidate) {
+          return candidate.item.uri;
+        }).join("\0")
+      };
+    }
+    function createContainer(group, selection, signature, viewerColumn) {
+      const container = document2.createElement("div");
+      container.className = "digital-viewer-container";
+      container.__dvDescriptorSelection = selection;
+      container.__dvMountOptions = {
+        loadingTimeoutMs: config.loadingTimeoutMs,
+        allowFallbackOnTimeout: selection.rankedCandidates.length > 1
+      };
+      const state = {
+        root: group.root,
+        container,
+        signature,
+        attempt: null,
+        disposed: false,
+        seenInInit: true,
+        layoutPane: viewerColumn ? viewerColumn.parentNode : null
+      };
+      container.__dvMountState = state;
+      if (group.root) group.root.__dvMountState = state;
+      activeMountStates.push(state);
+      return container;
+    }
+    function placeContainer(container, selection, viewerColumn) {
+      if (viewerColumn) {
+        viewerColumn.appendChild(container);
+        return true;
+      }
+      const insertAfter = pageLayout.findInsertAfter(selection.primaryCandidate.item.anchor);
+      if (!insertAfter || !insertAfter.parentNode) return false;
+      insertAfter.parentNode.insertBefore(container, insertAfter.nextSibling);
+      return true;
+    }
+    function mountGroup(group, layoutKind) {
+      const { selection, signature } = selectSources(group);
+      const existing = group.root && group.root.__dvMountState;
+      if (!selection.primaryCandidate) {
+        if (existing) disposeMountState(existing);
+        return;
+      }
+      if (existing && !existing.disposed && existing.signature === signature && existing.container && existing.container.parentNode) {
+        existing.seenInInit = true;
+        return;
+      }
+      const viewerColumn = layoutKind === "leaf-digital-object" ? pageLayout.prepareLeafLayout() : null;
+      if (existing) disposeMountState(existing, { preserveLayout: true });
+      const container = createContainer(group, selection, signature, viewerColumn);
+      if (!placeContainer(container, selection, viewerColumn)) {
+        disposeMountState(container.__dvMountState);
+        return;
+      }
+      mountRankedSources(container, selection.rankedCandidates);
+    }
     function init() {
       if (typeof OpenSeadragon === "undefined") {
         console2.warn("[digital_viewer] OpenSeadragon not loaded \u2014 viewer will not mount.");
         return;
       }
-      var fileUris = collectFileUris();
-      if (fileUris.length === 0) {
-        activeMountStates.slice().forEach(disposeMountState);
-        return;
-      }
+      const groups = sources.collectGroups();
       activeMountStates.forEach(function(state) {
         state.seenInInit = false;
       });
-      var pageContext = getPageContext();
-      var pageLayout = classifyPageContext(pageContext);
-      var viewerColumn = null;
-      var groups = [];
-      fileUris.forEach(function(item) {
-        var root = findGroupRoot(item.anchor);
-        var group = null;
-        var idx;
-        for (idx = 0; idx < groups.length; idx += 1) {
-          if (groups[idx].root === root) {
-            group = groups[idx];
-            break;
+      if (groups.length) {
+        const layoutKind = classifyPageContext(pageLayout.getPageContext());
+        groups.forEach(function(group) {
+          try {
+            mountGroup(group, layoutKind);
+          } catch (err) {
+            try {
+              disposeMountState(group.root && group.root.__dvMountState);
+            } catch (cleanupError) {
+            }
+            console2.warn("[digital_viewer] stage=startup code=group-unavailable");
           }
-        }
-        if (!group) {
-          group = { root, items: [] };
-          groups.push(group);
-        }
-        if (!group.items.some(function(existing) {
-          return existing.uri === item.uri;
-        })) {
-          group.items.push(item);
-        }
-      });
-      groups.forEach(function(group) {
-        var candidates = [];
-        var selection;
-        var ranked;
-        var chosen = null;
-        var container;
-        var insertAfter;
-        var signature;
-        var existingState;
-        var idx;
-        group.items.forEach(function(item) {
-          var candidateDescriptor = detectSource(item.uri, cfg);
-          if (!candidateDescriptor) return;
-          candidates.push({ item, descriptor: candidateDescriptor });
         });
-        existingState = group.root && group.root.__dvMountState;
-        if (candidates.length === 0) {
-          if (existingState) disposeMountState(existingState);
-          return;
-        }
-        if (!viewerColumn && pageLayout === "leaf-digital-object") {
-          viewerColumn = prepareLeafLayout();
-        }
-        selection = buildDescriptorSelection(candidates);
-        ranked = selection.rankedCandidates;
-        chosen = selection.primaryCandidate;
-        if (!chosen) return;
-        signature = candidates.map(function(candidate) {
-          return candidate.item.uri;
-        }).join("\0");
-        if (existingState && !existingState.disposed && existingState.signature === signature && existingState.container && existingState.container.parentNode) {
-          existingState.seenInInit = true;
-          return;
-        }
-        if (existingState) disposeMountState(existingState, { preserveLayout: true });
-        container = document2.createElement("div");
-        container.className = "digital-viewer-container";
-        container.__dvDescriptorSelection = selection;
-        container.__dvMountOptions = {
-          loadingTimeoutMs: cfg.loadingTimeoutMs,
-          allowFallbackOnTimeout: ranked.length > 1
-        };
-        container.__dvMountState = {
-          root: group.root,
-          container,
-          signature,
-          attempt: null,
-          disposed: false,
-          seenInInit: true,
-          layoutPane: viewerColumn ? viewerColumn.parentNode : null
-        };
-        if (group.root) group.root.__dvMountState = container.__dvMountState;
-        activeMountStates.push(container.__dvMountState);
-        if (viewerColumn) {
-          viewerColumn.appendChild(container);
-        } else {
-          insertAfter = findInsertAfter(chosen.item.anchor);
-          if (insertAfter && insertAfter.parentNode) {
-            insertAfter.parentNode.insertBefore(container, insertAfter.nextSibling);
-          } else {
-            return;
-          }
-        }
-        (function tryMount(rankIndex) {
-          var mountState = container.__dvMountState;
-          var attempt = createAttempt();
-          if (!mountState || mountState.disposed) return;
-          if (mountState.attempt) disposeAttempt(mountState.attempt);
-          mountState.attempt = attempt;
-          container.__dvMountAttempt = attempt;
-          container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
-          container.__dvMountOptions.attempt = attempt;
-          scheduleAttemptTimeout(
-            attempt,
-            container,
-            getLoadingTimeout(container.__dvMountOptions),
-            rankIndex + 1 < ranked.length,
-            function() {
-              if (!mountState.disposed) tryMount(rankIndex + 1);
-            }
-          );
-          Promise.resolve().then(function() {
-            if (!isAttemptActive(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
-            return mountDescriptor(container, ranked[rankIndex].descriptor);
-          }).then(function() {
-            if (!isAttemptActive(attempt)) return;
-            attempt.completed = true;
-            clearAttemptTimeout(attempt);
-          }).catch(function() {
-            if (!isAttemptActive(attempt) || mountState.disposed) return;
-            disposeAttempt(attempt);
-            if (rankIndex + 1 < ranked.length) {
-              tryMount(rankIndex + 1);
-            } else {
-              reportFailure(container, "viewer", "content-unavailable");
-            }
-          });
-        })(0);
-      });
+      }
       activeMountStates.slice().forEach(function(state) {
         if (!state.seenInInit) disposeMountState(state);
       });
     }
+    return { init };
+  }
+
+  // src/mount-sequence.mjs
+  function getContainerViewerOptions(container) {
+    var mountOptions = container && container.__dvMountOptions || {};
+    var attempt = mountOptions.attempt;
+    return {
+      objectDownloadPdfUrl: getCompanionPdfUrl(container && container.__dvDescriptorSelection),
+      loadingTimeoutMs: mountOptions.loadingTimeoutMs,
+      allowFallbackOnTimeout: !!mountOptions.allowFallbackOnTimeout,
+      attempt,
+      signal: attempt && attempt.controller ? attempt.controller.signal : void 0
+    };
+  }
+  function createMountSequence({ lifecycle, mountDescriptor, reportFailure }) {
+    const { createAttempt, disposeAttempt, isAttemptActive, scheduleAttemptTimeout, clearAttemptTimeout } = lifecycle;
+    function mountRankedSources(container, ranked) {
+      function tryMount(rankIndex) {
+        var mountState = container.__dvMountState;
+        var attempt = createAttempt();
+        if (!mountState || mountState.disposed) return;
+        if (mountState.attempt) disposeAttempt(mountState.attempt);
+        mountState.attempt = attempt;
+        container.__dvMountAttempt = attempt;
+        container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
+        container.__dvMountOptions.attempt = attempt;
+        scheduleAttemptTimeout(
+          attempt,
+          container,
+          getLoadingTimeout(container.__dvMountOptions),
+          rankIndex + 1 < ranked.length,
+          function() {
+            if (!mountState.disposed) tryMount(rankIndex + 1);
+          }
+        );
+        Promise.resolve().then(function() {
+          if (!isAttemptActive(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
+          return mountDescriptor(container, ranked[rankIndex].descriptor);
+        }).then(function() {
+          if (!isAttemptActive(attempt)) return;
+          attempt.completed = true;
+          clearAttemptTimeout(attempt);
+        }).catch(function() {
+          if (!isAttemptActive(attempt) || mountState.disposed) return;
+          disposeAttempt(attempt);
+          if (rankIndex + 1 < ranked.length) {
+            tryMount(rankIndex + 1);
+          } else {
+            reportFailure(container, "viewer", "content-unavailable");
+          }
+        });
+      }
+      tryMount(0);
+    }
+    return { mountRankedSources };
+  }
+
+  // src/runtime.mjs
+  function createViewerRuntime({
+    config: cfg,
+    document: document2,
+    console: console2,
+    fetch,
+    OpenSeadragon,
+    IntersectionObserver,
+    Image,
+    AbortController,
+    setTimeout,
+    clearTimeout
+  }) {
+    const {
+      createFallbackLink,
+      showError,
+      reportFailure,
+      showLoadingNotice,
+      clearLoadingNotice,
+      resetContainer
+    } = createStatus({ document: document2, console: console2 });
+    const pageLayout = createPageLayout({ document: document2 });
+    const lifecycle = createLifecycle({
+      AbortController,
+      setTimeout,
+      clearTimeout,
+      showLoadingNotice,
+      restoreLeafLayoutIfUnused: (pane) => pageLayout.restoreLeafLayoutIfUnused(pane, lifecycle.activeMountStates)
+    });
+    const { isAttemptActive, registerAttemptCleanup, disposeMountState } = lifecycle;
+    const { addControls, addPageNav } = createControls({ document: document2, isAttemptActive, registerAttemptCleanup });
+    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive });
+    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup });
+    const { addThumbnailCarousel } = createThumbnails({
+      document: document2,
+      IntersectionObserver,
+      setTimeout,
+      clearTimeout,
+      isAttemptActive,
+      registerAttemptCleanup,
+      warmSequenceCache
+    });
+    const { mountOsdViewer } = createViewer({
+      document: document2,
+      OpenSeadragon,
+      setTimeout,
+      clearTimeout,
+      resetContainer,
+      showLoadingNotice,
+      clearLoadingNotice,
+      isAttemptActive,
+      disposeViewer: lifecycle.disposeViewer,
+      registerAttemptCleanup,
+      addControls,
+      addPageNav,
+      addViewerModeActions,
+      addThumbnailCarousel,
+      warmSequenceCache,
+      primeResourceUrl
+    });
+    const adapters = createSourceAdapters({
+      config: cfg,
+      document: document2,
+      console: console2,
+      fetch,
+      setTimeout,
+      clearTimeout,
+      mountOsdViewer,
+      reportFailure,
+      isAttemptActive,
+      showError,
+      resetContainer,
+      addViewerModeActions,
+      showLoadingNotice,
+      clearLoadingNotice,
+      registerAttemptCleanup,
+      createFallbackLink
+    });
+    function mountDescriptor(container, descriptor) {
+      resetContainer(container);
+      if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
+        return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
+      }
+      var adapter = adapters[descriptor.type];
+      return adapter(container, descriptor, getContainerViewerOptions(container));
+    }
+    const sources = createPageSources({
+      document: document2,
+      getPageContext: pageLayout.getPageContext,
+      onDiscoveryError() {
+        console2.warn("[digital_viewer] stage=startup code=source-unavailable");
+      }
+    });
+    const { mountRankedSources } = createMountSequence({ lifecycle, mountDescriptor, reportFailure });
+    const { init } = createInitializer({
+      config: cfg,
+      document: document2,
+      console: console2,
+      OpenSeadragon,
+      sources,
+      pageLayout,
+      lifecycle,
+      mountRankedSources
+    });
     return {
       addViewerModeActions,
       getPreloadPageIndexes,
@@ -2485,7 +2561,7 @@
       addThumbnailCarousel,
       warmSequenceCache,
       classifyPageContext,
-      collectSourceAnchors,
+      collectSourceAnchors: sources.collectSourceAnchors,
       mountOsdViewer,
       mountDescriptor,
       adapters,
@@ -2514,4 +2590,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=de1263373e576891319977bf80abcb4be436f9c0679da71efa64342bcb043bfb
+//# sourceMappingURL=digital_viewer.js.map?v=fd2256466219d196401664ee4e323b35af40622d474f33527e3c843514fdb649

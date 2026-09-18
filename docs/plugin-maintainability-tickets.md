@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01–DV-M06 complete locally (2026-09-18); DV-M07–DV-M08 OPEN.
+Status: DV-M01–DV-M07 complete locally (2026-09-18); DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -141,16 +141,18 @@ Implementation: [viewer modules, ownership and controls interface](plugin-viewer
 
 ## DV-M07 — Reduce startup to readable orchestration
 
-Status: OPEN. Dependencies: DV-M03, DV-M06.
+Status: COMPLETE locally (2026-09-18). Dependencies: DV-M03, DV-M06.
 
 Scope: finish extraction of page discovery/grouping, layout and startup. Keep `init` focused on collecting groups, selecting sources, creating containers and coordinating mount attempts.
 
 Acceptance:
 
-- [ ] The startup module exposes an understandable call sequence with explicit configuration/context dependencies and no hidden cross-module mutable globals.
-- [ ] Stock, leaf and inline layouts preserve record information, separate linked objects and original links. Reinitialization creates no duplicate viewers.
-- [ ] One group's error cannot prevent other groups from mounting; synchronous and asynchronous failures follow the same ownership rules.
-- [ ] Existing layout, source-group, replacement, fallback and DOM-readiness checks run against the assembled artifact; DV-M02 fallback remains usable after partial initialization failure.
+- [x] The startup module exposes an understandable call sequence with explicit configuration/context dependencies and no hidden cross-module mutable globals.
+- [x] Stock, leaf and inline layouts preserve record information, separate linked objects and original links. Reinitialization creates no duplicate viewers.
+- [x] One group's error cannot prevent other groups from mounting; synchronous and asynchronous failures follow the same ownership rules.
+- [x] Existing layout, source-group, replacement, fallback and DOM-readiness checks run against the assembled artifact; DV-M02 fallback remains usable after partial initialization failure.
+
+Implementation: [page-load trace and startup responsibilities](plugin-startup.md). [Local evidence](evidence/dv-m07-2026-09-18.json): 138 Node tests, Ruby checks, six assembled startup scenarios (including keyboard original-link access after partial failure), 20 source-contract and 42 fallback cases, source-request replacement checks, seven live Rails contract rows and live bundle/map startup pass. Completion commit is recorded in the parent ledger; hosted release gates remain separate.
 
 ## DV-M08 — Publish the developer map and validate the assembled plugin
 
