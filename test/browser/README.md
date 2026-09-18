@@ -203,3 +203,25 @@ viewer/OSD scripts; it requires the local PUI on port 18081.
 Template checks: `ruby test/fallback_template_test.rb` (standard-library ERB and
 bundled Minitest). This checks representative, entry and thumbnail-link branches;
 thumbnail-only records receive no invented destination.
+
+## Template source contract (DV-M03)
+
+`source-contract.mjs` exports `runSourceContractChecks(browser, pluginRoot)` and
+`runLocalSourceContractChecks(browser, base)` (default base: local PUI 18081).
+Use the same isolated Chrome setup as the fallback runner. The first renders
+real plugin ERB with helper substitutes and runs the served JS through 20 cases:
+entry, thumbnail-link, representative, thumbnail-only, browse-only, additional
+version, separate objects sharing a URL, leaf alternatives, parent object and
+separate image/PDF. Each runs with stock fixture markup and then renamed cosmetic
+classes/extra link wrappers; source URLs, group counts and separate media mounts
+must match. All content requests are intercepted; this checks source discovery,
+not complete native-PDF rendering.
+
+The local runner checks seven existing ASpace record pages, published destination
+identity and the exact entry-group dataset value. DO 874 correctly has one source
+hint: its representative is an unlinked thumbnail and its additional version is
+the published manifest. DO 871 exercises a linked representative plus additional
+version. No fixture records are modified.
+
+See [the attribute contract](../../docs/plugin-source-contract.md) for producers,
+consumers, preserved compatibility paths and the upgrade smoke checklist.

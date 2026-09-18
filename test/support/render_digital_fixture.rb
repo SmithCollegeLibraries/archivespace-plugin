@@ -19,7 +19,7 @@ class DigitalFixture
   end
 
   def local_assigns
-    { record: record, dig_objs: dig_objs, has_children: false }
+    { record: record, dig_objs: dig_objs, has_children: !!@options['has_children'] }
   end
 
   def record

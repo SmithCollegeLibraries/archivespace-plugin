@@ -8,6 +8,8 @@ This guide describes the plugin at published commit `553e0f33916e005e3ce529213c5
 
 The corrective code and its evidence have passed independent review, and Rob approved merging and publishing that candidate. That is **not permission to install on Lyrasis**: the staging-install checklist, Gate A, remains open. Older dated evidence may still say review is pending; it records an earlier point in time.
 
+DV-M03 adds an [explicit source attribute contract](plugin-source-contract.md) for plugin-owned markup, with compatibility selectors retained for stock/theme output.
+
 Start here:
 
 - [Quick overview](#quick-overview)

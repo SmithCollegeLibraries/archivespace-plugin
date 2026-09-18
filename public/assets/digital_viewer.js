@@ -2408,6 +2408,7 @@
     selectors.forEach(function (selector) {
       var elements = root.querySelectorAll(selector);
       for (var i = 0; i < elements.length; i += 1) {
+        if (elements[i].closest && elements[i].closest('[data-dv-browse-only]')) continue;
         if (seen.indexOf(elements[i]) === -1) {
           seen.push(elements[i]);
           results.push(elements[i]);

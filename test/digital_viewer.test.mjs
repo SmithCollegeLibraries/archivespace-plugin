@@ -2306,3 +2306,11 @@ test('sequence cache warming does not bypass the thumbnail queue', function () {
   ], 0);
   assert.equal(imageCount, 0);
 });
+
+test('collectSourceAnchors excludes explicit browse-only regions even when legacy selectors match', function () {
+  const hooks = loadHooks();
+  const browse = { closest(selector) { return selector === '[data-dv-browse-only]' ? {} : null; } };
+  const source = { dataset: { fileUri: 'https://example.org/manifests/book.json' }, closest() { return null; } };
+  const root = { querySelectorAll(selector) { return selector === '[data-file-uri]' ? [browse, source] : [browse]; } };
+  assert.deepEqual(Array.from(hooks.collectSourceAnchors(root)), [source]);
+});

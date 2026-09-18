@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01 and DV-M02 complete (2026-09-18); DV-M03–DV-M08 OPEN.
+Status: DV-M01–DV-M03 complete (2026-09-18); DV-M04–DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -72,7 +72,9 @@ Acceptance:
 
 ## DV-M03 — Make template-to-viewer markup an explicit contract
 
-Status: OPEN. Dependencies: DV-M01. Related: WBL-0904; M04/M05/M07.
+Status: COMPLETE (2026-09-18). Dependencies: DV-M01. Related: WBL-0904; M04/M05/M07.
+
+Deliverable: [attribute contract and upgrade checks](plugin-source-contract.md); [recorded evidence](evidence/dv-m03-2026-09-18.json). 15 Ruby tests, 71 Node tests, 20 mutation cases, seven actual-ASpace source-contract rows and 27 fallback regression rows pass. Completion commit is recorded in the parent ledger.
 
 Problem: class names and direct-child selectors couple source discovery to ArchivesSpace/theme markup.
 
@@ -82,11 +84,11 @@ Existing baseline: `public/views/shared/_digital.html.erb` emits `data-dv-page-c
 
 Acceptance:
 
-- [ ] Cover representative-file, linked-entry, additional-file-version, thumbnail-only and collection-browse branches without treating browse links as renderable files.
-- [ ] Preserve one object's alternatives together and separately linked objects apart, including separate image/PDF objects and leaf versus parent Digital Objects.
-- [ ] Tests demonstrate that added wrappers and renamed cosmetic classes do not break plugin-owned source discovery; legacy markup fixtures continue working.
-- [ ] Validate ERB escaping, real ArchivesSpace-rendered fixtures and both page types. A hand-written DOM shim alone is insufficient evidence of upgrade compatibility.
-- [ ] Document the remaining stock-HTML assumptions and an upgrade smoke check that verifies a viewer and usable original links.
+- [x] Cover representative-file, linked-entry, additional-file-version, thumbnail-only and collection-browse branches without treating browse links as renderable files.
+- [x] Preserve one object's alternatives together and separately linked objects apart, including separate image/PDF objects and leaf versus parent Digital Objects.
+- [x] Tests demonstrate that added wrappers and renamed cosmetic classes do not break plugin-owned source discovery; legacy markup fixtures continue working.
+- [x] Validate ERB escaping, real ArchivesSpace-rendered fixtures and both page types. A hand-written DOM shim alone is insufficient evidence of upgrade compatibility.
+- [x] Document the remaining stock-HTML assumptions and an upgrade smoke check that verifies a viewer and usable original links.
 
 ## DV-M04 — Establish modules and extract configuration/source selection
 

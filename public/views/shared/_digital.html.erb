@@ -10,7 +10,8 @@
 ></div>
 
 <% if record['json']['representative_file_version'].present? %>
-<div class="available-digital-objects" data-dv-source-group="representative">
+<% dv_browse_only = representative_link_to_digital_materials?(record) %>
+<div class="available-digital-objects" data-dv-source-group="representative" <% if dv_browse_only %>data-dv-browse-only="true"<% end %>>
   <div class="objectimage">
     <div class="card">
       <%
@@ -19,7 +20,7 @@
         a_uri = rfv['derived_from'] || rfv['link_uri']
         dig_materials_link = nil
 
-        if representative_link_to_digital_materials?(record)
+        if dv_browse_only
           digitized_link_text = t(
             'digital_object._public.browse_number_digital_objects_in_collection',
             num: n_digital_objects,
@@ -30,12 +31,14 @@
             data: { 'view-all-digital-objects' => true }
         end
       %>
+      <div <% if a_uri && !dv_browse_only %>data-file-uri="<%= ERB::Util.html_escape(a_uri) %>"<% end %>>
       <%= render partial: 'shared/representative_file_version_record', locals: {
         :a_uri => a_uri,
         :img_uri => img_uri,
         :caption => rfv['caption'],
         :dig_materials_link => dig_materials_link
       } %>
+      </div>
       <% unless dig_materials_link %>
         <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: a_uri } %>
       <% end %>
@@ -43,11 +46,11 @@
   </div>
 </div>
 <% elsif local_assigns[:dig_objs] && dig_objs.present? %>
-<div class="available-digital-objects"<%= ' data-dv-source-group="digital-object-entries"' if dv_record_type == 'DigitalObject' %>>
+<div class="available-digital-objects" <% if dv_record_type == 'DigitalObject' %>data-dv-source-group="digital-object-entries"<% end %>>
   <% dig_objs.each_with_index do |d_file, index| %>
     <% if !d_file['out'].blank? %>
       <% if d_file['thumb'].blank? %>
-        <div class="objectimage" data-dv-source-group="digital-<%= index %>">
+        <div class="objectimage" data-dv-source-group="digital-<%= index %>" data-file-uri="<%= ERB::Util.html_escape(d_file['out']) %>">
           <a
             class="external-digital-object__link record-type-badge digital_object"
             href="<%= d_file['out'] %>"
@@ -72,7 +75,7 @@
           <%= render partial: 'shared/digital_viewer_fallback', locals: { uri: d_file['out'] } %>
         </div>
       <% else %>
-        <div class="objectimage" data-dv-source-group="digital-<%= index %>">
+        <div class="objectimage" data-dv-source-group="digital-<%= index %>" data-file-uri="<%= ERB::Util.html_escape(d_file['out']) %>">
           <div class="panel panel-default">
             <a class="thumbnail" href="<%= d_file['out'] %>" target="new" title="<%= t('digital_object._public.link')%>">
               <img src="<%= d_file['thumb'] %>" alt="<%= strip_mixed_content(d_file['caption'] || t('enumerations.instance_instance_type.digital_object')) %>" />
