@@ -21,7 +21,9 @@ These are code findings, not fresh browser results. The [existing release eviden
 
 ## Work order and shared requirements
 
-Start DV-M01, then DV-M02 and DV-M03. Continue DV-M04 → DV-M05 → DV-M06 → DV-M07 → DV-M08. DV-M02 is independent of the module build and can be prioritized before any extraction. Keep each ticket a separate reviewable commit and record its tests and commit in the completion ledger. All dependencies mean completed, evidenced work, not merely a ticket being created.
+Start DV-M01, then DV-M02 and DV-M03. Continue DV-M04 → DV-M05 → DV-M06 → DV-M07 → DV-M08. DV-M02 is independent of the module build and can be prioritized before any extraction. Keep each ticket a separate reviewable commit. All dependencies mean completed, evidenced work, not merely a ticket being created.
+
+The completion ledger for DV tickets is `docs/workbench-lite/finished.md` in the **parent `preservica` repository**, not in this standalone plugin repository. Record the DV ticket ID, tests/evidence, exact standalone implementation commit and any parent mirror commit (or explicitly uncommitted mirror state) there. This checkout lives at `preservica/exports/archivespace-plugin-repository`; a plugin-only checkout needs the parent repository to update that ledger. Keep acceptance checkboxes and evidence references in this standalone ticket document synchronized with the parent entry; do not mark a ticket complete until its ledger entry exists. The standalone `docs/workbench-lite/` directory is not a completion ledger.
 
 Existing WBL-0901 owns authoritative packaging/duplicate copies; WBL-0902 owns environment configuration; WBL-0903 owns diagnostics; WBL-0904 and LYR matrix rows own release verification; WBL-0905 owns legacy Compass retirement. These tickets add bounded implementation work beneath those concerns, without duplicating their completion claims. No new source types or source-priority changes are part of the refactor.
 
@@ -34,6 +36,8 @@ Status: OPEN. Dependencies: none. Related: WBL-0901/0902.
 Problem: roughly 2,700 lines share closure state, making call flow and ownership difficult to trace.
 
 Scope: inventory functions and mutable state in the current script; document a proposed dependency graph and choose native modules versus a bundled output. Bundled source with source maps is the initial recommendation, not an already selected toolchain. The current `public/assets/digital_viewer.js` remains authoritative until the build transition is implemented.
+
+The maintenance guide's current “no JavaScript build step” description and the parent repository's `CLAUDE.md` test instructions describe today's implementation. DV-M01 must identify their required revisions; DV-M04 must update build/test instructions when the transition lands, with DV-M08 completing the architecture guide. Update the equivalent parent `AGENTS.md` instructions at the same boundary.
 
 Acceptance:
 
@@ -51,6 +55,8 @@ Problem: retained links preserve navigation, but a manifest URL is not a readabl
 
 Scope: define and implement progressive enhancement for direct image, PDF, manifest-only and thumbnail/link records. Prefer a server-rendered fallback that remains available until the viewer reports successful readiness, plus a useful `noscript` explanation. A `noscript` message alone cannot detect blocked scripts when JavaScript is enabled.
 
+Decision owner: Rob O'Connell approves the manifest-only fallback content/access policy, with Special Collections supplying suitable published destinations and ITS confirming any access-control implications. The implementer supplies technical options and records the decision and evidence; engineering must not select a new public-content or download policy implicitly. Track any outstanding decision under Rob with the specific missing destination/policy, while continuing independent fallback work.
+
 Acceptance:
 
 - [ ] Record a fallback destination policy for each record type using available, approved published URLs. For manifest-only records, decide whether to supply a human-readable alternate page, approved image/PDF link, or an explicit limited-access message/help route. Record unresolved content decisions as blockers; never present raw JSON as equivalent viewing access.
@@ -66,7 +72,9 @@ Status: OPEN. Dependencies: DV-M01. Related: WBL-0904; M04/M05/M07.
 
 Problem: class names and direct-child selectors couple source discovery to ArchivesSpace/theme markup.
 
-Scope: give plugin-owned output explicit source URL/group/context attributes; keep compatibility selectors for stock markup the plugin does not own. Document who produces and consumes each attribute.
+Scope: extend and document the existing attribute contract, adding explicit source URLs where needed; keep compatibility selectors for stock markup the plugin does not own. Document who produces and consumes each attribute.
+
+Existing baseline: `public/views/shared/_digital.html.erb` emits `data-dv-page-context`, `data-record-type`, `data-has-children` and `data-dv-source-group`. In the script, `getPageContext()` reads the page-context attributes, and `findGroupRoot()` / `findInsertAfter()` consume source groups. `findGroupRoot()` assigns a synthesized `render-N` source group when its selected root has none. `collectSourceAnchors()` / `collectFileUris()` already support `data-file-uri`, but this partial does not currently emit it. Preserve and extend these behaviors rather than replacing them as if no contract exists.
 
 Acceptance:
 
@@ -82,9 +90,12 @@ Status: OPEN. Dependencies: DV-M01, DV-M03. Related: WBL-0901/0902.
 
 Scope: implement the selected build/loading approach, extract configuration parsing, URL detection and ranking, and keep the remaining code behind an explicit entry point.
 
+Test migration deliverable: `test/digital_viewer.test.mjs` currently reads `public/assets/digital_viewer.js` as text, injects hooks by replacing the closing IIFE, and executes it with `vm.runInNewContext`. Module extraction or bundling can invalidate both that text pattern and its closure-local function references. Rewrite the harness around module exports and/or retarget integration coverage at the served artifact; merely changing the input filename is insufficient if instrumentation assumptions no longer hold.
+
 Acceptance:
 
 - [ ] Pure detection/ranking tests import source modules directly; preserve URL classifications, encoded identifiers, priority, companion/download decisions and empty-config behavior.
+- [ ] Migrate the existing text/VM harness explicitly, mapping its regressions to module tests or artifact integration tests without losing lifecycle, fallback or DOM coverage. Assert that intended hooks/tests actually execute; a failed text replacement must not silently reduce coverage. Document and verify the new build-before-test commands in the guide and parent `CLAUDE.md`/`AGENTS.md`.
 - [ ] A clean checkout produces the deployable assets with documented, locked tooling. The archive runs without Node or a build step on the host.
 - [ ] Keep one source of truth; mark generated assets and document how standalone changes reach the Docker mirror. Reconcile legacy copies through WBL-0901.
 - [ ] Test the served artifact in addition to source modules, with Ruby asset-version checks and real-ASpace startup. Asset cache invalidation covers every runtime output.
@@ -139,6 +150,7 @@ Acceptance:
 
 - [ ] Document Ruby template → configuration/markup → startup → adapter → viewer → content-service flow, including fallback and disposal paths, using final filenames and APIs.
 - [ ] Map missing viewer, wrong grouping, manifest failures, stalled tiles, thumbnail errors and incorrect downloads to the responsible modules/tests.
+- [ ] Replace current troubleshooting/review navigation based on absolute line numbers with module paths and function names. Audit the Lyrasis task list's review anchors (including the historical `init` near line 2185); retain dated candidate references as history and distinguish them from navigation for the current source.
 - [ ] Diagnostics identify stage and safe error code without exposing source URLs, query strings or credentials; distinguish absent sources from failure of an expected plugin-owned source contract.
 - [ ] Run relevant Node/Ruby suites and actual-ASpace browser coverage for supported formats, startup/partial failure, no-JS and blocked scripts, source grouping and download behavior. State exact environment, artifact commit and remaining hosted checks.
 - [ ] Verify the extracted distribution, asset identity/cache invalidation and rollback to the prior artifact; preserve existing staging gates and approval requirements.
