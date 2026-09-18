@@ -1,7 +1,10 @@
-// Transitional runtime boundary. Adapters, lifecycle and UI move out in DV-M05–07.
+// Transitional runtime boundary. Adapters are extracted; lifecycle and UI move out in DV-M06–07.
 // Every browser dependency is supplied by entry.mjs or the test harness.
 import { getLoadingTimeout } from './config.mjs';
 import { detectSource, buildDescriptorSelection } from './source-selection.mjs';
+import { UNAVAILABLE_TILE_SOURCE } from './manifest.mjs';
+import { sanitizeUrl } from './urls.mjs';
+import { createSourceAdapters } from './adapters/index.mjs';
 
 export function createViewerRuntime({ config: cfg, document, console, fetch,
   OpenSeadragon, IntersectionObserver, Image, AbortController, setTimeout, clearTimeout }) {
@@ -20,20 +23,6 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
   var viewerControlInstanceCount = 0;
   var sourceGroupCount = 0;
   var activeMountStates = [];
-  var UNAVAILABLE_TILE_SOURCE = {
-    type: 'image',
-    url: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
-    width: 1,
-    height: 1,
-  };
-
-  function sanitizeUrl(url) {
-    var trimmed = typeof url === 'string' ? url.trim() : '';
-    if (!trimmed) return '';
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    if (/^\//.test(trimmed)) return trimmed;
-    return '';
-  }
 
   function createFallbackLink(url, label) {
     var safeUrl = sanitizeUrl(url);
@@ -647,12 +636,6 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
 
   function isUnavailableTileSource(tileSource) {
     return !!(tileSource && tileSource.unavailable);
-  }
-
-  function hasRenderablePages(tileSources) {
-    return Array.isArray(tileSources) && tileSources.some(function (tileSource) {
-      return tileSource && !isUnavailableTileSource(tileSource) && !!getTileSourceValue(tileSource);
-    });
   }
 
   function buildThumbnailUrl(tileSource) {
@@ -1508,91 +1491,6 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
     showError(container, 'Digital content unavailable.');
   }
 
-  function toLocalCantaloupeInfoUrl(serviceId) {
-    if (!serviceId) return '';
-
-    var normalized = serviceId.replace(/\/$/, '');
-    var marker = '/iiif/2/';
-    var pos = normalized.indexOf(marker);
-
-    if (pos === -1) {
-      return normalized + '/info.json';
-    }
-
-    var identifier = normalized.slice(pos + marker.length);
-    var decoded = '';
-
-    try {
-      decoded = decodeURIComponent(identifier);
-    } catch (err) {
-      decoded = identifier;
-    }
-
-    var fileMarker = '/system/files/';
-    var filePos = decoded.indexOf(fileMarker);
-    if (filePos === -1) {
-      return normalized + '/info.json';
-    }
-    if (!cfg.cantaloupeBaseUrl) return '';
-
-    var s3Key = decoded.slice(filePos + fileMarker.length);
-    try {
-      s3Key = decodeURIComponent(s3Key);
-    } catch (err2) {
-      // Keep the partially decoded key when nested encoding is malformed.
-    }
-    return cfg.cantaloupeBaseUrl + '/' + encodeURIComponent(s3Key) + '/info.json';
-  }
-
-  // ── Cantaloupe mount ──────────────────────────────────────────────────────
-
-  function mountCantaloupe(container, descriptor) {
-    return mountOsdViewer(container, descriptor.infoUrl, getContainerViewerOptions(container));
-  }
-
-  function waitForImageLoad(image, container, options) {
-    return new Promise(function (resolve, reject) {
-      var settled = false;
-      var timeoutId = setTimeout(function () {
-        if (settled) return;
-        if (options && options.allowFallbackOnTimeout) {
-          finish(new Error('STATIC_IMAGE_TIMEOUT'));
-        } else {
-          showLoadingNotice(container);
-        }
-      }, getLoadingTimeout(options || {}));
-
-      function finish(error) {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        if (!error) clearLoadingNotice(container);
-        if (error) {
-          reject(error);
-        } else {
-          resolve(image);
-        }
-      }
-
-      image.addEventListener('load', function () { finish(); });
-      image.addEventListener('error', function () {
-        finish(new Error('STATIC_IMAGE_FAILED'));
-      });
-      registerAttemptCleanup(options && options.attempt, function () {
-        finish(new Error('ATTEMPT_DISPOSED'));
-      });
-
-      if (image.complete) {
-        if (typeof image.naturalWidth === 'number' && image.naturalWidth === 0) {
-          finish(new Error('STATIC_IMAGE_FAILED'));
-        } else {
-          finish();
-        }
-      }
-    });
-  }
-
-
   function showLoadingNotice(container) {
     var notice;
 
@@ -1688,429 +1586,6 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
     if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
   }
 
-  function mountStaticImage(container, descriptor) {
-    var safeImageUrl = sanitizeUrl(descriptor.imageUrl);
-
-    if (!safeImageUrl) {
-      showError(container, 'Image not available (unsupported URL)');
-      return;
-    }
-
-    container.classList.add('dv-active');
-    resetContainer(container);
-
-    var wrap = document.createElement('div');
-    wrap.className = 'dv-static-image';
-
-    var image = document.createElement('img');
-    image.src = safeImageUrl;
-    image.alt = 'Digital object image';
-    image.style.display = 'block';
-    image.style.width = '100%';
-    image.style.height = 'auto';
-
-    wrap.appendChild(image);
-    container.appendChild(wrap);
-    addViewerModeActions(container, null, [{ imageUrl: safeImageUrl, pageLabel: 'Image view' }], getContainerViewerOptions(container));
-    return waitForImageLoad(image, container, getContainerViewerOptions(container));
-  }
-
-  // ── Preservica mount ──────────────────────────────────────────────────────
-
-  /**
-   * Parse a IIIF Presentation 3 manifest generated by the backend and group
-   * canvas bodies by content type so each can be routed to the right renderer.
-   *
-   * Returns:
-   *   {
-   *     images: [{ url, format }],          // body.type === 'Image'
-   *     videos: [{ url, format, width, height, duration }],  // body.type === 'Video'
-   *     audio:  [{ url, format, duration }], // body.type === 'Sound'
-   *     pdfs:   [{ url }],                  // format === 'application/pdf'
-   *   }
-   */
-  function extractManifestContent(manifest) {
-    var result = { images: [], videos: [], audio: [], pdfs: [] };
-
-    var canvases = (manifest.items && Array.isArray(manifest.items)) ? manifest.items : [];
-
-    canvases.forEach(function (canvas) {
-      try {
-        var annotPage = canvas.items && canvas.items[0];
-        var annot = annotPage && annotPage.items && annotPage.items[0];
-        var body = annot && annot.body;
-        if (!body) return;
-
-        var url = body.id || body['@id'] || '';
-        var format = (body.format || '').toLowerCase();
-        var type = (body.type || body['@type'] || '').toLowerCase();
-
-        if (!url) return;
-
-        if (type === 'video' || format.indexOf('video/') === 0) {
-          result.videos.push({
-            url: url,
-            format: body.format || 'video/mp4',
-            width: canvas.width || null,
-            height: canvas.height || null,
-            duration: canvas.duration || null,
-          });
-        } else if (type === 'sound' || format.indexOf('audio/') === 0) {
-          result.audio.push({
-            url: url,
-            format: body.format || 'audio/mpeg',
-            duration: canvas.duration || null,
-          });
-        } else if (format === 'application/pdf') {
-          result.pdfs.push({ url: url });
-        } else {
-          // Image (or unknown — display as image)
-          result.images.push({ url: url, format: body.format || 'image/jpeg' });
-        }
-      } catch (e) {
-        console.warn('[digital_viewer] stage=manifest code=invalid-canvas');
-      }
-    });
-
-    return result;
-  }
-
-  /**
-   * Fetch a Preservica IIIF manifest from the backend proxy and render the
-   * content using the appropriate viewer (OSD for images, <video> for video,
-   * <audio> for audio, <iframe> for PDFs).
-   *
-   * Manifest endpoint: /api/iiif/{uuid}/manifest.json
-   * Content endpoint:  /api/content/{bitstreamId}  (handles Range headers for seeking)
-   *
-   * The backend handles Preservica authentication — the browser never calls
-   * smith.preservica.com directly.
-   */
-  function mountPreservica(container, descriptor) {
-    if (!cfg.preservicaApiBase) {
-      reportFailure(container, 'configuration', 'preservica-unavailable');
-      return Promise.reject(new Error('PRESERVICA_UNAVAILABLE'));
-    }
-
-    var mountOptions = getContainerViewerOptions(container);
-    var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, '') + '/api/iiif/' + descriptor.uuid + '/manifest.json';
-
-    return fetch(manifestUrl, { signal: mountOptions.signal })
-      .then(function (res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        var content = extractManifestContent(manifest);
-        var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
-
-        if (total === 0) {
-          throw new Error('No renderable content found in manifest');
-        }
-
-        // Render each content type. Most Preservica objects have a single type,
-        // but the spec allows mixed manifests.
-        if (content.videos.length > 0) {
-          mountVideoViewer(container, content.videos);
-        }
-        if (content.audio.length > 0) {
-          mountAudioViewer(container, content.audio);
-        }
-        if (content.images.length > 0) {
-          // Preservica images don't have a IIIF Image API behind them, so we
-          // use OSD's simple image mode (static rendering, no deep zoom).
-          var osdSources = content.images.map(function (img) {
-            return { type: 'image', url: img.url };
-          });
-          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
-        }
-        if (content.pdfs.length > 0) {
-          mountPdfViewer(container, content.pdfs[0]);
-        }
-      })
-      .catch(function (err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, 'preservica', 'manifest-unavailable');
-        throw err;
-      });
-  }
-
-  // ── Preservica: Video renderer ────────────────────────────────────────────
-
-  /**
-   * Render one or more video bitstreams in a native HTML5 <video> element.
-   * The backend streams content via /api/content/{id} with Range header support,
-   * so timeline seeking works out of the box.
-   */
-  function mountVideoViewer(container, sources) {
-    var validSources = [];
-
-    container.classList.add('dv-active');
-
-    var wrap = document.createElement('div');
-    wrap.className = 'dv-video';
-
-    var video = document.createElement('video');
-    video.controls = true;
-    video.preload = 'metadata';
-
-    sources.forEach(function (src) {
-      var safeUrl = sanitizeUrl(src && src.url);
-      var source = document.createElement('source');
-      if (!safeUrl) return;
-      source.src = safeUrl;
-      if (src.format) source.type = src.format;
-      video.appendChild(source);
-      validSources.push(src);
-    });
-
-    if (validSources.length === 0) {
-      showError(container, 'Video not available (unsupported URL)');
-      return;
-    }
-
-    // Fallback text for browsers without <video> support (extremely rare)
-    var fallback = document.createElement('p');
-    var fallbackLink = createFallbackLink(validSources[0].url, 'Download the video');
-    fallback.className = 'dv-fallback';
-    fallback.appendChild(document.createTextNode('Your browser does not support video playback. '));
-    if (fallbackLink) {
-      fallback.appendChild(fallbackLink);
-      fallback.appendChild(document.createTextNode('.'));
-    }
-    video.appendChild(fallback);
-
-    wrap.appendChild(video);
-    container.appendChild(wrap);
-  }
-
-  // ── Preservica: Audio renderer ────────────────────────────────────────────
-
-  /**
-   * Render one or more audio bitstreams in a native HTML5 <audio> element.
-   */
-  function mountAudioViewer(container, sources) {
-    var validSources = [];
-
-    container.classList.add('dv-active');
-
-    var wrap = document.createElement('div');
-    wrap.className = 'dv-audio';
-
-    var audio = document.createElement('audio');
-    audio.controls = true;
-    audio.preload = 'metadata';
-
-    sources.forEach(function (src) {
-      var safeUrl = sanitizeUrl(src && src.url);
-      var source = document.createElement('source');
-      if (!safeUrl) return;
-      source.src = safeUrl;
-      if (src.format) source.type = src.format;
-      audio.appendChild(source);
-      validSources.push(src);
-    });
-
-    if (validSources.length === 0) {
-      showError(container, 'Audio not available (unsupported URL)');
-      return;
-    }
-
-    var fallback = document.createElement('p');
-    var fallbackLink = createFallbackLink(validSources[0].url, 'Download the audio');
-    fallback.className = 'dv-fallback';
-    fallback.appendChild(document.createTextNode('Your browser does not support audio playback. '));
-    if (fallbackLink) {
-      fallback.appendChild(fallbackLink);
-      fallback.appendChild(document.createTextNode('.'));
-    }
-    audio.appendChild(fallback);
-
-    wrap.appendChild(audio);
-    container.appendChild(wrap);
-  }
-
-  // ── Preservica: PDF renderer ──────────────────────────────────────────────
-
-  /**
-   * Render a PDF bitstream using the browser's built-in PDF viewer via <iframe>.
-   * A download link is included as fallback for browsers that don't embed PDFs.
-   */
-  function mountPdfViewer(container, source) {
-    var safeUrl = sanitizeUrl(source && source.url);
-    var fallbackLink;
-
-    if (!safeUrl) {
-      showError(container, 'PDF not available (unsupported URL)');
-      return;
-    }
-
-    container.classList.add('dv-active');
-
-    var wrap = document.createElement('div');
-    wrap.className = 'dv-pdf';
-
-    var iframe = document.createElement('iframe');
-    iframe.src = safeUrl;
-    iframe.title = 'PDF viewer';
-    // Allow the browser PDF plugin to activate inside the iframe
-    iframe.setAttribute('allow', 'fullscreen');
-
-    var fallback = document.createElement('p');
-    fallback.className = 'dv-fallback';
-    fallbackLink = createFallbackLink(safeUrl, 'Open PDF');
-    if (fallbackLink) fallback.appendChild(fallbackLink);
-
-    wrap.appendChild(iframe);
-    wrap.appendChild(fallback);
-    container.appendChild(wrap);
-  }
-
-  function getManifestNodeId(node) {
-    if (!node) return '';
-    return node['@id'] || node.id || '';
-  }
-
-  function getCanvasMetadataValue(canvas, label) {
-    var metadata = canvas && Array.isArray(canvas.metadata) ? canvas.metadata : [];
-    var match = null;
-
-    metadata.some(function (entry) {
-      if (!entry || entry.label !== label) return false;
-      match = entry.value;
-      return true;
-    });
-
-    return match || '';
-  }
-
-  function extractCompassTileSources(manifest) {
-    var tileSources = [];
-    var seq = manifest.sequences && manifest.sequences[0];
-    var canvases = seq && Array.isArray(seq.canvases) ? seq.canvases : [];
-
-    canvases.forEach(function (canvas, index) {
-      var img = canvas.images && canvas.images[0];
-      var thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
-      var thumbnailUrl = thumbnail && (thumbnail['@id'] || thumbnail.id || '');
-      var resource = img && img.resource;
-      var seeAlso = canvas && canvas.seeAlso;
-      var imageUrl = getManifestNodeId(resource);
-      var svc = resource && resource.service;
-      var serviceId = svc ? (svc['@id'] || svc.id || '').replace(/\/$/, '') : '';
-      var tileSource = serviceId ? toLocalCantaloupeInfoUrl(serviceId) : '';
-      var page = {
-        tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
-        thumbnailUrl: thumbnailUrl || '',
-        pageIndex: index,
-        pageLabel: canvas.label || '',
-        canvasId: getManifestNodeId(canvas),
-        pageIdentifier: getCanvasMetadataValue(canvas, 'Identifier'),
-        imageUrl: imageUrl || (serviceId ? serviceId + '/full/full/0/default.jpg' : ''),
-        ocrUrl: getManifestNodeId(seeAlso),
-        ocrFormat: seeAlso && seeAlso.format || '',
-      };
-
-      if (!img || !serviceId || !tileSource) page.unavailable = true;
-      tileSources.push(page);
-    });
-
-    return tileSources;
-  }
-
-  // ── Compass IIIF mount ────────────────────────────────────────────────────
-
-  /**
-   * Resolve a Compass Islandora object URL to a IIIF manifest by following
-   * the redirect to the Drupal node page, then render all canvases with OSD.
-   */
-  function mountCompass(container, descriptor) {
-    var compassBase = cfg.compassBaseUrl || ('https://' + cfg.compassHost);
-    var mountOptions = getContainerViewerOptions(container);
-
-    // Use a server-side proxy when configured (required in browsers due to CORS
-    // on the Islandora → Drupal redirect).  The proxy follows the redirect and
-    // returns the full IIIF manifest JSON in a single response.
-    var fetchManifest;
-    if (cfg.compassProxyUrl) {
-      fetchManifest = fetch(
-        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.compassUrl),
-        { signal: mountOptions.signal }
-      ).then(function (res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
-        return res.json();
-      });
-    } else {
-      // Fallback: direct fetch (only works if Islandora endpoint allows CORS)
-      fetchManifest = fetch(descriptor.compassUrl, { redirect: 'follow', signal: mountOptions.signal })
-        .then(function (res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-          var nodeMatch = res.url.match(/\/node\/(\d+)/);
-          if (!nodeMatch) throw new Error('Could not resolve Compass node from: ' + res.url);
-          return fetch(compassBase + '/node/' + nodeMatch[1] + '/manifest', { signal: mountOptions.signal });
-        })
-        .then(function (res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-          if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
-          return res.json();
-        });
-    }
-
-    return fetchManifest
-      .then(function (manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        var tileSources = extractCompassTileSources(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
-        return mountOsdViewer(container, tileSources, mountOptions);
-      })
-      .catch(function (err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, 'compass', 'content-unavailable');
-        throw err;
-      });
-  }
-
-  function mountCompassManifest(container, descriptor) {
-    var fetchManifest;
-    var mountOptions = getContainerViewerOptions(container);
-    var isCompassManifest = new URL(descriptor.manifestUrl).hostname === cfg.compassHost;
-
-    // The Compass resolver only accepts Compass URLs; hosted manifests load directly.
-    if (cfg.compassProxyUrl && isCompassManifest) {
-      fetchManifest = fetch(
-        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.manifestUrl),
-        { signal: mountOptions.signal }
-      ).then(function (res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
-        return res.json();
-      });
-    } else {
-      fetchManifest = fetch(descriptor.manifestUrl, { signal: mountOptions.signal })
-        .then(function (res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-          if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
-          return res.json();
-        });
-    }
-
-    return fetchManifest
-      .then(function (manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        var tileSources = extractCompassTileSources(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
-        return mountOsdViewer(container, tileSources, mountOptions);
-      })
-      .catch(function (err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, 'manifest', 'content-unavailable');
-        throw err;
-      });
-  }
-
   function resetContainer(container) {
     var preserveLoading = !!(container && container.querySelector && container.querySelector('.dv-loading-msg')) ||
       !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
@@ -2120,31 +1595,20 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
     if (preserveLoading) showLoadingNotice(container);
   }
 
+  const adapters = createSourceAdapters({
+    config: cfg, document, console, fetch, setTimeout, clearTimeout,
+    mountOsdViewer, reportFailure, isAttemptActive, showError, resetContainer,
+    addViewerModeActions, showLoadingNotice, clearLoadingNotice,
+    registerAttemptCleanup, createFallbackLink,
+  });
+
   function mountDescriptor(container, descriptor) {
     resetContainer(container);
-
-    if (descriptor.type === 'cantaloupe') {
-      return mountCantaloupe(container, descriptor);
+    if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
+      return Promise.reject(new Error('UNSUPPORTED_DESCRIPTOR'));
     }
-    if (descriptor.type === 'static-image') {
-      return mountStaticImage(container, descriptor);
-    }
-    if (descriptor.type === 'static-pdf') {
-      mountPdfViewer(container, { url: descriptor.url });
-      clearLoadingNotice(container);
-      return Promise.resolve();
-    }
-    if (descriptor.type === 'compass') {
-      return mountCompass(container, descriptor);
-    }
-    if (descriptor.type === 'compass-manifest') {
-      return mountCompassManifest(container, descriptor);
-    }
-    if (descriptor.type === 'preservica') {
-      return mountPreservica(container, descriptor);
-    }
-
-    return Promise.reject(new Error('UNSUPPORTED_DESCRIPTOR'));
+    var adapter = adapters[descriptor.type];
+    return adapter(container, descriptor, getContainerViewerOptions(container));
   }
 
   // ── Page scan ─────────────────────────────────────────────────────────────
@@ -2512,20 +1976,18 @@ export function createViewerRuntime({ config: cfg, document, console, fetch,
   }
 
   return {
-    extractCompassTileSources,
     addViewerModeActions,
-    toLocalCantaloupeInfoUrl,
     getPreloadPageIndexes,
     buildThumbnailUrl,
     addControls,
-    mountCompassManifest,
     addThumbnailCarousel,
     warmSequenceCache,
     classifyPageContext,
     collectSourceAnchors,
     mountOsdViewer,
-    mountStaticImage,
     mountDescriptor,
+    adapters,
+    getContainerViewerOptions,
     disposeMountState,
     init
   };

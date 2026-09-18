@@ -1,5 +1,25 @@
 // GENERATED from src/entry.mjs. Edit src/ and run npm run build.
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+
   // src/config.mjs
   function parseCantaloupeBase(baseUrl) {
     var parsed;
@@ -159,6 +179,465 @@
     };
   }
 
+  // src/manifest.mjs
+  var UNAVAILABLE_TILE_SOURCE = {
+    type: "image",
+    url: "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+    width: 1,
+    height: 1
+  };
+  function defaultServiceInfoUrl(serviceId) {
+    return serviceId.replace(/\/$/, "") + "/info.json";
+  }
+  function getManifestNodeId(node) {
+    if (!node) return "";
+    return node["@id"] || node.id || "";
+  }
+  function getCanvasMetadataValue(canvas, label) {
+    var metadata = canvas && Array.isArray(canvas.metadata) ? canvas.metadata : [];
+    var match = null;
+    metadata.some(function(entry) {
+      if (!entry || entry.label !== label) return false;
+      match = entry.value;
+      return true;
+    });
+    return match || "";
+  }
+  function extractManifestPages(manifest, serviceInfoUrl = defaultServiceInfoUrl) {
+    var tileSources = [];
+    var seq = manifest.sequences && manifest.sequences[0];
+    var canvases = seq && Array.isArray(seq.canvases) ? seq.canvases : [];
+    canvases.forEach(function(canvas, index) {
+      var img = canvas.images && canvas.images[0];
+      var thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
+      var thumbnailUrl = thumbnail && (thumbnail["@id"] || thumbnail.id || "");
+      var resource = img && img.resource;
+      var seeAlso = canvas && canvas.seeAlso;
+      var imageUrl = getManifestNodeId(resource);
+      var svc = resource && resource.service;
+      var serviceId = svc ? (svc["@id"] || svc.id || "").replace(/\/$/, "") : "";
+      var tileSource = serviceId ? serviceInfoUrl(serviceId) : "";
+      var page = {
+        tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
+        thumbnailUrl: thumbnailUrl || "",
+        pageIndex: index,
+        pageLabel: canvas.label || "",
+        canvasId: getManifestNodeId(canvas),
+        pageIdentifier: getCanvasMetadataValue(canvas, "Identifier"),
+        imageUrl: imageUrl || (serviceId ? serviceId + "/full/full/0/default.jpg" : ""),
+        ocrUrl: getManifestNodeId(seeAlso),
+        ocrFormat: seeAlso && seeAlso.format || ""
+      };
+      if (!img || !serviceId || !tileSource) page.unavailable = true;
+      tileSources.push(page);
+    });
+    return tileSources;
+  }
+  function extractManifestContent(manifest, onInvalidCanvas = function() {
+  }) {
+    var result = { images: [], videos: [], audio: [], pdfs: [] };
+    var canvases = manifest.items && Array.isArray(manifest.items) ? manifest.items : [];
+    canvases.forEach(function(canvas) {
+      try {
+        var annotPage = canvas.items && canvas.items[0];
+        var annot = annotPage && annotPage.items && annotPage.items[0];
+        var body = annot && annot.body;
+        if (!body) return;
+        var url = body.id || body["@id"] || "";
+        var format = (body.format || "").toLowerCase();
+        var type = (body.type || body["@type"] || "").toLowerCase();
+        if (!url) return;
+        if (type === "video" || format.indexOf("video/") === 0) {
+          result.videos.push({
+            url,
+            format: body.format || "video/mp4",
+            width: canvas.width || null,
+            height: canvas.height || null,
+            duration: canvas.duration || null
+          });
+        } else if (type === "sound" || format.indexOf("audio/") === 0) {
+          result.audio.push({
+            url,
+            format: body.format || "audio/mpeg",
+            duration: canvas.duration || null
+          });
+        } else if (format === "application/pdf") {
+          result.pdfs.push({ url });
+        } else {
+          result.images.push({ url, format: body.format || "image/jpeg" });
+        }
+      } catch (e) {
+        onInvalidCanvas();
+      }
+    });
+    return result;
+  }
+  function hasRenderablePages(tileSources) {
+    return Array.isArray(tileSources) && tileSources.some(function(tileSource) {
+      return tileSource && !tileSource.unavailable && !!(tileSource.tileSource || tileSource);
+    });
+  }
+
+  // src/urls.mjs
+  function sanitizeUrl(url) {
+    var trimmed = typeof url === "string" ? url.trim() : "";
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^\//.test(trimmed)) return trimmed;
+    return "";
+  }
+
+  // src/adapters/compass.mjs
+  function toLocalCantaloupeInfoUrl(serviceId, cfg) {
+    if (!serviceId) return "";
+    var normalized = serviceId.replace(/\/$/, "");
+    var marker = "/iiif/2/";
+    var pos = normalized.indexOf(marker);
+    if (pos === -1) {
+      return normalized + "/info.json";
+    }
+    var identifier = normalized.slice(pos + marker.length);
+    var decoded = "";
+    try {
+      decoded = decodeURIComponent(identifier);
+    } catch (err) {
+      decoded = identifier;
+    }
+    var fileMarker = "/system/files/";
+    var filePos = decoded.indexOf(fileMarker);
+    if (filePos === -1) {
+      return normalized + "/info.json";
+    }
+    if (!cfg.cantaloupeBaseUrl) return "";
+    var s3Key = decoded.slice(filePos + fileMarker.length);
+    try {
+      s3Key = decodeURIComponent(s3Key);
+    } catch (err2) {
+    }
+    return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
+  }
+  function createCompassAdapter({ config: cfg, fetch, isAttemptActive, mountOsdViewer, reportFailure }) {
+    function parsePages(manifest) {
+      return extractManifestPages(manifest, function(serviceId) {
+        return toLocalCantaloupeInfoUrl(serviceId, cfg);
+      });
+    }
+    function fetchManifestUrl(url, mountOptions) {
+      var isCompassManifest = new URL(url).hostname === cfg.compassHost;
+      var useProxy = cfg.compassProxyUrl && isCompassManifest;
+      var requestUrl = useProxy ? cfg.compassProxyUrl + "?url=" + encodeURIComponent(url) : url;
+      return fetch(requestUrl, { signal: mountOptions.signal }).then(function(res) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!res.ok) throw new Error((useProxy ? "Proxy HTTP " : "Manifest HTTP ") + res.status);
+        return res.json();
+      });
+    }
+    function mountCompass(container, descriptor, mountOptions) {
+      var compassBase = cfg.compassBaseUrl || "https://" + cfg.compassHost;
+      var fetchManifest;
+      if (cfg.compassProxyUrl) {
+        fetchManifest = fetch(
+          cfg.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.compassUrl),
+          { signal: mountOptions.signal }
+        ).then(function(res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          if (!res.ok) throw new Error("Proxy HTTP " + res.status);
+          return res.json();
+        });
+      } else {
+        fetchManifest = fetch(descriptor.compassUrl, { redirect: "follow", signal: mountOptions.signal }).then(function(res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          var nodeMatch = res.url.match(/\/node\/(\d+)/);
+          if (!nodeMatch) throw new Error("Could not resolve Compass node from: " + res.url);
+          return fetch(compassBase + "/node/" + nodeMatch[1] + "/manifest", { signal: mountOptions.signal });
+        }).then(function(res) {
+          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          if (!res.ok) throw new Error("Manifest HTTP " + res.status);
+          return res.json();
+        });
+      }
+      return fetchManifest.then(function(manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        var tileSources = parsePages(manifest);
+        if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
+        return mountOsdViewer(container, tileSources, mountOptions);
+      }).catch(function(err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        reportFailure(container, "compass", "content-unavailable");
+        throw err;
+      });
+    }
+    return { mountCompass, fetchManifestUrl, parsePages };
+  }
+
+  // src/adapters/direct.mjs
+  function createDirectAdapters({
+    document: document2,
+    setTimeout,
+    clearTimeout,
+    mountOsdViewer,
+    showError,
+    resetContainer,
+    addViewerModeActions,
+    showLoadingNotice,
+    clearLoadingNotice,
+    registerAttemptCleanup,
+    createFallbackLink
+  }) {
+    function mountCantaloupe(container, descriptor, mountOptions) {
+      return mountOsdViewer(container, descriptor.infoUrl, mountOptions);
+    }
+    function waitForImageLoad(image, container, options) {
+      return new Promise(function(resolve, reject) {
+        var settled = false;
+        var timeoutId = setTimeout(function() {
+          if (settled) return;
+          if (options && options.allowFallbackOnTimeout) {
+            finish(new Error("STATIC_IMAGE_TIMEOUT"));
+          } else {
+            showLoadingNotice(container);
+          }
+        }, getLoadingTimeout(options || {}));
+        function finish(error) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          if (!error) clearLoadingNotice(container);
+          if (error) {
+            reject(error);
+          } else {
+            resolve(image);
+          }
+        }
+        image.addEventListener("load", function() {
+          finish();
+        });
+        image.addEventListener("error", function() {
+          finish(new Error("STATIC_IMAGE_FAILED"));
+        });
+        registerAttemptCleanup(options && options.attempt, function() {
+          finish(new Error("ATTEMPT_DISPOSED"));
+        });
+        if (image.complete) {
+          if (typeof image.naturalWidth === "number" && image.naturalWidth === 0) {
+            finish(new Error("STATIC_IMAGE_FAILED"));
+          } else {
+            finish();
+          }
+        }
+      });
+    }
+    function mountStaticImage(container, descriptor, mountOptions) {
+      var safeImageUrl = sanitizeUrl(descriptor.imageUrl);
+      if (!safeImageUrl) {
+        showError(container, "Image not available (unsupported URL)");
+        return;
+      }
+      container.classList.add("dv-active");
+      resetContainer(container);
+      var wrap = document2.createElement("div");
+      wrap.className = "dv-static-image";
+      var image = document2.createElement("img");
+      image.src = safeImageUrl;
+      image.alt = "Digital object image";
+      image.style.display = "block";
+      image.style.width = "100%";
+      image.style.height = "auto";
+      wrap.appendChild(image);
+      container.appendChild(wrap);
+      addViewerModeActions(container, null, [{ imageUrl: safeImageUrl, pageLabel: "Image view" }], mountOptions);
+      return waitForImageLoad(image, container, mountOptions);
+    }
+    function mountVideoViewer(container, sources) {
+      var validSources = [];
+      container.classList.add("dv-active");
+      var wrap = document2.createElement("div");
+      wrap.className = "dv-video";
+      var video = document2.createElement("video");
+      video.controls = true;
+      video.preload = "metadata";
+      sources.forEach(function(src) {
+        var safeUrl = sanitizeUrl(src && src.url);
+        var source = document2.createElement("source");
+        if (!safeUrl) return;
+        source.src = safeUrl;
+        if (src.format) source.type = src.format;
+        video.appendChild(source);
+        validSources.push(src);
+      });
+      if (validSources.length === 0) {
+        showError(container, "Video not available (unsupported URL)");
+        return;
+      }
+      var fallback = document2.createElement("p");
+      var fallbackLink = createFallbackLink(validSources[0].url, "Download the video");
+      fallback.className = "dv-fallback";
+      fallback.appendChild(document2.createTextNode("Your browser does not support video playback. "));
+      if (fallbackLink) {
+        fallback.appendChild(fallbackLink);
+        fallback.appendChild(document2.createTextNode("."));
+      }
+      video.appendChild(fallback);
+      wrap.appendChild(video);
+      container.appendChild(wrap);
+    }
+    function mountAudioViewer(container, sources) {
+      var validSources = [];
+      container.classList.add("dv-active");
+      var wrap = document2.createElement("div");
+      wrap.className = "dv-audio";
+      var audio = document2.createElement("audio");
+      audio.controls = true;
+      audio.preload = "metadata";
+      sources.forEach(function(src) {
+        var safeUrl = sanitizeUrl(src && src.url);
+        var source = document2.createElement("source");
+        if (!safeUrl) return;
+        source.src = safeUrl;
+        if (src.format) source.type = src.format;
+        audio.appendChild(source);
+        validSources.push(src);
+      });
+      if (validSources.length === 0) {
+        showError(container, "Audio not available (unsupported URL)");
+        return;
+      }
+      var fallback = document2.createElement("p");
+      var fallbackLink = createFallbackLink(validSources[0].url, "Download the audio");
+      fallback.className = "dv-fallback";
+      fallback.appendChild(document2.createTextNode("Your browser does not support audio playback. "));
+      if (fallbackLink) {
+        fallback.appendChild(fallbackLink);
+        fallback.appendChild(document2.createTextNode("."));
+      }
+      audio.appendChild(fallback);
+      wrap.appendChild(audio);
+      container.appendChild(wrap);
+    }
+    function mountPdfViewer(container, source) {
+      var safeUrl = sanitizeUrl(source && source.url);
+      var fallbackLink;
+      if (!safeUrl) {
+        showError(container, "PDF not available (unsupported URL)");
+        return;
+      }
+      container.classList.add("dv-active");
+      var wrap = document2.createElement("div");
+      wrap.className = "dv-pdf";
+      var iframe = document2.createElement("iframe");
+      iframe.src = safeUrl;
+      iframe.title = "PDF viewer";
+      iframe.setAttribute("allow", "fullscreen");
+      var fallback = document2.createElement("p");
+      fallback.className = "dv-fallback";
+      fallbackLink = createFallbackLink(safeUrl, "Open PDF");
+      if (fallbackLink) fallback.appendChild(fallbackLink);
+      wrap.appendChild(iframe);
+      wrap.appendChild(fallback);
+      container.appendChild(wrap);
+    }
+    return { mountCantaloupe, mountStaticImage, mountVideoViewer, mountAudioViewer, mountPdfViewer };
+  }
+
+  // src/adapters/manifest.mjs
+  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive, mountOsdViewer, reportFailure }) {
+    function mountManifest(container, descriptor, mountOptions) {
+      var fetchManifest = fetchManifestUrl(descriptor.manifestUrl, mountOptions);
+      return fetchManifest.then(function(manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        var tileSources = parsePages(manifest);
+        if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
+        return mountOsdViewer(container, tileSources, mountOptions);
+      }).catch(function(err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        reportFailure(container, "manifest", "content-unavailable");
+        throw err;
+      });
+    }
+    return mountManifest;
+  }
+
+  // src/adapters/preservica.mjs
+  function createPreservicaAdapter({
+    config: cfg,
+    fetch,
+    console: console2,
+    isAttemptActive,
+    reportFailure,
+    mountOsdViewer,
+    mountVideoViewer,
+    mountAudioViewer,
+    mountPdfViewer
+  }) {
+    function mountPreservica(container, descriptor, mountOptions) {
+      if (!cfg.preservicaApiBase) {
+        reportFailure(container, "configuration", "preservica-unavailable");
+        return Promise.reject(new Error("PRESERVICA_UNAVAILABLE"));
+      }
+      var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + descriptor.uuid + "/manifest.json";
+      return fetch(manifestUrl, { signal: mountOptions.signal }).then(function(res) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }).then(function(manifest) {
+        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        var content = extractManifestContent(manifest, function() {
+          console2.warn("[digital_viewer] stage=manifest code=invalid-canvas");
+        });
+        var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
+        if (total === 0) {
+          throw new Error("No renderable content found in manifest");
+        }
+        if (content.videos.length > 0) {
+          mountVideoViewer(container, content.videos);
+        }
+        if (content.audio.length > 0) {
+          mountAudioViewer(container, content.audio);
+        }
+        if (content.images.length > 0) {
+          var osdSources = content.images.map(function(img) {
+            return { type: "image", url: img.url };
+          });
+          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
+        }
+        if (content.pdfs.length > 0) {
+          mountPdfViewer(container, content.pdfs[0]);
+        }
+      }).catch(function(err) {
+        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        reportFailure(container, "preservica", "manifest-unavailable");
+        throw err;
+      });
+    }
+    return mountPreservica;
+  }
+
+  // src/adapters/index.mjs
+  function createSourceAdapters(dependencies) {
+    const direct = createDirectAdapters(dependencies);
+    const compass = createCompassAdapter(dependencies);
+    const manifest = createManifestAdapter(__spreadProps(__spreadValues({}, dependencies), {
+      fetchManifestUrl: compass.fetchManifestUrl,
+      parsePages: compass.parsePages
+    }));
+    const preservica = createPreservicaAdapter(__spreadValues(__spreadValues({}, dependencies), direct));
+    function pdf(container, descriptor) {
+      direct.mountPdfViewer(container, { url: descriptor.url });
+      dependencies.clearLoadingNotice(container);
+      return Promise.resolve();
+    }
+    return {
+      cantaloupe: direct.mountCantaloupe,
+      "static-image": direct.mountStaticImage,
+      "static-pdf": pdf,
+      compass: compass.mountCompass,
+      // Keep the historical descriptor value to preserve selection contracts.
+      "compass-manifest": manifest,
+      manifest,
+      preservica
+    };
+  }
+
   // src/runtime.mjs
   function createViewerRuntime({
     config: cfg,
@@ -187,19 +666,6 @@
     var viewerControlInstanceCount = 0;
     var sourceGroupCount = 0;
     var activeMountStates = [];
-    var UNAVAILABLE_TILE_SOURCE = {
-      type: "image",
-      url: "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
-      width: 1,
-      height: 1
-    };
-    function sanitizeUrl(url) {
-      var trimmed = typeof url === "string" ? url.trim() : "";
-      if (!trimmed) return "";
-      if (/^https?:\/\//i.test(trimmed)) return trimmed;
-      if (/^\//.test(trimmed)) return trimmed;
-      return "";
-    }
     function createFallbackLink(url, label) {
       var safeUrl = sanitizeUrl(url);
       var link;
@@ -707,11 +1173,6 @@
     }
     function isUnavailableTileSource(tileSource) {
       return !!(tileSource && tileSource.unavailable);
-    }
-    function hasRenderablePages(tileSources) {
-      return Array.isArray(tileSources) && tileSources.some(function(tileSource) {
-        return tileSource && !isUnavailableTileSource(tileSource) && !!getTileSourceValue(tileSource);
-      });
     }
     function buildThumbnailUrl(tileSource) {
       var infoUrl;
@@ -1445,77 +1906,6 @@
       console2.warn("[digital_viewer] stage=" + safeStage + " code=" + safeCode);
       showError(container, "Digital content unavailable.");
     }
-    function toLocalCantaloupeInfoUrl(serviceId) {
-      if (!serviceId) return "";
-      var normalized = serviceId.replace(/\/$/, "");
-      var marker = "/iiif/2/";
-      var pos = normalized.indexOf(marker);
-      if (pos === -1) {
-        return normalized + "/info.json";
-      }
-      var identifier = normalized.slice(pos + marker.length);
-      var decoded = "";
-      try {
-        decoded = decodeURIComponent(identifier);
-      } catch (err) {
-        decoded = identifier;
-      }
-      var fileMarker = "/system/files/";
-      var filePos = decoded.indexOf(fileMarker);
-      if (filePos === -1) {
-        return normalized + "/info.json";
-      }
-      if (!cfg.cantaloupeBaseUrl) return "";
-      var s3Key = decoded.slice(filePos + fileMarker.length);
-      try {
-        s3Key = decodeURIComponent(s3Key);
-      } catch (err2) {
-      }
-      return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
-    }
-    function mountCantaloupe(container, descriptor) {
-      return mountOsdViewer(container, descriptor.infoUrl, getContainerViewerOptions(container));
-    }
-    function waitForImageLoad(image, container, options) {
-      return new Promise(function(resolve, reject) {
-        var settled = false;
-        var timeoutId = setTimeout(function() {
-          if (settled) return;
-          if (options && options.allowFallbackOnTimeout) {
-            finish(new Error("STATIC_IMAGE_TIMEOUT"));
-          } else {
-            showLoadingNotice(container);
-          }
-        }, getLoadingTimeout(options || {}));
-        function finish(error) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeoutId);
-          if (!error) clearLoadingNotice(container);
-          if (error) {
-            reject(error);
-          } else {
-            resolve(image);
-          }
-        }
-        image.addEventListener("load", function() {
-          finish();
-        });
-        image.addEventListener("error", function() {
-          finish(new Error("STATIC_IMAGE_FAILED"));
-        });
-        registerAttemptCleanup(options && options.attempt, function() {
-          finish(new Error("ATTEMPT_DISPOSED"));
-        });
-        if (image.complete) {
-          if (typeof image.naturalWidth === "number" && image.naturalWidth === 0) {
-            finish(new Error("STATIC_IMAGE_FAILED"));
-          } else {
-            finish();
-          }
-        }
-      });
-    }
     function showLoadingNotice(container) {
       var notice;
       if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = true;
@@ -1597,332 +1987,37 @@
       if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
       if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
     }
-    function mountStaticImage(container, descriptor) {
-      var safeImageUrl = sanitizeUrl(descriptor.imageUrl);
-      if (!safeImageUrl) {
-        showError(container, "Image not available (unsupported URL)");
-        return;
-      }
-      container.classList.add("dv-active");
-      resetContainer(container);
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-static-image";
-      var image = document2.createElement("img");
-      image.src = safeImageUrl;
-      image.alt = "Digital object image";
-      image.style.display = "block";
-      image.style.width = "100%";
-      image.style.height = "auto";
-      wrap.appendChild(image);
-      container.appendChild(wrap);
-      addViewerModeActions(container, null, [{ imageUrl: safeImageUrl, pageLabel: "Image view" }], getContainerViewerOptions(container));
-      return waitForImageLoad(image, container, getContainerViewerOptions(container));
-    }
-    function extractManifestContent(manifest) {
-      var result = { images: [], videos: [], audio: [], pdfs: [] };
-      var canvases = manifest.items && Array.isArray(manifest.items) ? manifest.items : [];
-      canvases.forEach(function(canvas) {
-        try {
-          var annotPage = canvas.items && canvas.items[0];
-          var annot = annotPage && annotPage.items && annotPage.items[0];
-          var body = annot && annot.body;
-          if (!body) return;
-          var url = body.id || body["@id"] || "";
-          var format = (body.format || "").toLowerCase();
-          var type = (body.type || body["@type"] || "").toLowerCase();
-          if (!url) return;
-          if (type === "video" || format.indexOf("video/") === 0) {
-            result.videos.push({
-              url,
-              format: body.format || "video/mp4",
-              width: canvas.width || null,
-              height: canvas.height || null,
-              duration: canvas.duration || null
-            });
-          } else if (type === "sound" || format.indexOf("audio/") === 0) {
-            result.audio.push({
-              url,
-              format: body.format || "audio/mpeg",
-              duration: canvas.duration || null
-            });
-          } else if (format === "application/pdf") {
-            result.pdfs.push({ url });
-          } else {
-            result.images.push({ url, format: body.format || "image/jpeg" });
-          }
-        } catch (e) {
-          console2.warn("[digital_viewer] stage=manifest code=invalid-canvas");
-        }
-      });
-      return result;
-    }
-    function mountPreservica(container, descriptor) {
-      if (!cfg.preservicaApiBase) {
-        reportFailure(container, "configuration", "preservica-unavailable");
-        return Promise.reject(new Error("PRESERVICA_UNAVAILABLE"));
-      }
-      var mountOptions = getContainerViewerOptions(container);
-      var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + descriptor.uuid + "/manifest.json";
-      return fetch(manifestUrl, { signal: mountOptions.signal }).then(function(res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      }).then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var content = extractManifestContent(manifest);
-        var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
-        if (total === 0) {
-          throw new Error("No renderable content found in manifest");
-        }
-        if (content.videos.length > 0) {
-          mountVideoViewer(container, content.videos);
-        }
-        if (content.audio.length > 0) {
-          mountAudioViewer(container, content.audio);
-        }
-        if (content.images.length > 0) {
-          var osdSources = content.images.map(function(img) {
-            return { type: "image", url: img.url };
-          });
-          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
-        }
-        if (content.pdfs.length > 0) {
-          mountPdfViewer(container, content.pdfs[0]);
-        }
-      }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, "preservica", "manifest-unavailable");
-        throw err;
-      });
-    }
-    function mountVideoViewer(container, sources) {
-      var validSources = [];
-      container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-video";
-      var video = document2.createElement("video");
-      video.controls = true;
-      video.preload = "metadata";
-      sources.forEach(function(src) {
-        var safeUrl = sanitizeUrl(src && src.url);
-        var source = document2.createElement("source");
-        if (!safeUrl) return;
-        source.src = safeUrl;
-        if (src.format) source.type = src.format;
-        video.appendChild(source);
-        validSources.push(src);
-      });
-      if (validSources.length === 0) {
-        showError(container, "Video not available (unsupported URL)");
-        return;
-      }
-      var fallback = document2.createElement("p");
-      var fallbackLink = createFallbackLink(validSources[0].url, "Download the video");
-      fallback.className = "dv-fallback";
-      fallback.appendChild(document2.createTextNode("Your browser does not support video playback. "));
-      if (fallbackLink) {
-        fallback.appendChild(fallbackLink);
-        fallback.appendChild(document2.createTextNode("."));
-      }
-      video.appendChild(fallback);
-      wrap.appendChild(video);
-      container.appendChild(wrap);
-    }
-    function mountAudioViewer(container, sources) {
-      var validSources = [];
-      container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-audio";
-      var audio = document2.createElement("audio");
-      audio.controls = true;
-      audio.preload = "metadata";
-      sources.forEach(function(src) {
-        var safeUrl = sanitizeUrl(src && src.url);
-        var source = document2.createElement("source");
-        if (!safeUrl) return;
-        source.src = safeUrl;
-        if (src.format) source.type = src.format;
-        audio.appendChild(source);
-        validSources.push(src);
-      });
-      if (validSources.length === 0) {
-        showError(container, "Audio not available (unsupported URL)");
-        return;
-      }
-      var fallback = document2.createElement("p");
-      var fallbackLink = createFallbackLink(validSources[0].url, "Download the audio");
-      fallback.className = "dv-fallback";
-      fallback.appendChild(document2.createTextNode("Your browser does not support audio playback. "));
-      if (fallbackLink) {
-        fallback.appendChild(fallbackLink);
-        fallback.appendChild(document2.createTextNode("."));
-      }
-      audio.appendChild(fallback);
-      wrap.appendChild(audio);
-      container.appendChild(wrap);
-    }
-    function mountPdfViewer(container, source) {
-      var safeUrl = sanitizeUrl(source && source.url);
-      var fallbackLink;
-      if (!safeUrl) {
-        showError(container, "PDF not available (unsupported URL)");
-        return;
-      }
-      container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-pdf";
-      var iframe = document2.createElement("iframe");
-      iframe.src = safeUrl;
-      iframe.title = "PDF viewer";
-      iframe.setAttribute("allow", "fullscreen");
-      var fallback = document2.createElement("p");
-      fallback.className = "dv-fallback";
-      fallbackLink = createFallbackLink(safeUrl, "Open PDF");
-      if (fallbackLink) fallback.appendChild(fallbackLink);
-      wrap.appendChild(iframe);
-      wrap.appendChild(fallback);
-      container.appendChild(wrap);
-    }
-    function getManifestNodeId(node) {
-      if (!node) return "";
-      return node["@id"] || node.id || "";
-    }
-    function getCanvasMetadataValue(canvas, label) {
-      var metadata = canvas && Array.isArray(canvas.metadata) ? canvas.metadata : [];
-      var match = null;
-      metadata.some(function(entry) {
-        if (!entry || entry.label !== label) return false;
-        match = entry.value;
-        return true;
-      });
-      return match || "";
-    }
-    function extractCompassTileSources(manifest) {
-      var tileSources = [];
-      var seq = manifest.sequences && manifest.sequences[0];
-      var canvases = seq && Array.isArray(seq.canvases) ? seq.canvases : [];
-      canvases.forEach(function(canvas, index) {
-        var img = canvas.images && canvas.images[0];
-        var thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
-        var thumbnailUrl = thumbnail && (thumbnail["@id"] || thumbnail.id || "");
-        var resource = img && img.resource;
-        var seeAlso = canvas && canvas.seeAlso;
-        var imageUrl = getManifestNodeId(resource);
-        var svc = resource && resource.service;
-        var serviceId = svc ? (svc["@id"] || svc.id || "").replace(/\/$/, "") : "";
-        var tileSource = serviceId ? toLocalCantaloupeInfoUrl(serviceId) : "";
-        var page = {
-          tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
-          thumbnailUrl: thumbnailUrl || "",
-          pageIndex: index,
-          pageLabel: canvas.label || "",
-          canvasId: getManifestNodeId(canvas),
-          pageIdentifier: getCanvasMetadataValue(canvas, "Identifier"),
-          imageUrl: imageUrl || (serviceId ? serviceId + "/full/full/0/default.jpg" : ""),
-          ocrUrl: getManifestNodeId(seeAlso),
-          ocrFormat: seeAlso && seeAlso.format || ""
-        };
-        if (!img || !serviceId || !tileSource) page.unavailable = true;
-        tileSources.push(page);
-      });
-      return tileSources;
-    }
-    function mountCompass(container, descriptor) {
-      var compassBase = cfg.compassBaseUrl || "https://" + cfg.compassHost;
-      var mountOptions = getContainerViewerOptions(container);
-      var fetchManifest;
-      if (cfg.compassProxyUrl) {
-        fetchManifest = fetch(
-          cfg.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.compassUrl),
-          { signal: mountOptions.signal }
-        ).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Proxy HTTP " + res.status);
-          return res.json();
-        });
-      } else {
-        fetchManifest = fetch(descriptor.compassUrl, { redirect: "follow", signal: mountOptions.signal }).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          var nodeMatch = res.url.match(/\/node\/(\d+)/);
-          if (!nodeMatch) throw new Error("Could not resolve Compass node from: " + res.url);
-          return fetch(compassBase + "/node/" + nodeMatch[1] + "/manifest", { signal: mountOptions.signal });
-        }).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Manifest HTTP " + res.status);
-          return res.json();
-        });
-      }
-      return fetchManifest.then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var tileSources = extractCompassTileSources(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
-        return mountOsdViewer(container, tileSources, mountOptions);
-      }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, "compass", "content-unavailable");
-        throw err;
-      });
-    }
-    function mountCompassManifest(container, descriptor) {
-      var fetchManifest;
-      var mountOptions = getContainerViewerOptions(container);
-      var isCompassManifest = new URL(descriptor.manifestUrl).hostname === cfg.compassHost;
-      if (cfg.compassProxyUrl && isCompassManifest) {
-        fetchManifest = fetch(
-          cfg.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.manifestUrl),
-          { signal: mountOptions.signal }
-        ).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Proxy HTTP " + res.status);
-          return res.json();
-        });
-      } else {
-        fetchManifest = fetch(descriptor.manifestUrl, { signal: mountOptions.signal }).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Manifest HTTP " + res.status);
-          return res.json();
-        });
-      }
-      return fetchManifest.then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var tileSources = extractCompassTileSources(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
-        return mountOsdViewer(container, tileSources, mountOptions);
-      }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, "manifest", "content-unavailable");
-        throw err;
-      });
-    }
     function resetContainer(container) {
       var preserveLoading = !!(container && container.querySelector && container.querySelector(".dv-loading-msg")) || !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
       container.className = "digital-viewer-container";
       container.innerHTML = "";
       if (preserveLoading) showLoadingNotice(container);
     }
+    const adapters = createSourceAdapters({
+      config: cfg,
+      document: document2,
+      console: console2,
+      fetch,
+      setTimeout,
+      clearTimeout,
+      mountOsdViewer,
+      reportFailure,
+      isAttemptActive,
+      showError,
+      resetContainer,
+      addViewerModeActions,
+      showLoadingNotice,
+      clearLoadingNotice,
+      registerAttemptCleanup,
+      createFallbackLink
+    });
     function mountDescriptor(container, descriptor) {
       resetContainer(container);
-      if (descriptor.type === "cantaloupe") {
-        return mountCantaloupe(container, descriptor);
+      if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
+        return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
       }
-      if (descriptor.type === "static-image") {
-        return mountStaticImage(container, descriptor);
-      }
-      if (descriptor.type === "static-pdf") {
-        mountPdfViewer(container, { url: descriptor.url });
-        clearLoadingNotice(container);
-        return Promise.resolve();
-      }
-      if (descriptor.type === "compass") {
-        return mountCompass(container, descriptor);
-      }
-      if (descriptor.type === "compass-manifest") {
-        return mountCompassManifest(container, descriptor);
-      }
-      if (descriptor.type === "preservica") {
-        return mountPreservica(container, descriptor);
-      }
-      return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
+      var adapter = adapters[descriptor.type];
+      return adapter(container, descriptor, getContainerViewerOptions(container));
     }
     function collectSourceAnchors(root) {
       var selectors = [
@@ -2217,20 +2312,18 @@
       });
     }
     return {
-      extractCompassTileSources,
       addViewerModeActions,
-      toLocalCantaloupeInfoUrl,
       getPreloadPageIndexes,
       buildThumbnailUrl,
       addControls,
-      mountCompassManifest,
       addThumbnailCarousel,
       warmSequenceCache,
       classifyPageContext,
       collectSourceAnchors,
       mountOsdViewer,
-      mountStaticImage,
       mountDescriptor,
+      adapters,
+      getContainerViewerOptions,
       disposeMountState,
       init
     };
@@ -2255,4 +2348,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=d707751c2fd430354c938964b8f801f70cfe0d1bdae9d63f549a48334d4a56b5
+//# sourceMappingURL=digital_viewer.js.map?v=465e9a9fca6986de7617a4ff37493a62b84a0f7adeea70a3e62a5f0301953128

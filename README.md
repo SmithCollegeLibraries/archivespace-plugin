@@ -72,3 +72,5 @@ Before installing, retain the host's current plugin/config versions. Roll back b
 ## Distribution
 
 Keep repository location, source commit, archive checksum and installed configuration with each deployment. OpenSeadragon is vendored; retain its notices. Repository license and third-party redistribution review are outstanding before a public release. This README does not assign a new license.
+
+For the source request and rendering path after DV-M05, see [the adapter trace](docs/plugin-adapters.md).

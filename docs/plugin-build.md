@@ -1,4 +1,4 @@
-# Building and debugging digital_viewer (DV-M04)
+# Building and debugging digital_viewer (DV-M04–05)
 
 The maintained viewer source is now `src/`. `public/assets/digital_viewer.js` and
 `digital_viewer.js.map` are generated and committed together. ArchivesSpace still
@@ -12,14 +12,18 @@ step is needed on its host. CSS, Ruby templates and OpenSeadragon remain separat
 | `src/entry.mjs` | Reads browser configuration/dependencies and starts at DOM readiness. |
 | `src/config.mjs` | Pure configuration copying/normalization and loading timeout parsing. |
 | `src/source-selection.mjs` | URL classification, priorities, primary and companion selection. Receives config explicitly. |
-| `src/runtime.mjs` | Transitional factory for existing adapters, viewer UI, lifecycle and page integration; these move out in DV-M05–07. Each factory instance owns its closure state and receives browser dependencies explicitly. |
+| `src/manifest.mjs` | Presentation 2 page parsing and Presentation 3 media grouping. No DOM or configuration dependency. |
+| `src/adapters/` | Manifest, Compass, Preservica and direct media mounts. See the [adapter trace](plugin-adapters.md). |
+| `src/urls.mjs` | Shared URL policy for native media and download links. |
+| `src/runtime.mjs` | Transitional factory for viewer UI, lifecycle and page integration; these move out in DV-M06–07. Each instance owns its closure state and supplies adapter dependencies. |
 | `scripts/build.mjs` | Reproducible bundle/map generation, watch mode and stale-output check. |
 
 The runtime factory returns an explicit capability object for source tests and
 later module extraction. Entry uses only `init`; no test hooks are attached to
 `window`. The remaining runtime is still large—DV-M04 is the first extraction,
-not completion of the entire refactor. Current function names remain searchable
-in `src/runtime.mjs`, while detection/configuration now live in their own files.
+not completion of the entire refactor. Current function names remain searchable in the modules above. Generic manifest
+functions are now `extractManifestPages` and `mountManifest`; the historical
+`compass-manifest` descriptor value is preserved for compatibility.
 
 ## Development and verification
 
@@ -81,6 +85,7 @@ branch. Release tests must exercise the extracted package, not just `src/`.
   identical output; a source-map-only change changes the script's versioned map link.
 - `test/artifact.test.mjs`: runs the **unmodified** generated script in a VM to
   verify DOM readiness, blocked OSD behavior and absence of global test hooks.
+- `test/adapters.test.mjs`: pure parser contracts, explicit adapter mount/request context and Compass redirect handling. Additional coordinator regressions in `digital_viewer.test.mjs` cover request/body/renderer failures, missing configuration, cancellation and native media.
 - Browser helpers continue to load `public/assets/digital_viewer.js` unchanged,
   covering real DOM behavior, failures, grouping, requests and thumbnail cleanup.
 

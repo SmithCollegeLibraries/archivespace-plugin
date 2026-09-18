@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readConfig, parseCompassHost } from '../src/config.mjs';
 import { detectSource, pickBestDescriptor, buildDescriptorSelection } from '../src/source-selection.mjs';
 import { createViewerRuntime } from '../src/runtime.mjs';
+import { extractManifestPages } from '../src/manifest.mjs';
+import { toLocalCantaloupeInfoUrl } from '../src/adapters/compass.mjs';
 
 function loadHooks(options = {}) {
   function makeElement(tagName) {
@@ -187,6 +189,10 @@ function loadHooks(options = {}) {
   assert.equal(typeof runtime.init, 'function', 'Runtime API missing: tests must not silently lose coverage');
   return {
     ...runtime, parseCompassHost, pickBestDescriptor, buildDescriptorSelection,
+    toLocalCantaloupeInfoUrl: id => toLocalCantaloupeInfoUrl(id, config),
+    extractManifestPages: manifest => extractManifestPages(manifest, id => toLocalCantaloupeInfoUrl(id, config)),
+    mountManifest: (container, descriptor) => runtime.adapters.manifest(container, descriptor, runtime.getContainerViewerOptions(container)),
+    mountStaticImage: (container, descriptor) => runtime.adapters['static-image'](container, descriptor, runtime.getContainerViewerOptions(container)),
     detectSource: uri => detectSource(uri, config),
     makeElement: context.document.createElement,
   };
@@ -1404,7 +1410,7 @@ test('source failure diagnostics omit raw errors, URLs, and query strings', asyn
     fetch() { return Promise.reject(new Error(rawError)); },
   });
   const container = hooks.makeElement('div');
-  const mounting = hooks.mountCompassManifest(container, {
+  const mounting = hooks.mountManifest(container, {
     manifestUrl: 'https://example.org/manifest.json',
   });
 
@@ -1519,12 +1525,12 @@ test('toLocalCantaloupeInfoUrl disables legacy key rewriting without a usable ba
   ['', '  ', null, 'javascript:alert(1)'].forEach(function (baseUrl) {
     const hooks = loadHooks({ config: { cantaloupeBaseUrl: baseUrl } });
     assert.equal(hooks.toLocalCantaloupeInfoUrl(serviceId), '');
-    assert.equal(hooks.extractCompassTileSources(manifest).length, 1);
-    assert.equal(hooks.extractCompassTileSources(manifest)[0].unavailable, true);
+    assert.equal(hooks.extractManifestPages(manifest).length, 1);
+    assert.equal(hooks.extractManifestPages(manifest)[0].unavailable, true);
   });
 });
 
-test('extractCompassTileSources preserves unavailable canvases and original page positions', function () {
+test('extractManifestPages preserves unavailable canvases and original page positions', function () {
   const hooks = loadHooks({ config: { cantaloupeBaseUrl: '' } });
   const service = (id) => ({ images: [{ resource: { service: { id } } }] });
   const manifest = {
@@ -1537,7 +1543,7 @@ test('extractCompassTileSources preserves unavailable canvases and original page
     }],
   };
 
-  const pages = hooks.extractCompassTileSources(manifest);
+  const pages = hooks.extractManifestPages(manifest);
 
   assert.equal(pages.length, 3);
   assert.deepEqual(normalize(pages.map(page => page.pageIndex)), [0, 1, 2]);
@@ -1643,7 +1649,7 @@ test('buildDescriptorSelection keeps image viewers primary while retaining whole
   assert.deepEqual(normalize(pdfOnlySelection.companionCandidates), []);
 });
 
-test('extractCompassTileSources preserves per-page metadata needed for page mode decisions', function () {
+test('extractManifestPages preserves per-page metadata needed for page mode decisions', function () {
   const hooks = loadHooks();
   const manifest = {
     sequences: [{
@@ -1671,7 +1677,7 @@ test('extractCompassTileSources preserves per-page metadata needed for page mode
   };
 
   assert.deepEqual(
-    normalize(hooks.extractCompassTileSources(manifest)),
+    normalize(hooks.extractManifestPages(manifest)),
     [{
       tileSource: 'http://localhost:8080/iiif/2/2025-10%2Fsmith_ssc_ms00237_as541926_p0001.tif/info.json',
       thumbnailUrl: 'https://compass-prod-i2-files.s3.amazonaws.com/s3fs-public/2025-10/1372440.jpg',
@@ -1686,7 +1692,7 @@ test('extractCompassTileSources preserves per-page metadata needed for page mode
   );
 });
 
-test('extractCompassTileSources works with workbench-lite-style IIIF 2 manifests', function () {
+test('extractManifestPages works with workbench-lite-style IIIF 2 manifests', function () {
   const hooks = loadHooks();
   const manifest = {
     '@context': 'http://iiif.io/api/presentation/2/context.json',
@@ -1724,7 +1730,7 @@ test('extractCompassTileSources works with workbench-lite-style IIIF 2 manifests
   };
 
   assert.deepEqual(
-    normalize(hooks.extractCompassTileSources(manifest)),
+    normalize(hooks.extractManifestPages(manifest)),
     [{
       tileSource: 'http://localhost:8182/iiif/2/workbench-lite%2Fobjects%2Fsmith_ssc_ms00237_as542263_p0001.jpg/info.json',
       thumbnailUrl: 'https://compass-prod-i2-files.s3.amazonaws.com/workbench-lite/smith_steinem_text/thumbs/smith_ssc_ms00237_as542263_p0001.jpg',
@@ -2102,7 +2108,7 @@ for (const manifestUrl of [
         throw new Error('Request captured');
       },
     });
-    assert.throws(() => hooks.mountCompassManifest({}, { manifestUrl }), /Request captured/);
+    assert.throws(() => hooks.mountManifest({}, { manifestUrl }), /Request captured/);
     assert.equal(requestedUrl, manifestUrl);
   });
 }
@@ -2118,7 +2124,7 @@ test('continues proxying Compass manifests when the resolver is configured', fun
       throw new Error('Request captured');
     },
   });
-  assert.throws(() => hooks.mountCompassManifest({}, { manifestUrl }), /Request captured/);
+  assert.throws(() => hooks.mountManifest({}, { manifestUrl }), /Request captured/);
   assert.equal(requestedUrl, proxy + '?url=' + encodeURIComponent(manifestUrl));
 });
 
@@ -2311,4 +2317,139 @@ test('collectSourceAnchors excludes explicit browse-only regions even when legac
   const source = { dataset: { fileUri: 'https://example.org/manifests/book.json' }, closest() { return null; } };
   const root = { querySelectorAll(selector) { return selector === '[data-file-uri]' ? [browse, source] : [browse]; } };
   assert.deepEqual(Array.from(hooks.collectSourceAnchors(root)), [source]);
+});
+
+// DV-M05: exercise extracted adapters through init's real attempt/fallback owner.
+const adapterSources = {
+  manifest: 'https://files.test/manifests/book.json',
+  compass: 'https://compass.fivecolleges.edu/islandora/object/book',
+  preservica: 'https://preservica.test/12345678-1234-1234-1234-123456789abc',
+};
+for (const [adapter, source] of Object.entries(adapterSources)) {
+  for (const failure of ['sync-fetch', 'rejected-fetch', 'http', 'sync-body', 'rejected-body', 'empty', 'renderer']) {
+    test(adapter + ' ' + failure + ' advances once to PDF through the fallback coordinator', async function () {
+      const document = makeInitDocument([source, 'https://files.test/fallback.pdf']);
+      let requests = 0;
+      const hooks = loadHooks({ document, console: { warn() {} },
+        config: {compassProxyUrl:'/resolve', preservicaApiBase:'/backend'},
+        fetch() {
+          requests++;
+          if (failure === 'sync-fetch') throw new Error('sync request');
+          if (failure === 'rejected-fetch') return Promise.reject(new Error('network'));
+          return Promise.resolve({ok:failure !== 'http',status:503,json() {
+            if (failure === 'sync-body') throw new Error('body');
+            if (failure === 'rejected-body') return Promise.reject(new Error('body'));
+            if (failure === 'renderer') return Promise.resolve({
+              items:[{items:[{items:[{body:{id:'https://files.test/image.jpg',type:'Image'}}]}]}],
+              sequences:[{canvases:[{images:[{resource:{service:{'@id':'https://images.test/iiif/2/a'}}}]}]}],
+            });
+            return Promise.resolve({items:[],sequences:[]});
+          }});
+        },
+      });
+      hooks.init();
+      for (let i=0;i<30;i++) await Promise.resolve();
+      const state = document.sourceGroup.__dvMountState;
+      assert.equal(requests,1);
+      assert.equal(document.host.querySelectorAll('iframe').length,1);
+      assert.equal(document.host.querySelector('iframe').src,'https://files.test/fallback.pdf');
+      assert.equal(state.attempt.completed,true);
+      hooks.disposeMountState(state);
+    });
+  }
+  for (const pendingStage of ['fetch','body']) test(adapter + ' cancelled ' + pendingStage + ' cannot replace the successful PDF fallback', async function () {
+    const document = makeInitDocument([source, 'https://files.test/fallback.pdf']);
+    let resolveBody, signal;
+    const hooks = loadHooks({document, console:{warn(){}},
+      config:{compassProxyUrl:'/resolve',preservicaApiBase:'/backend',loadingTimeoutMs:5},
+      fetch(url,options) {
+        signal=options.signal;
+        if (pendingStage === 'fetch') return new Promise(resolve => {
+          resolveBody = body => resolve({ok:true,json:async () => body});
+        });
+        return Promise.resolve({ok:true,json:() => new Promise(resolve => {resolveBody=resolve;})});
+      },
+    });
+    hooks.init();
+    await new Promise(resolve => setTimeout(resolve,20));
+    assert.equal(signal.aborted,true);
+    const iframe = document.host.querySelector('iframe');
+    assert.ok(iframe);
+    resolveBody({items:[{items:[{items:[{body:{id:'/late.pdf',format:'application/pdf'}}]}]}],sequences:[]});
+    for(let i=0;i<30;i++) await Promise.resolve();
+    assert.equal(document.host.querySelector('iframe'),iframe);
+    assert.equal(document.host.querySelector('.dv-error-msg'),null);
+    hooks.disposeMountState(document.sourceGroup.__dvMountState);
+  });
+}
+
+test('missing Preservica configuration reaches the original PDF fallback without fetching', async function () {
+  const document=makeInitDocument([adapterSources.preservica,'https://files.test/fallback.pdf']);
+  const hooks=loadHooks({document,console:{warn(){}},config:{preservicaApiBase:''},fetch(){assert.fail('Unexpected request');}});
+  hooks.init();
+  for(let i=0;i<30;i++) await Promise.resolve();
+  assert.equal(document.host.querySelector('iframe').src,'https://files.test/fallback.pdf');
+  hooks.disposeMountState(document.sourceGroup.__dvMountState);
+});
+
+test('direct image error reaches PDF fallback and ignores its late load', async function () {
+  const document=makeInitDocument(['https://files.test/image.jpg','https://files.test/fallback.pdf']);
+  const hooks=loadHooks({document});
+  hooks.init();
+  for(let i=0;i<10;i++) await Promise.resolve();
+  const img=document.host.querySelector('img');
+  img.onerror();
+  for(let i=0;i<20;i++) await Promise.resolve();
+  const iframe=document.host.querySelector('iframe');
+  assert.equal(iframe.src,'https://files.test/fallback.pdf');
+  img.onload();
+  await Promise.resolve();
+  assert.equal(document.host.querySelector('iframe'),iframe);
+  hooks.disposeMountState(document.sourceGroup.__dvMountState);
+});
+
+test('PDF adapter preserves unsafe URL rejection', async function () {
+  const hooks=loadHooks();const container=hooks.makeElement('div');
+  await hooks.mountDescriptor(container,{type:'static-pdf',url:'javascript:alert(1)'});
+  assert.equal(container.querySelector('iframe'),null);
+  assert.match(container.querySelector('.dv-error-msg').textContent,/unsupported URL/);
+});
+
+for (const [type, format, selector] of [['Video','video/mp4','video'],['Sound','audio/mpeg','audio'],['Text','application/pdf','iframe']]) {
+  test('Preservica ' + type + ' renders through the coordinator with safe original links', async function () {
+    const document=makeInitDocument([adapterSources.preservica]);
+    document.createTextNode = text => ({children:[],className:'',textContent:text});
+    const hooks=loadHooks({document,config:{preservicaApiBase:'/backend'},
+      fetch:async () => ({ok:true,json:async () => ({items:[{items:[{items:[{body:{id:'https://files.test/original',type,format}}]}]}]})}),
+    });
+    hooks.init();
+    for(let i=0;i<30;i++) await Promise.resolve();
+    const media=document.host.querySelector(selector);
+    assert.ok(media);
+    assert.equal(selector === 'iframe' ? media.src : media.querySelector('source').src,'https://files.test/original');
+    assert.equal(document.host.querySelector('.dv-fallback').querySelector('a').href,'https://files.test/original');
+    assert.equal(document.sourceGroup.__dvMountState.attempt.completed,true);
+    hooks.disposeMountState(document.sourceGroup.__dvMountState);
+  });
+}
+
+test('synchronous PDF renderer failure advances once to the next PDF', async function () {
+  const document=makeInitDocument(['https://files.test/first.pdf','https://files.test/second.pdf']);
+  const create=document.createElement;let iframes=0;
+  document.createElement=function(tag) {
+    if(tag==='iframe' && ++iframes===1) throw new Error('embed failed');
+    return create(tag);
+  };
+  const hooks=loadHooks({document});hooks.init();
+  for(let i=0;i<30;i++) await Promise.resolve();
+  assert.equal(iframes,2);
+  assert.equal(document.host.querySelector('iframe').src,'https://files.test/second.pdf');
+  hooks.disposeMountState(document.sourceGroup.__dvMountState);
+});
+
+test('adapter registry rejects inherited property names as unsupported descriptors', async function () {
+  const hooks = loadHooks();
+  for (const type of ['toString', 'constructor', 'not-a-source']) {
+    await assert.rejects(Promise.resolve().then(() => hooks.mountDescriptor(hooks.makeElement('div'), {type})), /UNSUPPORTED_DESCRIPTOR/);
+  }
 });

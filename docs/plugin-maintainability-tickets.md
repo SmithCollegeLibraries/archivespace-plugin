@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01–DV-M03 complete (2026-09-18); DV-M04–DV-M08 OPEN.
+Status: DV-M01–DV-M05 complete locally (2026-09-18); DV-M06–DV-M08 OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -111,16 +111,18 @@ Implementation and harness mapping: [build guide](plugin-build.md). [Local evide
 
 ## DV-M05 — Extract source adapters and manifest parsing
 
-Status: OPEN. Dependencies: DV-M04.
+Status: COMPLETE locally (2026-09-18). Dependencies: DV-M04.
 
 Scope: separate manifest parsing and the manifest, Compass, Preservica, direct-image and PDF adapters. Rename historical Compass-only labels where needed to accurately describe generic manifest handling, preserving behavior.
 
 Acceptance:
 
-- [ ] Adapters receive configuration, request ownership and mount context explicitly; detection and ranking do not depend on viewer UI code.
-- [ ] Pure manifest parsing preserves page count/order, unavailable canvases, image-service identifiers and safe download targets.
-- [ ] Test each supported adapter's success and failure, missing configuration, synchronous exceptions, rejected fetch/body parsing and cancellation through the real fallback coordinator.
-- [ ] Compass-specific rewriting stays within its adapter so WBL-0905 can remove it without rewriting generic manifest rendering.
+- [x] Adapters receive configuration, request ownership and mount context explicitly; detection and ranking do not depend on viewer UI code.
+- [x] Pure manifest parsing preserves page count/order, unavailable canvases, image-service identifiers and safe download targets.
+- [x] Test each supported adapter's success and failure, missing configuration, synchronous exceptions, rejected fetch/body parsing and cancellation through the real fallback coordinator.
+- [x] Compass-specific rewriting stays within its adapter so WBL-0905 can remove it without rewriting generic manifest rendering.
+
+Implementation: [adapter trace and contracts](plugin-adapters.md). [Local evidence](evidence/dv-m05-2026-09-18.json): 121 Node tests, Ruby checks, 20 source-contract and 42 fallback browser rows, two request-ownership cases, live ASpace startup and source maps pass. Native media playback/iframe detection remains unchanged; hosted release gates remain separate. Completion commit is recorded in the parent ledger.
 
 ## DV-M06 — Separate viewer lifecycle, controls and thumbnail loading
 

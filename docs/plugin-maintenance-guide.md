@@ -64,7 +64,7 @@ Within the plugin, `public/` contains the tested public-site implementation. The
 | Ruby (`.rb`) | Provides plugin entry files and calculates the asset version | ArchivesSpace server; ASpace uses JRuby, the Java-hosted Ruby runtime |
 | ERB (`.html.erb`) | HTML templates containing small Ruby sections; emits configuration and record markup | Server, before sending the page to the browser |
 | CSS (`.css`) | Sizes and positions the viewer, toolbar, thumbnails and surrounding record content | Browser |
-| JavaScript modules (`.mjs`) | Automated checks and browser test helpers | Node.js / Playwright on a tester's machine |
+| JavaScript modules (`.mjs`) | Maintained viewer source under `src/`, build tooling and tests | Bundled for browsers; tooling/tests run in Node.js / Playwright |
 | JSON (`.json`) | Structured manifests and saved test observations; not executable plugin code | Read as data |
 | Markdown (`.md`) | Installation, evidence and maintenance documentation | Documentation only |
 | PNG (`.png`) | Bundled button images retained with the viewer assets | Static image files |
@@ -84,6 +84,8 @@ OpenSeadragon is the included JavaScript library that handles zooming and image 
 - **Tile:** a small piece of an image, loaded as needed for viewing/zooming.
 - **Asset:** a browser file such as JavaScript, CSS or an icon.
 - **Mount:** create a viewer in a page. **Dispose:** remove that viewer and stop work belonging to it.
+
+For the extracted source adapters and current function names, see the [adapter trace](plugin-adapters.md).
 
 ## What happens when someone opens a record
 
