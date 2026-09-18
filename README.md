@@ -10,6 +10,8 @@ For a plain-language explanation of the languages, page/content flow, every plug
 
 Planned module extraction, markup compatibility and access without a working viewer are tracked in [maintainability and fallback tickets](docs/plugin-maintainability-tickets.md).
 
+DV-M01's [module map and build decision](docs/plugin-module-design.md) define the planned refactor. The current runtime still has no JavaScript build step; DV-M04 will introduce the documented build workflow.
+
 ## Install on a test instance
 
 1. Obtain Rob's approved release record, including the **full 40-character commit ID** and package checksum. No candidate in this README is implicitly approved. In a new plugin directory, clone without checking out the moving default branch, then check out that exact commit in detached-HEAD mode. The on-disk directory name must be `digital_viewer`. Do not overwrite an existing installation; follow the agreed backup/update/rollback procedure instead.

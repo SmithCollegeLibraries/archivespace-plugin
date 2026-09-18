@@ -1,7 +1,7 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: planned; every implementation ticket below is OPEN.
+Status: DV-M01 design complete (2026-09-18); DV-M02–DV-M08 implementation remains OPEN.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
@@ -31,7 +31,9 @@ Use exported module APIs and explicit dependencies rather than new shared browse
 
 ## DV-M01 — Record module boundaries and the build decision
 
-Status: OPEN. Dependencies: none. Related: WBL-0901/0902.
+Status: COMPLETE (2026-09-18). Dependencies: none. Related: WBL-0901/0902.
+
+Deliverable: [module boundaries and build decision](plugin-module-design.md). Maps all 93 top-level functions, mutable state and ownership; defines module contracts, success/fallback flows, a classic esbuild bundle with source maps, packaging/transition requirements and the regression baseline. Fresh checks: 70 Node tests and Ruby asset-version checks pass. Completion evidence is in parent `preservica/docs/workbench-lite/finished.md` under DV-M01. This completes the design ticket only; build/extraction and browser compatibility remain future work.
 
 Problem: roughly 2,700 lines share closure state, making call flow and ownership difficult to trace.
 
@@ -41,11 +43,11 @@ The maintenance guide's current “no JavaScript build step” description and t
 
 Acceptance:
 
-- [ ] Map existing functions to proposed modules: config, page sources, source selection, adapters, viewer, controls, thumbnails, layout, lifecycle and startup.
-- [ ] Define source descriptor, source group, adapter result, and mount-attempt contracts, including cancellation, cleanup and error ownership.
-- [ ] Record the build choice and rationale against ArchivesSpace asset URLs, PUI prefixes, CSP, cache versions, standalone packaging and local Docker mirrors.
-- [ ] Specify generated-file policy, source-map delivery, supported syntax, dependency locking and development/release commands. No build tooling is required on the ArchivesSpace host.
-- [ ] Diagram one manifest success and one fallback, and record current regression commands/fixtures as the baseline.
+- [x] Map existing functions to proposed modules: config, page sources, source selection, adapters, viewer, controls, thumbnails, layout, lifecycle and startup.
+- [x] Define source descriptor, source group, adapter result, and mount-attempt contracts, including cancellation, cleanup and error ownership.
+- [x] Record the build choice and rationale against ArchivesSpace asset URLs, PUI prefixes, CSP, cache versions, standalone packaging and local Docker mirrors.
+- [x] Specify generated-file policy, source-map delivery, supported syntax, dependency locking and development/release commands. No build tooling is required on the ArchivesSpace host.
+- [x] Diagram one manifest success and one fallback, and record current regression commands/fixtures as the baseline.
 
 ## DV-M02 — Provide understandable access when the viewer cannot run
 
