@@ -1,11 +1,13 @@
 # digital_viewer maintainability and fallback tickets
 
 Created: 2026-09-17. Product: ArchivesSpace PUI plugin only.
-Status: DV-M01–DV-M07 complete locally (2026-09-18); DV-M08 OPEN.
+Status: DV-M01–DV-M08 complete locally; final campus verification completed 2026-09-21.
 
 This queue follows the [maintenance guide](plugin-maintenance-guide.md). It maps the large viewer script into smaller responsibilities and addresses access when enhancement cannot run. Creating these tickets does not complete implementation or change the [staging checkpoint](staging-signoff-2026-09-16.md). Existing release checks and evidence remain authoritative; reuse them rather than restarting accepted work.
 
-## Current behavior and gaps
+## Planning baseline (17 September 2026)
+
+This section records the pre-refactor findings. For current behavior, use the maintenance guide.
 
 Source inspection of `public/views/shared/_digital.html.erb` shows server-rendered links and thumbnails. `public/views/layout_head.html.erb` supplies configuration and loads OpenSeadragon, the viewer script and CSS. Browser JavaScript supplies the interactive viewer; splitting its source does not remove that dependency.
 
@@ -156,7 +158,7 @@ Implementation: [page-load trace and startup responsibilities](plugin-startup.md
 
 ## DV-M08 — Publish the developer map and validate the assembled plugin
 
-Status: IN PROGRESS — implementation/package checks complete; live image-service verification blocked (2026-09-18). Dependencies: DV-M02, DV-M07. Related: WBL-0903/0904.
+Status: COMPLETE locally (2026-09-21). Dependencies: DV-M02, DV-M07. Related: WBL-0903/0904.
 
 Scope: update the maintenance guide and release workflow around the completed architecture, with symptom-to-module navigation and concrete verification evidence.
 
@@ -166,8 +168,8 @@ Acceptance:
 - [x] Map missing viewer, wrong grouping, manifest failures, stalled tiles, thumbnail errors and incorrect downloads to the responsible modules/tests.
 - [x] Replace current troubleshooting/review navigation based on absolute line numbers with module paths and function names. Audit the Lyrasis task list's review anchors (including the historical `init` near line 2185); retain dated candidate references as history and distinguish them from navigation for the current source.
 - [x] Diagnostics identify stage and safe error code without exposing source URLs, query strings or credentials; distinguish absent sources from failure of an expected plugin-owned source contract.
-- [ ] Run relevant Node/Ruby suites and actual-ASpace browser coverage for supported formats, startup/partial failure, no-JS and blocked scripts, source grouping and download behavior. State exact environment, artifact commit and remaining hosted checks.
+- [x] Run relevant Node/Ruby suites and actual-ASpace browser coverage for supported formats, startup/partial failure, no-JS and blocked scripts, source grouping and download behavior. State exact environment, artifact commit and remaining hosted checks.
 - [x] Verify the extracted distribution, asset identity/cache invalidation and rollback to the prior artifact; preserve existing staging gates and approval requirements.
 - [x] Update ticket completion evidence and the maintenance guide; future developers can reproduce one successful manifest render and diagnose one controlled failure from the instructions.
 
-[Exact candidate, environment and results](refactor-validation-2026-09-18.md). Candidate `7e43830` passes 139 Node tests, Ruby checks, deterministic browser checks and real PDF/fallback checks. The actual scanned-text check timed out at `digital.smith.edu`; direct curl also timed out. Re-run the local suite when service access recovers; scanned text, separate-object and single-image verification remain open. No hosted approval is inferred.
+[Original package/deterministic/rollback evidence](refactor-validation-2026-09-18.md) and [successful campus recheck](refactor-validation-2026-09-21.md). Candidate `7e43830` retains 139 passing Node tests and Ruby/deterministic checks; the complete real-ASpace local suite now passes, including scanned text, separate image/PDF objects and single-image rendering. No runtime or record changes were needed. Completion commit is recorded in the parent ledger. Hosted Gates A/B remain open.

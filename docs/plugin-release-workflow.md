@@ -51,5 +51,5 @@ Gate A/B work. Do not delete prior packages until that operator confirms retenti
   fallback links and safe diagnostics.
 - `scripts/verify-browser.mjs --suite local`: existing ASpace 4.2.0 fixture database
   at PUI 18081 and loopback content server 18090; actual markup and format rendering.
-- [M08 report](refactor-validation-2026-09-18.md): exact local candidate and evidence.
+- [M08 report](refactor-validation-2026-09-21.md): exact local candidate and evidence.
 - [Lyrasis tasks](lyrasis-staging-launch-task-list.md): installation and acceptance gates.

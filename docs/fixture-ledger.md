@@ -4,7 +4,7 @@ Updated: 2026-09-16. LYR-01 local baseline/fixture inventory is complete. Rob ac
 
 Historical 2026-09-16 runtime candidate: `0c1ca140a51a28b93b8895b19b5b869ce0c9a5d5`, unchanged by the latest testing. [Latest PDF/scanned-text evidence and reproduction](local-formats-validation-2026-09-16.md); [format observations](evidence/local-formats-2026-09-16.json). [Local URL/layout evidence](local-layout-validation-2026-09-16.md) and [earlier fixture creation](local-validation-2026-09-16.md) remain historical checkpoints. The format follow-up adds a separate collection; it does not modify prior fixture records.
 
-Current refactor verification and service limitations: [M08 report](refactor-validation-2026-09-18.md). Fixture records remain unchanged.
+Current refactor verification and service limitations: [M08 report](refactor-validation-2026-09-21.md). Fixture records remain unchanged.
 
 ## Environment and scope
 

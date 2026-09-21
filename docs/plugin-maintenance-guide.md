@@ -1,8 +1,8 @@
 # Maintaining digital_viewer
 
-Updated 18 September 2026 for the DV-M01–08 local development candidate.
+Updated 21 September 2026 after DV-M01–08 local completion and campus verification.
 The refactor is separate from the previously published `553e0f3` baseline.
-Use the [M08 verification report](refactor-validation-2026-09-18.md) for exact
+Use the [M08 verification report](refactor-validation-2026-09-21.md) for exact
 artifact commits, environment, tests and limitations. Nothing here closes
 [Lyrasis Gates A/B](staging-signoff-2026-09-16.md) or authorizes installation.
 

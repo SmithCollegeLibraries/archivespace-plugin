@@ -1,5 +1,7 @@
 # Refactor validation — 18 September 2026
 
+**Resolution, 21 September:** the same candidate passed the complete campus local suite; [DV-M08 completion](refactor-validation-2026-09-21.md). The original observations below remain dated history.
+
 Status: **DV-M08 remains open for live image-service verification.** Developer
 mapping, diagnostics, clean-package tests and PDF checks are implemented. Live
 scanned-text validation is blocked by an image-service connection timeout; the
