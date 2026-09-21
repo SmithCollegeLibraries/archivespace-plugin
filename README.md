@@ -2,44 +2,47 @@
 
 ArchivesSpace Public User Interface plugin for IIIF image viewing with OpenSeadragon, plus source adapters for direct files, legacy Compass and Preservica.
 
-Status: local demonstration accepted by Rob on 2026-09-16; tested locally with ArchivesSpace 4.2.0. Neither the Lyrasis staging-install package nor production rollout is approved. Current sign-off and next work: [staging checkpoint](docs/staging-signoff-2026-09-16.md); detailed tasks/evidence: `docs/lyrasis-staging-launch-task-list.md` and `docs/staging-release-evidence.md`.
-
-The current staging launch inventory and evidence record are `docs/fixture-ledger.md` and `docs/staging-release-evidence.md`.
-
-For a plain-language explanation of the languages, page/content flow, every plugin file, settings and troubleshooting, see [How digital_viewer works and how to troubleshoot it](docs/plugin-maintenance-guide.md).
-
-Planned module extraction, markup compatibility and access without a working viewer are tracked in [maintainability and fallback tickets](docs/plugin-maintainability-tickets.md).
-
-DV-M01's [module map and build decision](docs/plugin-module-design.md) define the planned refactor. DV-M04 implements the [module build and testing workflow](docs/plugin-build.md).
+Tested locally with ArchivesSpace 4.2.0. The refactor and review fixes are complete,
+and this version is ready for staging installation. Verify the installed plugin
+in the hosted environment before production rollout.
 
 ## Install on a test instance
 
-1. Obtain Rob's approved release record, including the **full 40-character commit ID** and package checksum. No candidate in this README is implicitly approved. In a new plugin directory, clone without checking out the moving default branch, then check out that exact commit in detached-HEAD mode. The on-disk directory name must be `digital_viewer`. Do not overwrite an existing installation; follow the agreed backup/update/rollback procedure instead.
+The plugin includes built JavaScript and CSS. No Node.js installation or build step
+is needed on the ArchivesSpace server.
 
-   Run from the ArchivesSpace installation directory after setting `APPROVED_PLUGIN_COMMIT` to the approved full commit ID:
+1. Back up any existing plugin directory and ArchivesSpace configuration.
+2. For a new installation, run these commands from the ArchivesSpace installation directory:
 
    ```sh
-   : "${APPROVED_PLUGIN_COMMIT:?Set this to the approved full 40-character commit ID}" &&
-   test "${#APPROVED_PLUGIN_COMMIT}" -eq 40 &&
-   git clone --no-checkout https://github.com/SmithCollegeLibraries/archivespace-plugin.git plugins/digital_viewer &&
-   git -C plugins/digital_viewer checkout --detach "$APPROVED_PLUGIN_COMMIT" &&
-   test "$(git -C plugins/digital_viewer rev-parse HEAD)" = "$APPROVED_PLUGIN_COMMIT"
+   git clone --branch main https://github.com/SmithCollegeLibraries/archivespace-plugin.git plugins/digital_viewer
+   git -C plugins/digital_viewer rev-parse HEAD
    ```
 
-   Stop if any command fails or the resolved ID differs. Do not substitute `main`, a branch tip or a shortened ID. If the approved commit is not available from the repository, obtain the approved pinned archive and verify its checksum before extraction; do not fall back to a different revision. Record the resolved ID before enabling the plugin. Archive/extracted-package approval remains a separate Gate A check.
-2. Append `digital_viewer` to the existing `AppConfig[:plugins]` array in `config/config.rb`; preserve other enabled plugins.
-3. Have the host set the configuration below in the ArchivesSpace process environment, then restart using its normal procedure. The plugin currently reads environment variables only; AppConfig mapping is not implemented.
-4. Inspect the generated `window.DigitalViewer` values and asset requests in the PUI. Verify digital-object and linked archival-object pages against the agreed fixtures.
+   Keep the printed commit ID with the installation record. The directory must be
+   named `digital_viewer`. For an existing installation, update it to the selected
+   commit using the host's normal deployment procedure.
+3. Add `digital_viewer` to the existing `AppConfig[:plugins]` array in
+   `config/config.rb`, preserving other enabled plugins.
+4. Set the environment variables below for the ArchivesSpace process, then restart
+   ArchivesSpace. Configuration currently uses environment variables, not custom
+   AppConfig settings.
+5. Check digital-object and linked archival-object pages: images, sequences, PDFs,
+   original links and a record without digital content. Confirm that asset and
+   content requests succeed in the browser.
 
-## Configuration read by public/views/layout_head.html.erb
+To reproduce an installation later, check out its recorded commit. If delivering
+an archive instead of using Git, record its SHA-256 checksum as well.
+
+## Configuration
 
 | Environment variable | Unset/empty behavior | Hosted-test value |
 |---|---|---|
 | `CANTALOUPE_PUBLIC_URL` | Empty string; complete manifest service URLs can still work, while legacy Compass key construction has no configured base | `https://digital.smith.edu/iiif/2` |
-| `COMPASS_BASE_URL` | Empty or invalid URL disables Compass host matching | Set only for approved transitional Compass paths |
+| `COMPASS_BASE_URL` | Empty or invalid URL disables Compass host matching | Set only when transitional Compass paths are needed |
 | `COMPASS_PROXY_URL` | Empty; direct Compass resolution is not guaranteed | Empty for the converted-manifest pilot |
 | `PRESERVICA_API_BASE` | Empty; Preservica viewing reports unavailable and keeps the original link | Empty for the converted-manifest pilot |
-| `DIGITAL_VIEWER_LOADING_TIMEOUT_MS` | Positive finite milliseconds; defaults to 30000 | Default unless an approved measurement supports another value |
+| `DIGITAL_VIEWER_LOADING_TIMEOUT_MS` | Positive finite milliseconds; defaults to 30000 | 30000 unless testing indicates another value is needed |
 
 The template emits an escaped `window.DigitalViewer` object before the viewer loads. `compassHost` is derived from the hostname in `COMPASS_BASE_URL`; there is no separate host setting. An absent environment key and an explicit empty value both produce safe empty adapter settings, with no implicit localhost endpoints. The asset URLs use ArchivesSpace's `app_prefix` when available, and JavaScript, CSS and vendored OpenSeadragon share a SHA-256 content version over their ordered filenames and bytes. The version is cached per plugin root for the life of the PUI process; restart ArchivesSpace after any asset change, including local development edits. Missing or unreadable assets log a fixed diagnostic and use an unavailable version without breaking page rendering. Repair the package and restart before release. Do not place AWS credentials in this plugin: they belong only on the image server.
 
@@ -73,10 +76,13 @@ Before installing, retain the host's current plugin/config versions. Roll back b
 
 Keep repository location, source commit, archive checksum and installed configuration with each deployment. OpenSeadragon is vendored; retain its notices. Repository license and third-party redistribution review are outstanding before a public release. This README does not assign a new license.
 
-For the source request and rendering path after DV-M05, see [the adapter trace](docs/plugin-adapters.md).
+## Developer documentation
 
-Viewer controls, thumbnail loading and cancellation are mapped in [the lifecycle guide](docs/plugin-viewer-lifecycle.md).
-
-Start with [the page-load trace](docs/plugin-startup.md) to follow the current initialization path.
-
-For reproducible package checks and local rollback, use [the release workflow](docs/plugin-release-workflow.md).
+- [Maintenance and troubleshooting](docs/plugin-maintenance-guide.md)
+- [Page-load trace](docs/plugin-startup.md)
+- [Source adapters](docs/plugin-adapters.md)
+- [Viewer lifecycle and controls](docs/plugin-viewer-lifecycle.md)
+- [Build and tests](docs/plugin-build.md)
+- [Package checks and rollback](docs/plugin-release-workflow.md)
+- [Refactor verification](docs/refactor-validation-2026-09-21.md)
+- [Review fixes and verification](docs/review-followup-2026-09-21.md)
