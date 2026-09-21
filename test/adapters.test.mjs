@@ -81,3 +81,20 @@ test('Compass redirect path forwards the same attempt signal to its manifest req
   assert.equal(requests[1].url,'https://compass.test/node/42/manifest');
   assert.ok(requests.every(request=>request.options.signal===signal));
 });
+
+for (const body of [{id:'/video',type:'Video'}, {id:'/audio',type:'Sound'}, {id:'/pdf',format:'application/pdf'}]) {
+  test('Preservica clears a slow-manifest notice after mounting ' + body.id, async function () {
+    const { createPreservicaAdapter } = await module('adapters/preservica');
+    const container = {};
+    let cleared = false;
+    const mount = createPreservicaAdapter({
+      config:{preservicaApiBase:'/backend'}, isAttemptActive:()=>true,
+      fetch:async()=>({ok:true,json:async()=>({items:[{items:[{items:[{body}]}]}]})}),
+      mountVideoViewer(){}, mountAudioViewer(){}, mountPdfViewer(){},
+      clearLoadingNotice(target){assert.equal(target,container);cleared=true;},
+      reportFailure(){assert.fail('Unexpected failure');}
+    });
+    await mount(container,{uuid:'test'},{});
+    assert.equal(cleared,true);
+  });
+}

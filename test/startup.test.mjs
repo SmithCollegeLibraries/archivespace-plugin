@@ -39,3 +39,26 @@ test('source contract distinguishes absent sources from missing explicit hints w
   expected=[{getAttribute:()=> 'https://files.test/private?token=secret'}];sources.collectGroups();
   assert.deepEqual(warnings,[]);
 });
+
+for (const recordType of ['ArchivalObject', 'DigitalObject']) {
+  test(recordType + ' representative anchor and file hint share their explicit outer group', async function () {
+    const { createPageSources } = await module('page-sources');
+    const group = {getAttribute: () => 'representative'};
+    const figure = {};
+    const uri = 'https://files.test/image.jpg';
+    function closest(legacy) {
+      return selector => selector === '[data-dv-source-group]' ? group :
+        selector.includes('[data-rep-file-version-wrapper]') ? legacy : null;
+    }
+    const anchor = {href:uri, closest:closest(figure)};
+    const hint = {dataset:{fileUri:uri}, closest:closest(group)};
+    const document = {querySelectorAll: selector =>
+      selector === '[data-rep-file-version-wrapper] > a[href]' ? [anchor] :
+      selector === '[data-file-uri]' ? [hint] : []};
+    const sources = createPageSources({document, getPageContext:()=>({recordType,hasChildren:true})});
+    const groups = sources.collectGroups();
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].root, group);
+    assert.equal(groups[0].items.length, 1);
+  });
+}

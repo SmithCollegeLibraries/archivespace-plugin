@@ -59,8 +59,8 @@ export function createDirectAdapters({ document, setTimeout, clearTimeout, mount
       return;
     }
 
-    container.classList.add('dv-active');
     resetContainer(container);
+    container.classList.add('dv-active');
 
     var wrap = document.createElement('div');
     wrap.className = 'dv-static-image';

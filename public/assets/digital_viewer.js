@@ -56,10 +56,9 @@
   }
   function readConfig(input) {
     const cfg = Object.assign({
-      cantaloupeBaseUrl: "/iiif/2",
+      cantaloupeBaseUrl: "",
       compassBaseUrl: "",
-      compassHost: "compass.fivecolleges.edu",
-      preservicaApiBase: null,
+      preservicaApiBase: "",
       loadingTimeoutMs: 3e4
     }, input || {});
     cfg.cantaloupeBaseUrl = parseCantaloupeBase(cfg.cantaloupeBaseUrl);
@@ -321,8 +320,8 @@
         showError(container, "Image not available (unsupported URL)");
         return;
       }
-      container.classList.add("dv-active");
       resetContainer(container);
+      container.classList.add("dv-active");
       var wrap = document2.createElement("div");
       wrap.className = "dv-static-image";
       var image = document2.createElement("img");
@@ -452,6 +451,7 @@
     console: console2,
     isAttemptActive,
     reportFailure,
+    clearLoadingNotice,
     mountOsdViewer,
     mountVideoViewer,
     mountAudioViewer,
@@ -491,6 +491,7 @@
         if (content.pdfs.length > 0) {
           mountPdfViewer(container, content.pdfs[0]);
         }
+        clearLoadingNotice(container);
       }).catch(function(err) {
         if (!isAttemptActive(mountOptions.attempt)) throw err;
         reportFailure(container, "preservica", "manifest-unavailable");
@@ -1132,7 +1133,7 @@
       viewerControlInstanceCount += 1;
       bar.appendChild(buildPrimaryControls(viewer, state));
       state.popover = buildAdjustPopover(viewer, state);
-      state.popover.id = "dv-adjust-popover-" + (viewerControlInstanceCount - 1);
+      state.popover.id = state.adjustButton.getAttribute("aria-controls");
       bar.appendChild(state.popover);
       state.toggleButton = buildControlsToggle(viewer, state);
       bar.appendChild(state.toggleButton);
@@ -2041,8 +2042,8 @@
         root = document2.querySelector("#notes_row > .resizable-content-pane");
       }
       if (!root && anchor.closest) {
-        root = anchor.closest(
-          "[data-dv-source-group], [data-additional-file-version], [data-rep-file-version-wrapper], .objectimage, .record-pane, .digital-object, .instance"
+        root = anchor.closest("[data-dv-source-group]") || anchor.closest(
+          "[data-additional-file-version], [data-rep-file-version-wrapper], .objectimage, .record-pane, .digital-object, .instance"
         ) || anchor.parentNode;
       } else if (!root) {
         root = anchor.parentNode;
@@ -2604,4 +2605,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=4856c0d359c98ecb2eb6867fbd3abd47b56fe2e3cc8cbffab38afad169572aa9
+//# sourceMappingURL=digital_viewer.js.map?v=e51c6e2b1b6937b124c81d2477918d1a6ea83f7d214577980e00aa5e025193d5

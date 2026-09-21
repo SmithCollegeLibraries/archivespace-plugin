@@ -499,7 +499,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     viewerControlInstanceCount += 1;
     bar.appendChild(buildPrimaryControls(viewer, state));
     state.popover = buildAdjustPopover(viewer, state);
-    state.popover.id = 'dv-adjust-popover-' + (viewerControlInstanceCount - 1);
+    state.popover.id = state.adjustButton.getAttribute('aria-controls');
     bar.appendChild(state.popover);
     state.toggleButton = buildControlsToggle(viewer, state);
     bar.appendChild(state.toggleButton);

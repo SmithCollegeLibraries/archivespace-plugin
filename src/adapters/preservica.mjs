@@ -2,7 +2,7 @@ import { extractManifestContent } from '../manifest.mjs';
 
 // The backend handles Preservica authentication and content delivery.
 export function createPreservicaAdapter({ config: cfg, fetch, console, isAttemptActive, reportFailure,
-  mountOsdViewer, mountVideoViewer, mountAudioViewer, mountPdfViewer }) {
+  clearLoadingNotice, mountOsdViewer, mountVideoViewer, mountAudioViewer, mountPdfViewer }) {
   function mountPreservica(container, descriptor, mountOptions) {
     if (!cfg.preservicaApiBase) {
       reportFailure(container, 'configuration', 'preservica-unavailable');
@@ -47,6 +47,7 @@ export function createPreservicaAdapter({ config: cfg, fetch, console, isAttempt
         if (content.pdfs.length > 0) {
           mountPdfViewer(container, content.pdfs[0]);
         }
+        clearLoadingNotice(container);
       })
       .catch(function (err) {
         if (!isAttemptActive(mountOptions.attempt)) throw err;

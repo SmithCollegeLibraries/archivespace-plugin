@@ -601,6 +601,7 @@ test('mountStaticImage waits for image load before resolving and rejects on imag
 
   image.onload();
   await mounting;
+  assert.ok(container.classList.contains('dv-active'));
 
   const failedContainer = hooks.makeElement('div');
   const failed = hooks.mountStaticImage(failedContainer, { imageUrl: 'https://example.org/broken.jpg' });
@@ -1948,6 +1949,9 @@ test('addControls renders a bottom toolbar with primary actions and an adjustmen
 
   assert.equal(container.children.length, 1);
   assert.equal(container.children[0].className, 'dv-controls');
+  assert.equal(container.children[0].children[0].children[0].children[3].getAttribute('aria-controls'),
+    container.children[0].children[1].id);
+
 
   assert.deepEqual(
     {
@@ -2500,4 +2504,9 @@ test('one group insertion failure leaves original links intact and lets the next
   assert.equal(warnings.length,1);
   assert.ok(!warnings[0].includes('broken first group'));
   hooks.disposeMountState(groups[1].__dvMountState);
+});
+
+test('absent configuration enables no implicit image server', function () {
+  assert.equal(readConfig({}).cantaloupeBaseUrl, '');
+  assert.equal(readConfig({}).compassHost, '');
 });

@@ -1,0 +1,639 @@
+{
+  "suite": "deterministic",
+  "browser": "151.0.7922.174",
+  "node": "v26.8.2",
+  "results": {
+    "runDiagnosticChecks": [
+      {
+        "scenario": "absent",
+        "warnings": []
+      },
+      {
+        "scenario": "valid",
+        "warnings": []
+      },
+      {
+        "scenario": "missing",
+        "warnings": [
+          "[digital_viewer] stage=discovery code=source-contract-missing"
+        ]
+      }
+    ],
+    "runStartupChecks": [
+      {
+        "scenario": "stock",
+        "mounts": 2,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": true
+      },
+      {
+        "scenario": "leaf",
+        "mounts": 1,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": true
+      },
+      {
+        "scenario": "inline",
+        "mounts": 2,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": true
+      },
+      {
+        "scenario": "partial-setup-failure",
+        "mounts": 1,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": false
+      },
+      {
+        "scenario": "async-group-failure",
+        "mounts": 2,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": false
+      },
+      {
+        "scenario": "sync-group-failure",
+        "mounts": 2,
+        "metadataAndOriginalLinks": true,
+        "keyboardOriginalAccess": true,
+        "reinitAndReplacement": false
+      }
+    ],
+    "runViewerLifecycleChecks": [
+      {
+        "width": 1280,
+        "keyboardNavigation": true,
+        "downloadDestination": true,
+        "documentCleanup": {
+          "before": 2,
+          "after": 0
+        }
+      },
+      {
+        "width": 390,
+        "keyboardNavigation": true,
+        "downloadDestination": true,
+        "documentCleanup": {
+          "before": 2,
+          "after": 0
+        }
+      }
+    ],
+    "runSourceRequestOwnership": [
+      {
+        "scenario": "failure before replacement open",
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "failure after replacement draw",
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      }
+    ],
+    "runThumbnailQueueChecks": [
+      {
+        "scenario": "first stall",
+        "withObserver": true,
+        "requested": [
+          0,
+          1,
+          2
+        ],
+        "cancelled": true,
+        "elapsedMs": 10147,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "middle stall",
+        "withObserver": true,
+        "requested": [
+          0,
+          1,
+          2
+        ],
+        "cancelled": true,
+        "elapsedMs": 10153,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "dispose while stalled",
+        "withObserver": true,
+        "requested": [
+          0
+        ],
+        "cancelled": true,
+        "elapsedMs": 21,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "first stall",
+        "withObserver": false,
+        "requested": [
+          0,
+          1,
+          2
+        ],
+        "cancelled": true,
+        "elapsedMs": 10135,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "middle stall",
+        "withObserver": false,
+        "requested": [
+          0,
+          1,
+          2
+        ],
+        "cancelled": true,
+        "elapsedMs": 10137,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      },
+      {
+        "scenario": "dispose while stalled",
+        "withObserver": false,
+        "requested": [
+          0
+        ],
+        "cancelled": true,
+        "elapsedMs": 33,
+        "passed": true,
+        "osd": "5.0.1",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36"
+      }
+    ],
+    "runSourceContractChecks": [
+      {
+        "name": "entry",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "entry",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "thumbnail-link",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "thumbnail-link",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "representative",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "representative",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "parent-representative",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "parent-representative",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "archival-representative",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "archival-representative",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "thumbnail-only",
+        "changedMarkup": false,
+        "mounts": 0
+      },
+      {
+        "name": "thumbnail-only",
+        "changedMarkup": true,
+        "mounts": 0
+      },
+      {
+        "name": "browse-only",
+        "changedMarkup": false,
+        "mounts": 0
+      },
+      {
+        "name": "browse-only",
+        "changedMarkup": true,
+        "mounts": 0
+      },
+      {
+        "name": "additional-version",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "additional-version",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "separate-objects-same-url",
+        "changedMarkup": false,
+        "mounts": 2
+      },
+      {
+        "name": "separate-objects-same-url",
+        "changedMarkup": true,
+        "mounts": 2
+      },
+      {
+        "name": "leaf-alternatives",
+        "changedMarkup": false,
+        "mounts": 1
+      },
+      {
+        "name": "leaf-alternatives",
+        "changedMarkup": true,
+        "mounts": 1
+      },
+      {
+        "name": "parent-object",
+        "changedMarkup": false,
+        "mounts": 2
+      },
+      {
+        "name": "parent-object",
+        "changedMarkup": true,
+        "mounts": 2
+      },
+      {
+        "name": "separate-image-pdf",
+        "changedMarkup": false,
+        "mounts": 2
+      },
+      {
+        "name": "separate-image-pdf",
+        "changedMarkup": true,
+        "mounts": 2
+      }
+    ],
+    "runFallbackAccessChecks": [
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "png",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "pdf",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "DigitalObject",
+        "format": "manifest",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "png",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "pdf",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "no-js",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "viewer-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "osd-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "config-absent",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "content-blocked",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "init-failed",
+        "originalDestinationOpened": true
+      },
+      {
+        "recordType": "ArchivalObject",
+        "format": "manifest",
+        "scenario": "working",
+        "originalDestinationOpened": true
+      }
+    ]
+  },
+  "localAssetChecks": {
+    "puiStatus": 200,
+    "assetVersion": "cce90c66c395133581441e4ef1fab4978cec216c3a499c949aa0c4599b18a241",
+    "servedAssets": {
+      "digital_viewer.js": "4f499bb356bffccd1b372c7547b9e1d4d3d1a2125a5cef1455a4c03cfa0ff3ed",
+      "digital_viewer.js.map": "e51c6e2b1b6937b124c81d2477918d1a6ea83f7d214577980e00aa5e025193d5",
+      "digital_viewer.css": "9ea4fd5dd578f2eb634d4a9fd35da58ccfb0ad3fa19a1bde45304aa08ede9cf7",
+      "openseadragon.min.js": "cd6e48562264cc518224380d745a620bcf7828235c232d94964e3c9d9e7bdb63"
+    },
+    "mirrorFiles": 91
+  },
+  "localStartupChecks": [
+    {
+      "case": "real ArchivesSpace PDF startup",
+      "script": "/assets/digital_viewer.js?v=cce90c66c395133581441e4ef1fab4978cec216c3a499c949aa0c4599b18a241",
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/manifest.mjs",
+        "../../src/adapters/compass.mjs",
+        "../../src/urls.mjs",
+        "../../src/adapters/direct.mjs",
+        "../../src/adapters/manifest.mjs",
+        "../../src/adapters/preservica.mjs",
+        "../../src/adapters/index.mjs",
+        "../../src/tile-sources.mjs",
+        "../../src/lifecycle.mjs",
+        "../../src/events.mjs",
+        "../../src/controls.mjs",
+        "../../src/viewer-modes.mjs",
+        "../../src/prefetch.mjs",
+        "../../src/thumbnails.mjs",
+        "../../src/viewer.mjs",
+        "../../src/status.mjs",
+        "../../src/page-sources.mjs",
+        "../../src/page-layout.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/init.mjs",
+        "../../src/mount-sequence.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    },
+    {
+      "case": "bundle/source maps with self-only script CSP",
+      "prefix": "/pui",
+      "sources": [
+        "../../src/config.mjs",
+        "../../src/manifest.mjs",
+        "../../src/adapters/compass.mjs",
+        "../../src/urls.mjs",
+        "../../src/adapters/direct.mjs",
+        "../../src/adapters/manifest.mjs",
+        "../../src/adapters/preservica.mjs",
+        "../../src/adapters/index.mjs",
+        "../../src/tile-sources.mjs",
+        "../../src/lifecycle.mjs",
+        "../../src/events.mjs",
+        "../../src/controls.mjs",
+        "../../src/viewer-modes.mjs",
+        "../../src/prefetch.mjs",
+        "../../src/thumbnails.mjs",
+        "../../src/viewer.mjs",
+        "../../src/status.mjs",
+        "../../src/page-sources.mjs",
+        "../../src/page-layout.mjs",
+        "../../src/source-selection.mjs",
+        "../../src/init.mjs",
+        "../../src/mount-sequence.mjs",
+        "../../src/runtime.mjs",
+        "../../src/entry.mjs"
+      ],
+      "passed": true
+    }
+  ]
+}

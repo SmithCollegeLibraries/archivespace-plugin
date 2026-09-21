@@ -110,3 +110,12 @@ maintained viewer source. They remain packaged unchanged pending WBL-0901's
 separate host/Staff/PUI reconciliation; do not patch them or use them as inputs to
 this build. `frontend/README.md` marks this explicitly. This ticket does not close
 WBL-0901 or authorize deleting those files.
+
+### PUI asset version lifecycle
+
+The Ruby asset helper hashes asset content once per plugin root per PUI process.
+Restart ArchivesSpace after replacing assets, including local builds. A missing or
+unreadable asset produces `stage=assets code=asset-unavailable` and a cached
+`unavailable` version, allowing record pages and server-rendered fallback to survive.
+This is degradation handling, not permission to release an incomplete package.
+Repair the package and restart; generated-output and package checks remain required.

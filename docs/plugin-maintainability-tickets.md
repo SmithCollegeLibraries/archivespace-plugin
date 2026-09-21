@@ -173,3 +173,18 @@ Acceptance:
 - [x] Update ticket completion evidence and the maintenance guide; future developers can reproduce one successful manifest render and diagnose one controlled failure from the instructions.
 
 [Original package/deterministic/rollback evidence](refactor-validation-2026-09-18.md) and [successful campus recheck](refactor-validation-2026-09-21.md). Candidate `7e43830` retains 139 passing Node tests and Ruby/deterministic checks; the complete real-ASpace local suite now passes, including scanned text, separate image/PDF objects and single-image rendering. No runtime or record changes were needed. Completion commit is recorded in the parent ledger. Hosted Gates A/B remain open.
+
+## DV-M09 — Correct independently reviewed refactor defects
+
+Status: COMPLETE locally (2026-09-21). Follow-up to the completed DV-M01–DV-M08 sequence.
+Scope and evidence: [review findings and corrections](review-followup-2026-09-21.md).
+
+- [x] Prioritize explicit representative source groups; cover both parent record types.
+- [x] Cache asset hashing and preserve PUI rendering with missing/unreadable assets.
+- [x] Correct ARIA target IDs and native Preservica loading notices.
+- [x] Align configuration defaults and parent README with the actual contract.
+- [x] Preserve static-image activation and avoid fallback references to absent links.
+- [x] Record failing regressions, passing suites and parent completion ledger.
+
+Timeout consolidation and stricter manifest source-shape validation are deferred
+quality work, not release blockers established by this review. Hosted Gates A/B remain open.

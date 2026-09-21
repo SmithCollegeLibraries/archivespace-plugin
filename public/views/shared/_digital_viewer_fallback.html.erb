@@ -1,6 +1,7 @@
 <%# Keep access instructions independent of viewer JavaScript and CSS. %>
 <%
   dv_fallback_uri = uri.to_s.strip
+  dv_has_original_link = dv_fallback_uri.match(/\A(?:https?:\/\/|\/(?!\/))/i)
   dv_record_link = dv_fallback_uri.match(/\A(?:https?:\/\/[^\/]+)?\/repositories\/\d+\//i)
   dv_file_kind = if dv_fallback_uri.match(/\.pdf(?:[?#].*)?\z/i)
     'PDF'
@@ -10,14 +11,14 @@
 %>
 <% unless dv_fallback_uri.empty? || dv_record_link %>
 <div class="dv-access-help">
-  <% if dv_fallback_uri.match(/\A(?:https?:\/\/|\/(?!\/))/i) %>
+  <% if dv_has_original_link %>
     <p><a class="dv-original-link" href="<%= ERB::Util.html_escape(dv_fallback_uri) %>" target="_blank" rel="noopener">Open original link</a></p>
   <% end %>
   <noscript><p>This digital viewer requires JavaScript. Please enable JavaScript in your browser and reload this page to view the digital content.</p></noscript>
-  <% if dv_file_kind %>
+  <% if dv_file_kind && dv_has_original_link %>
     <p>If the viewer is unavailable, use the original <%= dv_file_kind %> link above to open the file directly.</p>
   <% else %>
-    <p>The digital viewer requires JavaScript. If it does not load, check whether scripts are blocked for this site and try reloading. The original link above remains available, but may contain viewing data rather than readable images or pages.</p>
+    <p>The digital viewer requires JavaScript. If it does not load, check whether scripts are blocked for this site and try reloading. <% if dv_has_original_link %>The original link above remains available, but may contain viewing data rather than readable images or pages.<% end %></p>
   <% end %>
 </div>
 <% end %>

@@ -40,8 +40,8 @@ export function getLoadingTimeout(options) {
 
 export function readConfig(input) {
   const cfg = Object.assign({
-    cantaloupeBaseUrl: '/iiif/2', compassBaseUrl: '',
-    compassHost: 'compass.fivecolleges.edu', preservicaApiBase: null,
+    cantaloupeBaseUrl: '', compassBaseUrl: '',
+    preservicaApiBase: '',
     loadingTimeoutMs: 30000,
   }, input || {});
   cfg.cantaloupeBaseUrl = parseCantaloupeBase(cfg.cantaloupeBaseUrl);

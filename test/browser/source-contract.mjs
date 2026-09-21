@@ -11,6 +11,8 @@ export async function runSourceContractChecks(browser, pluginRoot) {
     { name: 'entry', files: [file], count: 1 },
     { name: 'thumbnail-link', files: [{ ...file, thumb: origin + '/thumb.jpg' }], count: 1 },
     { name: 'representative', representative: { file_uri: origin + '/thumb.jpg', derived_from: image }, count: 1 },
+    { name: 'parent-representative', has_children: true, representative: { file_uri: origin + '/thumb.jpg', derived_from: image }, count: 1 },
+    { name: 'archival-representative', record_type: 'ArchivalObject', has_children: true, representative: { file_uri: origin + '/thumb.jpg', derived_from: image }, count: 1 },
     { name: 'thumbnail-only', files: [{ thumb: origin + '/thumb.jpg' }], count: 0 },
     { name: 'browse-only', browse: true, representative: { file_uri: origin + '/thumb.jpg', derived_from: image }, count: 0 },
     { name: 'additional-version', additional: true, files: [{ file_uri: image }], count: 1 },

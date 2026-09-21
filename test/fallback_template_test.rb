@@ -49,6 +49,7 @@ class FallbackTemplateTest < Minitest::Test
   def test_unsafe_schemes_do_not_get_a_new_link
     html = render_fallback('javascript:alert(1)')
     refute_includes html, '<a '
+    refute_includes html, 'link above'
   end
 end
 

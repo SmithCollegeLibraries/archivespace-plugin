@@ -65,8 +65,8 @@ export function createPageSources({ document, getPageContext, onDiscoveryError, 
     }
 
     if (!root && anchor.closest) {
-      root = anchor.closest(
-        '[data-dv-source-group], [data-additional-file-version], ' +
+      root = anchor.closest('[data-dv-source-group]') || anchor.closest(
+        '[data-additional-file-version], ' +
         '[data-rep-file-version-wrapper], .objectimage, .record-pane, .digital-object, .instance'
       ) || anchor.parentNode;
     } else if (!root) {

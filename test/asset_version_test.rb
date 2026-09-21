@@ -1,6 +1,8 @@
 require 'digest'
 require 'fileutils'
 require 'tmpdir'
+require 'open3'
+require 'rbconfig'
 require_relative '../public/views/digital_viewer_asset_version'
 
 def write_assets(root, contents)
@@ -27,7 +29,11 @@ Dir.mktmpdir('digital-viewer-assets') do |root|
 
   File.binwrite(File.join(root, 'public', 'assets', 'digital_viewer.js'), 'changed javascript')
   File.utime(Time.at(100), Time.at(100), File.join(root, 'public', 'assets', 'digital_viewer.js'))
-  second_version = DigitalViewerAssetVersion.for_plugin_root(root)
+  raise 'Version should remain cached until process restart' unless DigitalViewerAssetVersion.for_plugin_root(root) == first_version
+  helper = File.expand_path('../public/views/digital_viewer_asset_version', __dir__)
+  second_version, status = Open3.capture2(RbConfig.ruby, '-r', helper, '-e',
+    'print DigitalViewerAssetVersion.for_plugin_root(ARGV[0])', root)
+  raise 'Fresh process failed' unless status.success?
   raise 'JavaScript content change did not change the version' if first_version == second_version
 
   copied_root = Dir.mktmpdir('digital-viewer-assets-copy')
@@ -43,6 +49,13 @@ Dir.mktmpdir('digital-viewer-assets') do |root|
   ensure
     FileUtils.remove_entry(copied_root)
   end
+end
+
+
+Dir.mktmpdir('digital-viewer-missing-assets') do |root|
+  version = DigitalViewerAssetVersion.for_plugin_root(root)
+  raise 'Missing assets need a safe version' unless version.is_a?(String) && !version.empty?
+  raise 'Missing result must be cached' unless DigitalViewerAssetVersion.for_plugin_root(root) == version
 end
 
 puts 'asset version checks passed'
