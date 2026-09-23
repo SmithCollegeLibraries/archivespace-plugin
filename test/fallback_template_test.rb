@@ -9,6 +9,17 @@ class FallbackTemplateTest < Minitest::Test
     ERB.new(File.read(TEMPLATE)).result(binding)
   end
 
+  def test_enabled_javascript_has_no_viewer_instructions
+    ['https://example.test/manifests/book.json', 'https://example.test/photo.jpg',
+     'https://compass.fivecolleges.edu/object/smith:1348191'].each do |uri|
+      html = render_fallback(uri)
+      visible = html.gsub(/<noscript>.*?<\/noscript>/m, '')
+      refute_match(/JavaScript|blocked|viewer is unavailable|viewing data/, visible)
+      assert_includes visible, 'Open original link'
+      assert_match(/<noscript>.*Please enable JavaScript.*<\/noscript>/m, html)
+    end
+  end
+
   def test_pdf_has_server_rendered_access_instructions
     html = render_fallback('https://example.test/paper.PDF?download=1')
     assert_includes html, 'original PDF link'
@@ -27,7 +38,7 @@ class FallbackTemplateTest < Minitest::Test
     assert_includes html, 'Please enable JavaScript in your browser and reload this page'
     assert_includes html, 'viewing data'
     refute_includes html, 'open the file directly'
-    assert_includes html, 'blocked'
+    refute_includes html, 'scripts are blocked'
   end
 
   def test_thumbnail_without_destination_does_not_promise_a_link

@@ -14,11 +14,13 @@
   <% if dv_has_original_link %>
     <p><a class="dv-original-link" href="<%= ERB::Util.html_escape(dv_fallback_uri) %>" target="_blank" rel="noopener">Open original link</a></p>
   <% end %>
-  <noscript><p>This digital viewer requires JavaScript. Please enable JavaScript in your browser and reload this page to view the digital content.</p></noscript>
+  <noscript>
+  <p>This digital viewer requires JavaScript. Please enable JavaScript in your browser and reload this page to view the digital content.</p>
   <% if dv_file_kind && dv_has_original_link %>
     <p>If the viewer is unavailable, use the original <%= dv_file_kind %> link above to open the file directly.</p>
   <% else %>
-    <p>The digital viewer requires JavaScript. If it does not load, check whether scripts are blocked for this site and try reloading. <% if dv_has_original_link %>The original link above remains available, but may contain viewing data rather than readable images or pages.<% end %></p>
+    <p><% if dv_has_original_link %>The original link above remains available, but may contain viewing data rather than readable images or pages.<% end %></p>
   <% end %>
+  </noscript>
 </div>
 <% end %>
