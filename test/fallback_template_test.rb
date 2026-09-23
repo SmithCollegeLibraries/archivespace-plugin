@@ -20,6 +20,12 @@ class FallbackTemplateTest < Minitest::Test
     end
   end
 
+  def test_unlinked_identifier_has_no_empty_paragraph
+    html = render_fallback('smith:1348191')
+    refute_match(/<p>\s*<\/p>/, html)
+    assert_includes html, 'Please enable JavaScript'
+  end
+
   def test_pdf_has_server_rendered_access_instructions
     html = render_fallback('https://example.test/paper.PDF?download=1')
     assert_includes html, 'original PDF link'
