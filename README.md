@@ -87,21 +87,14 @@ Keep repository location, source commit, archive checksum and installed configur
 - [Refactor verification](docs/refactor-validation-2026-09-21.md)
 - [Review fixes and verification](docs/review-followup-2026-09-21.md)
 
-## Repository synchronization checkpoint — 23 September 2026
+## Extension point: viewer opened
 
-The parent repository's `plugins/digital_viewer/src/viewer.mjs` includes the local
-OCR-007 `digital-viewer:open` event. The standalone release repository does not.
-Their generated JavaScript bundles therefore intentionally differ; the standalone
-release has not acquired the OCR integration. This is a documented exception to
-standalone-first development, not evidence that either entire tree is current.
+After OpenSeadragon successfully opens the initial image, the plugin dispatches a
+bubbling `digital-viewer:open` `CustomEvent` on the viewer container. The event's
+`detail.viewer` property is the OpenSeadragon instance, so companion plugins can
+attach overlays or other image-coordinate UI. Because the event bubbles, listeners
+can use event delegation on an ancestor of the viewer container.
 
-Do not synchronize either tree wholesale. Preserve the parent OCR event and its
-integration tests; decide explicitly whether to promote it in a separate reviewed
-standalone release. Rebuild each bundle from its own sources. The fallback partial
-and its Ruby tests are synchronized independently in both trees.
-
-The viewing-data explanation remains inside noscript to honor the requested quiet
-JavaScript-enabled fallback. Link-specific copy or a clearer original-link label is
-a deferred UX decision; do not restore the removed always-visible warning implicitly.
-The fallback copy changes do not fix the hosted record's legacy Compass source or
-alter the separate runtime loading/content-failure messages.
+The viewing-data explanation remains inside noscript to keep the JavaScript-enabled
+fallback quiet. The fallback copy does not change the hosted record's legacy Compass
+source or the separate runtime loading and content-failure messages.

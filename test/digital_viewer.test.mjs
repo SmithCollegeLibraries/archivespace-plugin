@@ -146,6 +146,7 @@ function loadHooks(options = {}) {
 
   const documentStub = {
     readyState: 'loading',
+    defaultView: options.defaultView,
     addEventListener() {},
     querySelectorAll() { return []; },
     getElementById() { return null; },
@@ -574,6 +575,49 @@ test('mountOsdViewer attaches open handlers before opening without a tileSources
     'https://example.org/image/info.json',
   ]);
   await assert.rejects(mounting, /OSD_TIMEOUT/);
+});
+
+test('mountOsdViewer dispatches a bubbling open event with the viewer instance', async function (t) {
+  const handlers = {};
+  const events = [];
+  const viewer = {
+    canvas: { style: {} },
+    viewport: {
+      zoomBy() {}, goHome() {}, setRotation() {}, getRotation() { return 0; },
+      toggleFlip() {}, setFlip() {}, getFlip() { return false; },
+    },
+    isFullPage() { return false; },
+    setFullPage() {},
+    forceRedraw() {},
+    addHandler(name, handler) { (handlers[name] ||= []).push(handler); },
+    open() {},
+  };
+  const hooks = loadHooks({
+    defaultView: {
+      CustomEvent: class CustomEvent {
+        constructor(type, options) {
+          this.type = type;
+          this.bubbles = options.bubbles;
+          this.detail = options.detail;
+        }
+      },
+    },
+    OpenSeadragon() { return viewer; },
+  });
+  const container = hooks.makeElement('div');
+  container.dispatchEvent = event => events.push(event);
+  const mounting = hooks.mountOsdViewer(container, 'https://example.org/image/info.json', {
+    loadingTimeoutMs: 1000,
+  });
+  t.after(() => handlers['before-destroy'].forEach(handler => handler()));
+
+  handlers.open.forEach(handler => handler());
+  await mounting;
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].type, 'digital-viewer:open');
+  assert.equal(events[0].bubbles, true);
+  assert.equal(events[0].detail.viewer, viewer);
 });
 
 test('OSD toolbar is anchored to the image area, outside sequence navigation and thumbnails', async function (t) {

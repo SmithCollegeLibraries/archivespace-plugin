@@ -74,6 +74,12 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
         if (timeoutId !== null) clearTimeout(timeoutId);
         clearLoadingNotice(container);
         resolve(viewer);
+        // Let companion plugins attach image-coordinate overlays to the open image.
+        if (document.defaultView && document.defaultView.CustomEvent && container.dispatchEvent) {
+          container.dispatchEvent(new document.defaultView.CustomEvent('digital-viewer:open', {
+            bubbles: true, detail: { viewer: viewer }
+          }));
+        }
         if (isUnavailableTileSource(tileSources[activePageIndex])) {
           showPageError({ page: activePageIndex });
         }

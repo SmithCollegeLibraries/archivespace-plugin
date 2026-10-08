@@ -1647,6 +1647,12 @@
           if (timeoutId !== null) clearTimeout(timeoutId);
           clearLoadingNotice(container);
           resolve(viewer);
+          if (document2.defaultView && document2.defaultView.CustomEvent && container.dispatchEvent) {
+            container.dispatchEvent(new document2.defaultView.CustomEvent("digital-viewer:open", {
+              bubbles: true,
+              detail: { viewer }
+            }));
+          }
           if (isUnavailableTileSource(tileSources[activePageIndex])) {
             showPageError({ page: activePageIndex });
           }
@@ -2605,4 +2611,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=e51c6e2b1b6937b124c81d2477918d1a6ea83f7d214577980e00aa5e025193d5
+//# sourceMappingURL=digital_viewer.js.map?v=716fcdda00dbafa7f2ce7908289dcaa48a453a752539cbcc079e4c836c1a46be
