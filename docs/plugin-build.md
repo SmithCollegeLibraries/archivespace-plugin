@@ -106,10 +106,10 @@ Use `npm --prefix plugins/digital_viewer ci` and `npm --prefix plugins/digital_v
 from the parent when needed. The parent React frontend's build is unrelated.
 
 Files under this plugin's `frontend/` are historical staff-side copies, not
-maintained viewer source. They remain packaged unchanged pending WBL-0901's
-separate host/Staff/PUI reconciliation; do not patch them or use them as inputs to
-this build. `frontend/README.md` marks this explicitly. This ticket does not close
-WBL-0901 or authorize deleting those files.
+maintained viewer source. They remain packaged unchanged while their use across
+ArchivesSpace Staff and PUI is reconciled; do not patch them or use them as inputs
+to this build. `frontend/README.md` marks this explicitly. This reconciliation
+does not authorize deleting those files.
 
 ### PUI asset version lifecycle
 

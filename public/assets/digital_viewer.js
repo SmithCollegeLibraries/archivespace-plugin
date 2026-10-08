@@ -2611,4 +2611,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=716fcdda00dbafa7f2ce7908289dcaa48a453a752539cbcc079e4c836c1a46be
+//# sourceMappingURL=digital_viewer.js.map?v=ff24077883c617d9393b1c9919b6af8900337d3c53f93848198e71c2d9f25e42

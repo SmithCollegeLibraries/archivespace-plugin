@@ -1,6 +1,6 @@
 import { extractManifestPages, hasRenderablePages } from '../manifest.mjs';
 
-// Transitional Compass/Islandora compatibility; remove with WBL-0905.
+// Transitional Compass/Islandora compatibility; remove during the Islandora exit cutover.
 export function toLocalCantaloupeInfoUrl(serviceId, cfg) {
   if (!serviceId) return '';
 

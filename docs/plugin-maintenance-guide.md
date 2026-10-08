@@ -1,10 +1,9 @@
 # Maintaining digital_viewer
 
-Updated 21 September 2026 after DV-M01–08 local completion and campus verification.
+Updated 21 September 2026 after local module work and campus verification.
 The refactor is separate from the previously published `553e0f3` baseline.
-Use the [M08 verification report](refactor-validation-2026-09-21.md) for exact
-artifact commits, environment, tests and limitations. Nothing here closes
-[Lyrasis Gates A/B](staging-signoff-2026-09-16.md) or authorizes installation.
+Local development verification does not authorize installation; installation
+follows the hosting provider's staging and acceptance process.
 
 ## Start here
 
@@ -45,15 +44,16 @@ separate. Preservica uses the companion backend, which owns authentication.
 
 ## What is maintained
 
-The standalone checkout is `exports/archivespace-plugin-repository/` in the parent
-workspace. Docker reads `plugins/digital_viewer/`; mirror source, tests, build files,
-templates and generated assets and verify byte identity before local ASpace checks.
+This repository is the authoritative home for maintained viewer source. The local
+integration stack uses a mirror under `plugins/digital_viewer/`; mirror source,
+tests, build files, templates and generated assets and verify byte identity before
+local ASpace checks.
 `src/` is authoritative JavaScript. `public/assets/digital_viewer.js` and its map
 are generated and committed. Do not patch them by hand. ArchivesSpace needs no
 Node/npm runtime. The parent React/PHP prototype is a separate product.
 
 `frontend/` contains historical copies, explicitly marked in its README. Their
-host/Staff/PUI reconciliation remains WBL-0901. The plugin does not include the
+use across ArchivesSpace Staff and PUI is being reconciled. The plugin does not include the
 old full `public/views/objects/show.html.erb` override; remove stale deployment
 copies through the operator's installation procedure, not by overwriting whole
 ArchivesSpace pages during troubleshooting.
@@ -102,9 +102,9 @@ safe reuse/replacement.
 | Wrong served version / prefix 404 | asset-version Ruby helper, head template, proxy configuration | asset-version tests, module-build checks, release workflow |
 
 Use module paths and function names, not generated line numbers. Browser source
-maps map the committed bundle back to these files. Historical review anchors in
-[Lyrasis tasks](lyrasis-staging-launch-task-list.md) retain their dated candidate
-context and now point separately to current source.
+maps map the committed bundle back to these files. Dated review records describe
+their own candidate context; current source and tests remain the developer
+reference.
 
 ## Diagnostics
 
@@ -154,9 +154,8 @@ helper additionally fails one manifest request while another object renders and
 its original link remains keyboard-accessible. Read the JSON result and the
 named helper to repeat that exact failure. No live record edits are needed.
 
-For existing local ArchivesSpace fixtures, start the loopback content server using
-[the fixture instructions](local-formats-validation-2026-09-16.md#fixture-files-and-reproducibility)
-and run the same command with `--suite local`. It checks real Rails markup,
+For existing local ArchivesSpace fixtures, start the loopback content server for
+the prepared records and sample files, then run the same command with `--suite local`. It checks real Rails markup,
 no-JS/blocked scripts, native PDF rendering, scanned text, downloads, separate
 objects and a single-image fixture. Fixture IDs are local, not production IDs.
 

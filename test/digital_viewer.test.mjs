@@ -849,7 +849,7 @@ test('init catches synchronous primary mount errors and falls back once', async 
 
 test('init times out a pending manifest fetch and mounts the next source once', async function () {
   const documentStub = makeInitDocument([
-    'https://libtools2.smith.edu/manifests/pending.json',
+    'https://example.org/manifests/pending.json',
     'https://example.org/fallback.jpg',
   ]);
   let abortCount = 0;
@@ -881,7 +881,7 @@ test('init times out a pending manifest fetch and mounts the next source once', 
 
 test('init ignores a late manifest body after timed-out fallback', async function () {
   const documentStub = makeInitDocument([
-    'https://libtools2.smith.edu/manifests/body-pending.json',
+    'https://example.org/manifests/body-pending.json',
     'https://example.org/fallback.jpg',
   ]);
   let bodyResolve;
@@ -921,7 +921,7 @@ test('init ignores a late manifest body after timed-out fallback', async functio
 });
 
 test('final pending manifest shows one loading note and accepts late OSD success', async function () {
-  const documentStub = makeInitDocument(['https://libtools2.smith.edu/manifests/final.json']);
+  const documentStub = makeInitDocument(['https://example.org/manifests/final.json']);
   let manifestResolve;
   let viewer;
   const currentItem = {};

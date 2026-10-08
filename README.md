@@ -2,9 +2,8 @@
 
 ArchivesSpace Public User Interface plugin for IIIF image viewing with OpenSeadragon, plus source adapters for direct files, legacy Compass and Preservica.
 
-Tested locally with ArchivesSpace 4.2.0. The refactor and review fixes are complete,
-and this version is ready for staging installation. Verify the installed plugin
-in the hosted environment before production rollout.
+Tested locally with ArchivesSpace 4.2.0. Installation and acceptance should follow
+the hosting provider's staging process before production rollout.
 
 ## Install on a test instance
 
@@ -46,7 +45,7 @@ an archive instead of using Git, record its SHA-256 checksum as well.
 
 The template emits an escaped `window.DigitalViewer` object before the viewer loads. `compassHost` is derived from the hostname in `COMPASS_BASE_URL`; there is no separate host setting. An absent environment key and an explicit empty value both produce safe empty adapter settings, with no implicit localhost endpoints. The asset URLs use ArchivesSpace's `app_prefix` when available, and JavaScript, CSS and vendored OpenSeadragon share a SHA-256 content version over their ordered filenames and bytes. The version is cached per plugin root for the life of the PUI process; restart ArchivesSpace after any asset change, including local development edits. Missing or unreadable assets log a fixed diagnostic and use an unavailable version without breaking page rendering. Repair the package and restart before release. Do not place AWS credentials in this plugin: they belong only on the image server.
 
-Direct converted manifests on libtools2 are fetched by the browser; they do not need the Compass resolver or Preservica backend. Legacy Compass records and Preservica records require their respective companion services. Manifests point to public image-service URLs and stored thumbnail URLs; their browser origins require suitable CORS and host CSP settings.
+Direct converted manifests from the hosted IIIF manifest service are fetched by the browser; they do not need the Compass resolver or Preservica backend. Legacy Compass records and Preservica records require their respective companion services. Manifests point to public image-service URLs and stored thumbnail URLs; their browser origins require suitable CORS and host CSP settings.
 
 ## Source and tests
 
@@ -62,7 +61,7 @@ ruby test/asset_version_test.rb
 ruby test/fallback_template_test.rb
 ```
 
-Node's test runner uses explicit source APIs, a DOM shim and unmodified artifact startup tests. Browser helpers test the generated script. These do not substitute for hosted acceptance. Legacy `frontend/` copies are marked historical and remain outside this build pending WBL-0901.
+Node's test runner uses explicit source APIs, a DOM shim and unmodified artifact startup tests. Browser helpers test the generated script. These do not substitute for hosted acceptance. Legacy `frontend/` copies are historical and remain outside this build while their use across ArchivesSpace Staff and PUI is reconciled.
 
 Thumbnail requests run one at a time per viewer (only visible/near-visible previews are queued when IntersectionObserver is available). Each gets a fixed 10-second timeout, independent of `DIGITAL_VIEWER_LOADING_TIMEOUT_MS`. Timeout or disposal removes the active image's `src`, clears its timer/listeners and advances only if the viewer is still active. A timed-out preview is not automatically retried; its numbered button and the full-size page remain available. Browser scheduling can delay a timeout in an inactive tab. See [focused browser regressions](test/browser/README.md) for real-request recovery and cancellation checks.
 
@@ -74,7 +73,7 @@ Before installing, retain the host's current plugin/config versions. Roll back b
 
 ## Distribution
 
-Keep repository location, source commit, archive checksum and installed configuration with each deployment. OpenSeadragon is vendored; retain its notices. Repository license and third-party redistribution review are outstanding before a public release. This README does not assign a new license.
+Keep repository location, source commit, archive checksum and installed configuration with each deployment.
 
 ## Developer documentation
 
@@ -84,8 +83,10 @@ Keep repository location, source commit, archive checksum and installed configur
 - [Viewer lifecycle and controls](docs/plugin-viewer-lifecycle.md)
 - [Build and tests](docs/plugin-build.md)
 - [Package checks and rollback](docs/plugin-release-workflow.md)
-- [Refactor verification](docs/refactor-validation-2026-09-21.md)
-- [Review fixes and verification](docs/review-followup-2026-09-21.md)
+
+## License
+
+This repository's code and documentation are dedicated to the public domain under [CC0 1.0](LICENSE), except for third-party material listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Extension point: viewer opened
 

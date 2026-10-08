@@ -62,11 +62,11 @@ becoming actionable viewer/download/native-media links.
 
 The generic adapter receives request/parsing callbacks; it has no Compass host,
 proxy or S3 rewrite logic. `adapters/index.mjs` supplies those compatibility
-callbacks today. WBL-0905 can replace this wiring and remove `adapters/compass.mjs`
-without rewriting generic rendering. Detection/descriptor cleanup still belongs
-to that cutover task. The historical `compass-manifest` descriptor string remains
-unchanged; generic implementation names are now `mountManifest` and
-`extractManifestPages`.
+callbacks today. A future compatibility cleanup can replace this wiring and
+remove `adapters/compass.mjs` without rewriting generic rendering. Source
+detection and descriptor cleanup remain part of that work. The historical
+`compass-manifest` descriptor string remains unchanged; generic implementation
+names are now `mountManifest` and `extractManifestPages`.
 
 ## Verification
 

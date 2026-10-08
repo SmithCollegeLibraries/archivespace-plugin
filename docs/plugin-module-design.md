@@ -190,7 +190,7 @@ No-JS or blocked startup cannot execute this fallback coordinator. Server-render
 - Source maps: ship `digital_viewer.js.map` beside the script, with embedded public source text and no secrets/local absolute paths. Link it relatively so a PUI prefix is respected. Version its reference with a digest of map bytes in the generated JS comment; the existing Ruby JS digest then changes when the map does, avoiding stale debugger maps. Verify actual map requests under root and prefixed PUI paths. If the host cannot serve maps, keep the identical map with the release for manual debugger loading and record that limitation; runtime must not depend on maps.
 - Cache and template: keep `layout_head.html.erb`'s current config → OSD → viewer sequence and `app_prefix` handling. The Ruby helper still fingerprints all executed JS/CSS; extend its tests for the generated-output/map-reference chain. No new `type=module` or import-map/CSP requirement. Existing inline configuration may still require host CSP coordination; bundling does not solve that.
 - Distribution: archive the committed runtime, templates, vendored notices and map from the exact candidate. Build/test tooling and `node_modules` are not host requirements. Verify the extracted archive and A→B→A cache/rollback behavior, rather than just the working source tree. Existing release approval gates remain in force.
-- Parent mirror: authoritative maintained source is the standalone repository. Mirror generated runtime plus templates/tests needed by Docker into parent `plugins/digital_viewer/`, compare bytes, and record parent mirror state in its ledger. Do not use the React frontend's build or revive `frontend/` legacy plugin copies. WBL-0901 controls duplicate-copy disposition.
+- Integration mirror: authoritative maintained source is this repository. Mirror the generated runtime plus templates/tests needed by Docker into the local stack's `plugins/digital_viewer/`, compare bytes, and record mirror state. Do not use the React frontend's build or revive `frontend/` legacy plugin copies. Reconcile their use across ArchivesSpace Staff and PUI before deciding whether to remove them.
 
 Planned command contract (DV-M04 must implement these; they do not exist yet):
 
@@ -218,7 +218,7 @@ Fresh on 2026-09-18 at documentation baseline `190a536` (runtime unchanged):
 
 These establish a unit/Ruby baseline, not new browser or hosted acceptance. Documentation validation also checks complete function-inventory coverage, relative links and unchanged runtime/test files.
 
-Reuse [fixture-ledger.md](fixture-ledger.md) and [browser instructions](../test/browser/README.md):
+Use the prepared local fixture records and [browser instructions](../test/browser/README.md):
 
 | Regression area | Existing fixture / runner |
 | --- | --- |
@@ -229,4 +229,4 @@ Reuse [fixture-ledger.md](fixture-ledger.md) and [browser instructions](../test/
 | Metadata-request ownership | `runSourceRequestOwnership`: intercepted B→A→B and retired/current failure cases; Node suite covers cross-group identity and late callbacks. |
 | No-JS and startup failures | Prior PDF no-JS evidence is a limited baseline; DV-M02 adds manifest-only and separately blocked-script cases. |
 
-No browser suite rerun is required to complete this documentation ticket. DV-M04 and subsequent changes must run the relevant artifact/browser checks before claiming extraction compatibility. Track completion in parent `preservica/docs/workbench-lite/finished.md`; DV-M01 does not approve installation or close any other DV/LYR/WBL ticket.
+This design document does not imply browser verification or authorize installation. Future extraction changes should run relevant artifact/browser checks before claiming compatibility; track project work in its coordination repository.
