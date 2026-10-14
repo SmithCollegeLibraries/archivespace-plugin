@@ -9,7 +9,7 @@ export function parseCantaloupeBase(baseUrl) {
   if (/^\/(?!\/)/.test(trimmed)) return trimmed.replace(/\/$/, '');
   try {
     parsed = new URL(trimmed);
-  } catch (err) {
+  } catch {
     return '';
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
@@ -22,7 +22,7 @@ export function parseCompassHost(baseUrl) {
   if (typeof baseUrl !== 'string' || !baseUrl.trim()) return '';
   try {
     parsed = new URL(baseUrl.trim());
-  } catch (err) {
+  } catch {
     return '';
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';

@@ -1,4 +1,5 @@
 // One lifecycle instance owns the record groups and their current attempts.
+// eslint-disable-next-line max-lines-per-function
 export function createLifecycle({ AbortController, setTimeout, clearTimeout,
   showLoadingNotice, restoreLeafLayoutIfUnused }) {
   var activeMountStates = [];
@@ -40,7 +41,7 @@ export function createLifecycle({ AbortController, setTimeout, clearTimeout,
     }
     try {
       if (attempt.viewer) disposeViewer(attempt.viewer);
-    } catch (err) {
+    } catch {
       // Other owned resources must still be released if a renderer throws.
     }
     cleanups = (attempt.cleanups || []).slice();
@@ -48,7 +49,7 @@ export function createLifecycle({ AbortController, setTimeout, clearTimeout,
     cleanups.forEach(function (cleanup) {
       try {
         cleanup();
-      } catch (err) {
+      } catch {
         // Cleanup must not interrupt replacement or teardown.
       }
     });
@@ -74,6 +75,7 @@ export function createLifecycle({ AbortController, setTimeout, clearTimeout,
     }, timeout);
   }
 
+  // eslint-disable-next-line complexity
   function disposeMountState(state, options) {
     var activeIndex;
 

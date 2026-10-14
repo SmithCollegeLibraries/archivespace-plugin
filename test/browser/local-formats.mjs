@@ -140,6 +140,7 @@ async function loadedSequence(page, index) {
   }, index, { timeout: 30000 });
 }
 
+// eslint-disable-next-line max-lines-per-function
 export async function runScannedTextChecks(page, { screenshotDir } = {}) {
   const rows = [];
   for (const kind of ['digital_objects/879', 'archival_objects/4109']) {

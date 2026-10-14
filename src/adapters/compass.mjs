@@ -13,11 +13,11 @@ export function toLocalCantaloupeInfoUrl(serviceId, cfg) {
   }
 
   var identifier = normalized.slice(pos + marker.length);
-  var decoded = '';
+  var decoded;
 
   try {
     decoded = decodeURIComponent(identifier);
-  } catch (err) {
+  } catch {
     decoded = identifier;
   }
 
@@ -31,12 +31,13 @@ export function toLocalCantaloupeInfoUrl(serviceId, cfg) {
   var s3Key = decoded.slice(filePos + fileMarker.length);
   try {
     s3Key = decodeURIComponent(s3Key);
-  } catch (err2) {
+  } catch {
     // Keep the partially decoded key when nested encoding is malformed.
   }
   return cfg.cantaloupeBaseUrl + '/' + encodeURIComponent(s3Key) + '/info.json';
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createCompassAdapter({ config: cfg, fetch, isAttemptActive, mountOsdViewer, reportFailure }) {
   function parsePages(manifest) {
     return extractManifestPages(manifest, function (serviceId) {

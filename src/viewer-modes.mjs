@@ -1,6 +1,7 @@
 import { sanitizeUrl } from './urls.mjs';
 import { getTileSourceImageUrl } from './tile-sources.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createViewerModes({ document, isAttemptActive }) {
   function setElementHidden(element, hidden) {
     if (!element) return;
@@ -31,6 +32,7 @@ export function createViewerModes({ document, isAttemptActive }) {
     return 'Image view';
   }
 
+  // eslint-disable-next-line complexity
   function syncViewerModeActions(state) {
     var currentPage = state.tileSources[state.activePageIndex] || null;
     var currentPageImageUrl = currentPage ? getTileSourceImageUrl(currentPage) : '';
@@ -71,6 +73,7 @@ export function createViewerModes({ document, isAttemptActive }) {
     }
   }
 
+  // eslint-disable-next-line max-lines-per-function
   function addViewerModeActions(container, viewer, tileSources, options) {
     var pages = Array.isArray(tileSources) ? tileSources.slice() : [tileSources];
     var isSequence = pages.length > 1;

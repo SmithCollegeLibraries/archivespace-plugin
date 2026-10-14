@@ -23,9 +23,11 @@ export function getPreloadPageIndexes(activeIndex, total, distance) {
   return indexes;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createPrefetch({ fetch, Image, registerAttemptCleanup }) {
   var warmedResourceUrls = {};
 
+  // eslint-disable-next-line complexity
   function primeResourceUrl(url, useFetch, options) {
     var attempt = options && options.attempt;
     if (attempt && attempt.active === false) return;
@@ -37,7 +39,7 @@ export function createPrefetch({ fetch, Image, registerAttemptCleanup }) {
       var request;
       try {
         request = fetch(url, { cache: 'force-cache', signal: attempt && attempt.controller ? attempt.controller.signal : undefined });
-      } catch (err) {
+      } catch {
         delete warmed[url];
         return;
       }

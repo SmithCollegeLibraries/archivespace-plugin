@@ -6,7 +6,9 @@ export function classifyPageContext(context) {
   return 'stock';
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createPageLayout({ document }) {
+  // eslint-disable-next-line complexity
   function findInsertAfter(anchor) {
     // Keep each inline viewer adjacent to its own source, including thumbnails.
     var sourceGroup = anchor.closest ? anchor.closest('[data-dv-source-group]') : null;
@@ -71,6 +73,7 @@ export function createPageLayout({ document }) {
     return viewerColumn;
   }
 
+  // eslint-disable-next-line complexity
   function restoreLeafLayoutIfUnused(pane, activeMountStates) {
     var layoutState;
     var metadataColumn;

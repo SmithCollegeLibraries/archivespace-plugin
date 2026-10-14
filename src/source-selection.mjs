@@ -7,6 +7,7 @@ var DEEP_ZOOM_RE = /\.(tiff?|jp2)(\?.*)?$/i;
 var STATIC_IMAGE_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
 var PDF_RE = /\.pdf(\?.*)?$/i;
 
+// eslint-disable-next-line complexity, max-lines-per-function
 export function detectSource(fileUri, cfg) {
   var uriUrl;
 
@@ -15,7 +16,7 @@ export function detectSource(fileUri, cfg) {
   var normalizedUri = fileUri.replace(/^\/\//, 'https://');
   try {
     uriUrl = new URL(normalizedUri);
-  } catch (err) {
+  } catch {
     uriUrl = null;
   }
   var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;

@@ -1,8 +1,10 @@
 import { extractManifestContent } from '../manifest.mjs';
 
 // The backend handles Preservica authentication and content delivery.
+// eslint-disable-next-line max-lines-per-function
 export function createPreservicaAdapter({ config: cfg, fetch, console, isAttemptActive, reportFailure,
   clearLoadingNotice, mountOsdViewer, mountVideoViewer, mountAudioViewer, mountPdfViewer }) {
+  // eslint-disable-next-line max-lines-per-function
   function mountPreservica(container, descriptor, mountOptions) {
     if (!cfg.preservicaApiBase) {
       reportFailure(container, 'configuration', 'preservica-unavailable');

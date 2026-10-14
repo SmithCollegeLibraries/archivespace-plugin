@@ -6,7 +6,9 @@ import { createViewerRuntime } from '../src/runtime.mjs';
 import { extractManifestPages } from '../src/manifest.mjs';
 import { toLocalCantaloupeInfoUrl } from '../src/adapters/compass.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 function loadHooks(options = {}) {
+  // eslint-disable-next-line max-lines-per-function
   function makeElement(tagName) {
     const element = {
       tagName,
@@ -205,12 +207,14 @@ function normalize(value) {
 
 // Model OSD 5.0.1's open -> addTiledImage -> options.error -> open-failed
 // boundary. Each open gets fresh options, even when the source URL repeats.
+// eslint-disable-next-line max-lines-per-function
 function makeSourceOpenHarness(t, sources = ['page-a', 'page-b']) {
   let viewer;
   let currentImage = null;
   let pageIndex = 0;
   let sequence;
   const requests = [];
+  // eslint-disable-next-line max-lines-per-function
   const hooks = loadHooks({ OpenSeadragon() {
     const handlers = {};
     viewer = {
@@ -268,9 +272,11 @@ function makeSourceOpenHarness(t, sources = ['page-a', 'page-b']) {
   return { viewer, container, requests, mounting };
 }
 
+// eslint-disable-next-line max-lines-per-function
 function makeInitDocument(uris = ['https://example.org/image.jpg'], leaf = false) {
   const nodes = [];
 
+  // eslint-disable-next-line max-lines-per-function
   function makeNode(tagName) {
     const node = {
       tagName,
@@ -532,6 +538,7 @@ test('collectSourceAnchors includes direct representative and thumbnail links bu
   assert.ok(!anchors.includes(browse));
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('mountOsdViewer attaches open handlers before opening without a tileSources constructor option', async function () {
   const calls = [];
   let constructedOptions;
@@ -683,6 +690,7 @@ test('init reuses an unchanged source-group mount instead of duplicating it', as
 });
 
 for (const anchorClass of ['external-digital-object__link', 'thumbnail']) {
+  // eslint-disable-next-line max-lines-per-function
   test('inline ' + anchorClass + ' viewers follow their own source blocks in record order', async function () {
     const documentStub = makeInitDocument(['https://example.org/shared.jpg', 'https://example.org/shared.jpg']);
     const available = documentStub.sourceGroup;
@@ -920,6 +928,7 @@ test('init ignores a late manifest body after timed-out fallback', async functio
   assert.equal(container.querySelector('.dv-error-msg'), null);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('final pending manifest shows one loading note and accepts late OSD success', async function () {
   const documentStub = makeInitDocument(['https://example.org/manifests/final.json']);
   let manifestResolve;
@@ -986,9 +995,10 @@ test('final pending manifest shows one loading note and accepts late OSD success
   assert.equal(container.querySelector('.dv-error-msg'), null);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('mountOsdViewer advances timed-out alternatives but retains a slow final viewer', async function () {
   const viewers = [];
-  const fakeOpenSeadragon = (options) => {
+  const fakeOpenSeadragon = () => {
     const handlers = {};
     const currentItem = {};
     const viewer = {
@@ -1045,6 +1055,7 @@ test('mountOsdViewer advances timed-out alternatives but retains a slow final vi
   assert.equal(viewers[1].destroyed, true);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('tile-load-failed reports the unavailable page without replacing the active viewer', async function () {
   let viewer;
   const currentItem = {};
@@ -1092,6 +1103,7 @@ test('tile-load-failed reports the unavailable page without replacing the active
   assert.equal(viewer.destroyed, undefined);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('later page failures stay page-scoped and clear after recovery', async function (t) {
   let viewer;
   const pageItems = [{}, {}];
@@ -1161,6 +1173,7 @@ test('later page failures stay page-scoped and clear after recovery', async func
   assert.equal(container.querySelector('.dv-tile-error-msg'), null);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('rapid sequence navigation ignores retired image events while the world is empty', async function (t) {
   let viewer;
   const originalA = {};
@@ -1326,6 +1339,7 @@ test('the current initial source failure still rejects the mount', async functio
   await rejected;
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('unavailable sequence canvases show an error when their placeholders open', async function (t) {
   let viewer;
   const pageItems = [{}, {}];
@@ -1381,6 +1395,7 @@ test('unavailable sequence canvases show an error when their placeholders open',
   assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('an entirely unavailable manifest falls back to a working alternative', async function () {
   const documentStub = makeInitDocument([
     'https://compass-prod-i2-files.s3.amazonaws.com/workbench-lite/test/manifests/unavailable.json',
@@ -1694,6 +1709,7 @@ test('buildDescriptorSelection keeps image viewers primary while retaining whole
   assert.deepEqual(normalize(pdfOnlySelection.companionCandidates), []);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('extractManifestPages preserves per-page metadata needed for page mode decisions', function () {
   const hooks = loadHooks();
   const manifest = {
@@ -1737,6 +1753,7 @@ test('extractManifestPages preserves per-page metadata needed for page mode deci
   );
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('extractManifestPages works with workbench-lite-style IIIF 2 manifests', function () {
   const hooks = loadHooks();
   const manifest = {
@@ -1790,6 +1807,7 @@ test('extractManifestPages works with workbench-lite-style IIIF 2 manifests', fu
   );
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('addViewerModeActions requires explicit page mode before showing page image download', function () {
   const hooks = loadHooks();
   const container = {
@@ -1855,6 +1873,7 @@ test('addViewerModeActions requires explicit page mode before showing page image
   assert.equal(state.downloadImageLink.getAttribute('aria-hidden'), 'true');
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('addViewerModeActions shows a companion PDF in object mode and restores it after leaving page mode', function () {
   const hooks = loadHooks();
   const container = {
@@ -1961,6 +1980,7 @@ test('addViewerModeActions hides unsafe javascript: PDF companion URLs', functio
   assert.equal(state.downloadPdfLink.getAttribute('href'), undefined);
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('addControls renders a bottom toolbar with primary actions and an adjustment popover trigger', function () {
   const hooks = loadHooks();
   const container = {
@@ -2031,6 +2051,7 @@ test('addControls renders a bottom toolbar with primary actions and an adjustmen
   assert.equal(container.children[0].className, 'dv-controls');
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('addControls keeps the toolbar visible until the user hides it, then allows showing it again', function () {
   const hooks = loadHooks();
   const container = {
@@ -2080,6 +2101,7 @@ test('addControls keeps the toolbar visible until the user hides it, then allows
   assert.equal(toggleButton.title, 'Show toolbar');
 });
 
+// eslint-disable-next-line max-lines-per-function
 test('addControls opens the adjustment popover and applies slider-based image changes', function () {
   const hooks = loadHooks();
   const container = {

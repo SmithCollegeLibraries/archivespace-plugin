@@ -1,4 +1,5 @@
 // The template attribute contract and legacy selectors live here.
+// eslint-disable-next-line max-lines-per-function
 export function createPageSources({ document, getPageContext, onDiscoveryError, onContractFailure }) {
   var sourceGroupCount = 0;
 
@@ -56,6 +57,7 @@ export function createPageSources({ document, getPageContext, onDiscoveryError, 
     return results;
   }
 
+  // eslint-disable-next-line complexity
   function findGroupRoot(anchor) {
     var root;
     var pageContext = getPageContext();
@@ -101,7 +103,7 @@ export function createPageSources({ document, getPageContext, onDiscoveryError, 
       var root;
       try {
         root = findGroupRoot(item.anchor);
-      } catch (err) {
+      } catch {
         if (onDiscoveryError) onDiscoveryError();
         return;
       }

@@ -1,7 +1,7 @@
 import { createViewerScope } from './events.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createControls({ document, isAttemptActive, registerAttemptCleanup }) {
-  var IMAGE_ADJUSTMENT_STEP = 20;
   var DEFAULT_IMAGE_ADJUSTMENTS = {
     brightness: 100,
     contrast: 100,
@@ -85,12 +85,6 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     target.style.webkitFilter = filterValue;
   }
 
-  function adjustViewerImageSetting(viewer, key, delta) {
-    var adjustments = getViewerImageAdjustments(viewer);
-    adjustments[key] = clamp(adjustments[key] + delta, 0, 200);
-    applyViewerImageAdjustments(viewer);
-  }
-
   function setViewerImageSetting(viewer, key, value) {
     var adjustments = getViewerImageAdjustments(viewer);
     var numericValue = parseInt(value, 10);
@@ -163,6 +157,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     }
   }
 
+  // eslint-disable-next-line complexity
   function getViewerZoomPercent(viewer) {
     var currentZoom = 1;
     var homeZoom = 1;
@@ -213,6 +208,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     }
   }
 
+  // eslint-disable-next-line complexity
   function setAdjustPopoverOpen(state, open) {
     if (!state) return;
     if (open && state.isCollapsed) return;
@@ -336,6 +332,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     return btn;
   }
 
+  // eslint-disable-next-line max-lines-per-function
   function buildAdjustPopover(viewer, state) {
     var popover = document.createElement('div');
     var title = document.createElement('div');
@@ -404,6 +401,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     return popover;
   }
 
+  // eslint-disable-next-line max-lines-per-function
   function buildPrimaryControls(viewer, state) {
     var bar = document.createElement('div');
     var actions = document.createElement('div');
@@ -482,6 +480,7 @@ export function createControls({ document, isAttemptActive, registerAttemptClean
     return toggle;
   }
 
+  // eslint-disable-next-line max-lines-per-function
   function addControls(container, viewer, options) {
     var scope = createViewerScope(viewer, options && options.attempt, registerAttemptCleanup);
     var bar = document.createElement('div');

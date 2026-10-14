@@ -1,6 +1,7 @@
 import { detectSource, buildDescriptorSelection } from './source-selection.mjs';
 import { classifyPageContext } from './page-layout.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createInitializer({ config, document, console, OpenSeadragon,
   sources, pageLayout, lifecycle, mountRankedSources }) {
   const { activeMountStates, disposeMountState } = lifecycle;
@@ -48,6 +49,7 @@ export function createInitializer({ config, document, console, OpenSeadragon,
     return true;
   }
 
+  // eslint-disable-next-line complexity
   function mountGroup(group, layoutKind) {
     const { selection, signature } = selectSources(group);
     const existing = group.root && group.root.__dvMountState;
@@ -84,11 +86,11 @@ export function createInitializer({ config, document, console, OpenSeadragon,
       groups.forEach(function (group) {
         try {
           mountGroup(group, layoutKind);
-        } catch (err) {
+        } catch {
           // A failed object must not stop later groups or remove original links.
           try {
             disposeMountState(group.root && group.root.__dvMountState);
-          } catch (cleanupError) {
+          } catch {
             // A host DOM failure during cleanup must remain isolated as well.
           }
           console.warn('[digital_viewer] stage=startup code=group-unavailable');

@@ -13,11 +13,11 @@ def write_assets(root, contents)
   end
 end
 
-Dir.mktmpdir('digital-viewer-assets') do |root|
+Dir.mktmpdir('digital-viewer-assets') do |root| # rubocop:disable Metrics/BlockLength
   original = {
     'digital_viewer.js' => 'same javascript',
     'digital_viewer.css' => 'same css',
-    'openseadragon.min.js' => 'same osd',
+    'openseadragon.min.js' => 'same osd'
   }
   write_assets(root, original)
   first_version = DigitalViewerAssetVersion.for_plugin_root(root)
@@ -29,20 +29,23 @@ Dir.mktmpdir('digital-viewer-assets') do |root|
 
   File.binwrite(File.join(root, 'public', 'assets', 'digital_viewer.js'), 'changed javascript')
   File.utime(Time.at(100), Time.at(100), File.join(root, 'public', 'assets', 'digital_viewer.js'))
-  raise 'Version should remain cached until process restart' unless DigitalViewerAssetVersion.for_plugin_root(root) == first_version
+  unless DigitalViewerAssetVersion.for_plugin_root(root) == first_version
+    raise 'Version should remain cached until process restart'
+  end
+
   helper = File.expand_path('../public/views/digital_viewer_asset_version', __dir__)
   second_version, status = Open3.capture2(RbConfig.ruby, '-r', helper, '-e',
-    'print DigitalViewerAssetVersion.for_plugin_root(ARGV[0])', root)
+                                          'print DigitalViewerAssetVersion.for_plugin_root(ARGV[0])', root)
   raise 'Fresh process failed' unless status.success?
   raise 'JavaScript content change did not change the version' if first_version == second_version
 
   copied_root = Dir.mktmpdir('digital-viewer-assets-copy')
   begin
     write_assets(copied_root, {
-      'digital_viewer.js' => 'changed javascript',
-      'digital_viewer.css' => 'same css',
-      'openseadragon.min.js' => 'same osd',
-    })
+                   'digital_viewer.js' => 'changed javascript',
+                   'digital_viewer.css' => 'same css',
+                   'openseadragon.min.js' => 'same osd'
+                 })
     File.utime(Time.at(999), Time.at(999), File.join(copied_root, 'public', 'assets', 'digital_viewer.js'))
     copied_version = DigitalViewerAssetVersion.for_plugin_root(copied_root)
     raise 'Copied content with different mtimes changed the version' unless copied_version == second_version
@@ -50,7 +53,6 @@ Dir.mktmpdir('digital-viewer-assets') do |root|
     FileUtils.remove_entry(copied_root)
   end
 end
-
 
 Dir.mktmpdir('digital-viewer-missing-assets') do |root|
   version = DigitalViewerAssetVersion.for_plugin_root(root)

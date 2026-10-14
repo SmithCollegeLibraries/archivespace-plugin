@@ -1,5 +1,6 @@
 import { sanitizeUrl } from './urls.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createStatus({ document, console }) {
   function createFallbackLink(url, label) {
     var safeUrl = sanitizeUrl(url);

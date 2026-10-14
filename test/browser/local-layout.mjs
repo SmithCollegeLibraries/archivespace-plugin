@@ -16,6 +16,7 @@ export async function checkPublicUrls(page, publicOrigin, staffOrigin) {
   return { home, staff, checkSessionStatus: response.status() };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export async function checkRecordLayout(page, origin, path, width, sidebarPosition, expectedMounts = 0) {
   await page.setViewportSize({ width, height: 900 });
   await page.goto(origin + path);
@@ -71,6 +72,7 @@ export async function checkRecordLayout(page, origin, path, width, sidebarPositi
   return { path, width, ...result };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export async function checkNotesAndResize(page, origin, sidebarPosition) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(origin + '/repositories/2/archival_objects/4101');
@@ -119,6 +121,7 @@ export async function checkNotesAndResize(page, origin, sidebarPosition) {
   return { sidebarPosition, collapsedHeight, initial, afterKey, afterMouse, narrow };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export async function checkViewerKeyboard(page, origin, width) {
   await checkRecordLayout(page, origin, '/repositories/2/digital_objects/863', width,
     null, 1);

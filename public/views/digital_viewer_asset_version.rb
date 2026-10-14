@@ -1,14 +1,14 @@
 require 'digest'
-require 'thread'
 
+# Computes stable browser cache keys from the plugin's served assets.
 module DigitalViewerAssetVersion
   SERVED_ASSETS = [
     'digital_viewer.js',
     'digital_viewer.css',
-    'openseadragon.min.js',
+    'openseadragon.min.js'
   ].freeze
 
-  VERSIONS = {}
+  @versions = {}
   VERSION_LOCK = Mutex.new
 
   module_function
@@ -17,7 +17,7 @@ module DigitalViewerAssetVersion
     # Deployments and local asset edits require an ASpace restart.
     root = File.expand_path(plugin_root)
     VERSION_LOCK.synchronize do
-      VERSIONS[root] ||= compute_version(root)
+      @versions[root] ||= compute_version(root)
     end
   end
 

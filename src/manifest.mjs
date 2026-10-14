@@ -33,6 +33,7 @@ export function extractManifestPages(manifest, serviceInfoUrl = defaultServiceIn
   var seq = manifest.sequences && manifest.sequences[0];
   var canvases = seq && Array.isArray(seq.canvases) ? seq.canvases : [];
 
+  // eslint-disable-next-line complexity
   canvases.forEach(function (canvas, index) {
     var img = canvas.images && canvas.images[0];
     var thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
@@ -67,6 +68,7 @@ export function extractManifestContent(manifest, onInvalidCanvas = function () {
 
   var canvases = (manifest.items && Array.isArray(manifest.items)) ? manifest.items : [];
 
+  // eslint-disable-next-line complexity
   canvases.forEach(function (canvas) {
     try {
       var annotPage = canvas.items && canvas.items[0];
@@ -100,7 +102,7 @@ export function extractManifestContent(manifest, onInvalidCanvas = function () {
         // Image (or unknown — display as image)
         result.images.push({ url: url, format: body.format || 'image/jpeg' });
       }
-    } catch (e) {
+    } catch {
       onInvalidCanvas();
     }
   });

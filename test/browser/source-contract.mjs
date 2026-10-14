@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Exercise discovery through the unmodified served script, not injected hooks.
+// eslint-disable-next-line complexity, max-lines-per-function
 export async function runSourceContractChecks(browser, pluginRoot) {
   const origin = 'http://digital-viewer.test';
   const image = origin + '/image.jpg?a=1&b=2';

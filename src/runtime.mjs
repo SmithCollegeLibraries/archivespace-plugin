@@ -13,6 +13,7 @@ import { createPageLayout, classifyPageContext } from './page-layout.mjs';
 import { createInitializer } from './init.mjs';
 import { createMountSequence, getContainerViewerOptions } from './mount-sequence.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createViewerRuntime({ config: cfg, document, console, fetch,
   OpenSeadragon, IntersectionObserver, Image, AbortController, setTimeout, clearTimeout }) {
   const { createFallbackLink, showError, reportFailure, showLoadingNotice,

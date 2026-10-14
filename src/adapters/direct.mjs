@@ -2,6 +2,7 @@ import { sanitizeUrl } from '../urls.mjs';
 import { getLoadingTimeout } from '../config.mjs';
 
 // Direct images, IIIF tile sources and native PDF/audio/video rendering.
+// eslint-disable-next-line max-lines-per-function
 export function createDirectAdapters({ document, setTimeout, clearTimeout, mountOsdViewer,
   showError, resetContainer, addViewerModeActions, showLoadingNotice, clearLoadingNotice,
   registerAttemptCleanup, createFallbackLink }) {

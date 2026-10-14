@@ -10,10 +10,19 @@ OpenSeadragon. It must be installed in a plugin directory named `digital_viewer`
 
 ## Build and test
 
-Use the pinned Node and npm versions (`.nvmrc`, `package.json`). From the repository root:
+Use the pinned Node and npm versions (`.nvmrc`, `package.json`). From the repository root, install
+the pinned JavaScript and Ruby development dependencies once after cloning or changing the lockfile:
 
 ```sh
 npm ci
+BUNDLE_GEMFILE=tools/rubocop/Gemfile bundle install
+```
+
+Run checks from the repository root:
+
+```sh
+npm run lint
+BUNDLE_GEMFILE=tools/rubocop/Gemfile bundle exec rubocop plugin_init.rb public/ test/
 npm run check:generated
 npm test
 ruby test/asset_version_test.rb
@@ -26,6 +35,13 @@ ruby test/fallback_template_test.rb
 - Browser checks in `test/browser/` need a running ArchivesSpace; see `test/browser/README.md`.
   Passing local tests does not authorize installing on a hosted ArchivesSpace.
 - `frontend/` holds historical copies. Do not edit them or use them as build inputs.
+
+## Code standards
+
+- Apply DRY and SOLID: give each module, class and function one responsibility.
+- Keep complexity about 10, JavaScript functions about 40 lines, and Ruby methods at most 25 lines.
+- Keep ESLint and RuboCop clear; track genuine refactors for follow-up.
+- Keep the repository root free of `Gemfile`: ArchivesSpace installs it as a runtime dependency.
 
 ## Interfaces other systems depend on
 

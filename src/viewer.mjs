@@ -1,10 +1,11 @@
 import { getLoadingTimeout } from './config.mjs';
-import { UNAVAILABLE_TILE_SOURCE } from './manifest.mjs';
 import { getTileSourceValue, isUnavailableTileSource, buildThumbnailUrl } from './tile-sources.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout, resetContainer,
   showLoadingNotice, clearLoadingNotice, isAttemptActive, disposeViewer, registerAttemptCleanup,
   addControls, addPageNav, addViewerModeActions, addThumbnailCarousel, warmSequenceCache, primeResourceUrl }) {
+  // eslint-disable-next-line max-lines-per-function
   function mountOsdViewer(container, tileSources, options) {
     var openPromise;
     var mountOptions = options || {};
@@ -30,7 +31,6 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
       ? tileSources.map(getTileSourceValue)
       : getTileSourceValue(tileSources);
 
-    /* global OpenSeadragon */
     var viewer = OpenSeadragon({
       element: osdEl,
       sequenceMode: isSequence,
@@ -46,6 +46,7 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
     });
     if (attempt) attempt.viewer = viewer;
 
+    // eslint-disable-next-line max-lines-per-function
     openPromise = new Promise(function (resolve, reject) {
       var settled = false;
       var timeoutId = null;
@@ -129,6 +130,7 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
         return tiledImage;
       }
 
+      // eslint-disable-next-line complexity
       function sourcePageIndex(source) {
         var index;
         var candidate;
@@ -145,6 +147,7 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
         return null;
       }
 
+      // eslint-disable-next-line complexity, max-lines-per-function
       function eventPageInfo(data) {
         var tiledImage = data && (data.tiledImage || (data.tile && data.tile.tiledImage));
         var source = data && (data.source || data.tileSource);
@@ -235,6 +238,7 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
         if (pageErrorState.tiledImage !== tiledImage) removePageError();
       }
 
+      // eslint-disable-next-line complexity
       function clearPageError(data, info) {
         var failedTileIndex;
 
@@ -250,6 +254,7 @@ export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout
         removePageError();
       }
 
+      // eslint-disable-next-line complexity
       function showPageError(data, options) {
         var info = eventPageInfo(data);
         var message;

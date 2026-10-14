@@ -1,5 +1,6 @@
 // Real images, IntersectionObserver and vendored OSD; no ASpace or live content.
 // The supplied Page must belong to an explicit browser.newContext().
+// eslint-disable-next-line max-lines-per-function
 export async function runThumbnailQueueChecks(page, pluginRoot) {
   const results = [];
   const origin = 'http://digital-viewer.test';

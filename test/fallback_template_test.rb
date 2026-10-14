@@ -13,16 +13,16 @@ class FallbackTemplateTest < Minitest::Test
     ['https://example.test/manifests/book.json', 'https://example.test/photo.jpg',
      'https://compass.fivecolleges.edu/object/smith:1348191'].each do |uri|
       html = render_fallback(uri)
-      visible = html.gsub(/<noscript>.*?<\/noscript>/m, '')
+      visible = html.gsub(%r{<noscript>.*?</noscript>}m, '')
       refute_match(/JavaScript|blocked|viewer is unavailable|viewing data/, visible)
       assert_includes visible, 'Open original link'
-      assert_match(/<noscript>.*Please enable JavaScript.*<\/noscript>/m, html)
+      assert_match(%r{<noscript>.*Please enable JavaScript.*</noscript>}m, html)
     end
   end
 
   def test_unlinked_identifier_has_no_empty_paragraph
     html = render_fallback('smith:1348191')
-    refute_match(/<p>\s*<\/p>/, html)
+    refute_match(%r{<p>\s*</p>}, html)
     assert_includes html, 'Please enable JavaScript'
   end
 
@@ -76,7 +76,7 @@ class DigitalFallbackIntegrationTest < Minitest::Test
   def test_entry_and_thumbnail_branches_include_access_help
     [nil, 'https://example.test/preview.jpg'].each do |thumbnail|
       html = DigitalFixture.new('files' => [{ 'out' => 'https://example.test/document.pdf', 'thumb' => thumbnail,
-        'caption' => 'Document', 'material' => '(text)' }]).html
+                                              'caption' => 'Document', 'material' => '(text)' }]).html
       assert_includes html, 'original PDF link'
       assert_includes html, 'href="https://example.test/document.pdf"'
     end
@@ -84,7 +84,7 @@ class DigitalFallbackIntegrationTest < Minitest::Test
 
   def test_representative_branch_includes_access_help
     html = DigitalFixture.new('representative' => { 'file_uri' => 'https://example.test/preview.jpg',
-      'derived_from' => 'https://example.test/document.pdf' }).html
+                                                    'derived_from' => 'https://example.test/document.pdf' }).html
     assert_includes html, 'original PDF link'
   end
 end
@@ -92,9 +92,13 @@ end
 class AdditionalFallbackTest < Minitest::Test
   def test_additional_file_versions_retain_labels_links_and_fallback
     path = File.expand_path('../public/views/digital_objects/_additional_file_versions.html.erb', __dir__)
-    html = File.exist?(path) ? DigitalFixture.new('additional' => true, 'files' => [
-      { 'file_uri' => 'https://example.test/manifests/book.json', 'caption' => '<script>bad()</script>' }
-    ]).html : ''
+    html = if File.exist?(path)
+             DigitalFixture.new('additional' => true, 'files' => [
+                                  { 'file_uri' => 'https://example.test/manifests/book.json', 'caption' => '<script>bad()</script>' }
+                                ]).html
+           else
+             ''
+           end
     assert_includes html, 'Please enable JavaScript'
     assert_includes html, 'data-additional-file-version'
     assert_includes html, 'href="https://example.test/manifests/book.json"'
@@ -104,8 +108,8 @@ class AdditionalFallbackTest < Minitest::Test
 
   def test_collection_browse_does_not_promise_an_embedded_viewer
     html = DigitalFixture.new('browse' => true, 'representative' => {
-      'file_uri' => 'https://example.test/preview.jpg', 'derived_from' => 'https://example.test/collection'
-    }).html
+                                'file_uri' => 'https://example.test/preview.jpg', 'derived_from' => 'https://example.test/collection'
+                              }).html
     refute_includes html, 'dv-access-help'
   end
 end
@@ -113,7 +117,8 @@ end
 class SourceAttributeContractTest < Minitest::Test
   def test_entry_and_thumbnail_link_supply_explicit_source
     [nil, 'https://example.test/thumb.jpg'].each do |thumb|
-      html = DigitalFixture.new('files' => [{ 'out' => 'https://example.test/image.jpg?a=1&b=2', 'thumb' => thumb }]).html
+      html = DigitalFixture.new('files' => [{ 'out' => 'https://example.test/image.jpg?a=1&b=2',
+                                              'thumb' => thumb }]).html
       assert_includes html, 'data-dv-source-expected="true"'
       assert_includes html, 'data-file-uri="https://example.test/image.jpg?a=1&amp;b=2"'
       assert_includes html, 'data-dv-source-group="digital-object-entries"'
@@ -122,14 +127,19 @@ class SourceAttributeContractTest < Minitest::Test
 
   def test_representative_source_survives_stock_partial_wrapping
     html = DigitalFixture.new('representative' => { 'file_uri' => 'https://example.test/thumb.jpg',
-      'derived_from' => 'https://example.test/manifests/book.json' }).html
+                                                    'derived_from' => 'https://example.test/manifests/book.json' }).html
     assert_includes html, 'data-dv-source-expected="true"'
     assert_includes html, 'data-file-uri="https://example.test/manifests/book.json"'
   end
 
   def test_browse_and_thumbnail_only_are_not_source_producers
-    browse = DigitalFixture.new('browse' => true, 'representative' => { 'file_uri' => 'https://example.test/thumb.jpg',
-      'derived_from' => 'https://example.test/manifests/book.json' }).html
+    browse = DigitalFixture.new(
+      'browse' => true,
+      'representative' => {
+        'file_uri' => 'https://example.test/thumb.jpg',
+        'derived_from' => 'https://example.test/manifests/book.json'
+      }
+    ).html
     assert_includes browse, 'data-dv-browse-only="true"'
     refute_includes browse, 'data-file-uri='
     thumb = DigitalFixture.new('files' => [{ 'thumb' => 'https://example.test/thumb.jpg' }]).html
@@ -137,7 +147,8 @@ class SourceAttributeContractTest < Minitest::Test
   end
 
   def test_additional_versions_supply_explicit_source
-    html = DigitalFixture.new('additional' => true, 'files' => [{ 'file_uri' => 'https://example.test/document.pdf' }]).html
+    html = DigitalFixture.new('additional' => true,
+                              'files' => [{ 'file_uri' => 'https://example.test/document.pdf' }]).html
     assert_includes html, 'data-dv-source-expected="true"'
     assert_includes html, 'data-file-uri="https://example.test/document.pdf"'
   end

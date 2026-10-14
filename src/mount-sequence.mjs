@@ -14,6 +14,7 @@ export function getContainerViewerOptions(container) {
   };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function createMountSequence({ lifecycle, mountDescriptor, reportFailure }) {
   const { createAttempt, disposeAttempt, isAttemptActive, scheduleAttemptTimeout, clearAttemptTimeout } = lifecycle;
 

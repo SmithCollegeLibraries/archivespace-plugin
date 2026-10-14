@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 // Deterministic real-browser keyboard and document-subscription cleanup checks.
+// eslint-disable-next-line max-lines-per-function
 export async function runViewerLifecycleChecks(browser, pluginRoot) {
   const results = [];
   const context = await browser.newContext();

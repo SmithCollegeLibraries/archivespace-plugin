@@ -30,7 +30,7 @@
     if (/^\/(?!\/)/.test(trimmed)) return trimmed.replace(/\/$/, "");
     try {
       parsed = new URL(trimmed);
-    } catch (err) {
+    } catch (e) {
       return "";
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
@@ -41,7 +41,7 @@
     if (typeof baseUrl !== "string" || !baseUrl.trim()) return "";
     try {
       parsed = new URL(baseUrl.trim());
-    } catch (err) {
+    } catch (e) {
       return "";
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
@@ -175,10 +175,10 @@
       return normalized + "/info.json";
     }
     var identifier = normalized.slice(pos + marker.length);
-    var decoded = "";
+    var decoded;
     try {
       decoded = decodeURIComponent(identifier);
-    } catch (err) {
+    } catch (e) {
       decoded = identifier;
     }
     var fileMarker = "/system/files/";
@@ -190,7 +190,7 @@
     var s3Key = decoded.slice(filePos + fileMarker.length);
     try {
       s3Key = decodeURIComponent(s3Key);
-    } catch (err2) {
+    } catch (e) {
     }
     return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
   }
@@ -644,14 +644,14 @@
       }
       try {
         if (attempt.viewer) disposeViewer(attempt.viewer);
-      } catch (err) {
+      } catch (e) {
       }
       cleanups = (attempt.cleanups || []).slice();
       attempt.cleanups = [];
       cleanups.forEach(function(cleanup) {
         try {
           cleanup();
-        } catch (err) {
+        } catch (e) {
         }
       });
     }
@@ -721,7 +721,6 @@
 
   // src/controls.mjs
   function createControls({ document: document2, isAttemptActive, registerAttemptCleanup }) {
-    var IMAGE_ADJUSTMENT_STEP = 20;
     var DEFAULT_IMAGE_ADJUSTMENTS = {
       brightness: 100,
       contrast: 100,
@@ -788,11 +787,6 @@
       if (!target) return;
       target.style.filter = filterValue;
       target.style.webkitFilter = filterValue;
-    }
-    function adjustViewerImageSetting(viewer, key, delta) {
-      var adjustments = getViewerImageAdjustments(viewer);
-      adjustments[key] = clamp(adjustments[key] + delta, 0, 200);
-      applyViewerImageAdjustments(viewer);
     }
     function setViewerImageSetting(viewer, key, value) {
       var adjustments = getViewerImageAdjustments(viewer);
@@ -1375,7 +1369,7 @@
         var request;
         try {
           request = fetch(url, { cache: "force-cache", signal: attempt && attempt.controller ? attempt.controller.signal : void 0 });
-        } catch (err) {
+        } catch (e) {
           delete warmed[url];
           return;
         }
@@ -2078,7 +2072,7 @@
         var root;
         try {
           root = findGroupRoot(item.anchor);
-        } catch (err) {
+        } catch (e) {
           if (onDiscoveryError) onDiscoveryError();
           return;
         }
@@ -2203,7 +2197,7 @@
     var normalizedUri = fileUri.replace(/^\/\//, "https://");
     try {
       uriUrl = new URL(normalizedUri);
-    } catch (err) {
+    } catch (e) {
       uriUrl = null;
     }
     var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
@@ -2396,10 +2390,10 @@
         groups.forEach(function(group) {
           try {
             mountGroup(group, layoutKind);
-          } catch (err) {
+          } catch (e) {
             try {
               disposeMountState(group.root && group.root.__dvMountState);
-            } catch (cleanupError) {
+            } catch (e2) {
             }
             console2.warn("[digital_viewer] stage=startup code=group-unavailable");
           }
@@ -2611,4 +2605,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=ff24077883c617d9393b1c9919b6af8900337d3c53f93848198e71c2d9f25e42
+//# sourceMappingURL=digital_viewer.js.map?v=67f83d7192d42c2b0898062ce485f96db85a08eaa7b3e7c15066644e762545cd

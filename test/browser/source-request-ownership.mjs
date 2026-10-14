@@ -1,6 +1,7 @@
 // Pass a Playwright Page and the plugin's absolute root. No ASpace, external
 // content, or dependency installation is needed; all HTTP responses are local
 // route fixtures. This exercises the unmodified plugin and vendored OSD build.
+// eslint-disable-next-line max-lines-per-function
 export async function runSourceRequestOwnership(page, pluginRoot) {
   const results = [];
   const origin = 'http://digital-viewer.test';

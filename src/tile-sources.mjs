@@ -12,6 +12,7 @@ export function isUnavailableTileSource(tileSource) {
   return !!(tileSource && tileSource.unavailable);
 }
 
+// eslint-disable-next-line complexity
 export function buildThumbnailUrl(tileSource) {
   var infoUrl;
 

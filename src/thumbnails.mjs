@@ -1,9 +1,11 @@
 import { buildThumbnailUrl } from './tile-sources.mjs';
 
+// eslint-disable-next-line max-lines-per-function
 export function createThumbnails({ document, IntersectionObserver, setTimeout, clearTimeout,
   isAttemptActive, registerAttemptCleanup, warmSequenceCache }) {
   var THUMBNAIL_TIMEOUT_MS = 10000;
 
+  // eslint-disable-next-line max-lines-per-function
   function addThumbnailCarousel(container, viewer, tileSources, options) {
     var carousel = document.createElement('div');
     var prevBtn = document.createElement('button');

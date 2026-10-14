@@ -19,6 +19,7 @@ function pdfFixture() {
 
 // The actual ERB is rendered with documented helper substitutes, not Rails.
 // All browser responses are intercepted. No ASpace or external URLs are used.
+// eslint-disable-next-line complexity, max-lines-per-function
 export async function runFallbackAccessChecks(browser, pluginRoot) {
   const results = [];
   const scenarios = ['no-js', 'viewer-blocked', 'osd-blocked', 'config-absent', 'content-blocked', 'init-failed', 'working'];
@@ -34,6 +35,7 @@ export async function runFallbackAccessChecks(browser, pluginRoot) {
           });
           const config = scenario === 'config-absent' ? '' : '<script>window.DigitalViewer={cantaloupeBaseUrl:"",compassBaseUrl:"",loadingTimeoutMs:100};</script>';
           const failure = scenario === 'init-failed' ? '<script>const originalAssign=Object.assign; Object.assign=function(){Object.assign=originalAssign; throw new Error("fixture init failure");};</script>' : '';
+          // eslint-disable-next-line complexity
           await context.route('**/*', async route => {
             const request = route.request();
             const path = new URL(request.url()).pathname;
@@ -106,6 +108,7 @@ export async function runFallbackAccessChecks(browser, pluginRoot) {
 }
 
 // Real local Rails rendering. Does not create/edit records or assert hosted readiness.
+// eslint-disable-next-line complexity
 export async function runLocalFallbackChecks(browser, base = 'http://localhost:18081') {
   const fixtures = ['digital_objects/863', 'archival_objects/4097', 'digital_objects/876',
     'archival_objects/4106', 'digital_objects/871', 'digital_objects/874', 'digital_objects/879', 'archival_objects/4109', 'archival_objects/4110'];

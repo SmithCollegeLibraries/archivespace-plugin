@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 // Capture DOM readiness in the fixture; execute the unmodified generated bundle.
+// eslint-disable-next-line max-lines-per-function
 export async function runStartupChecks(browser, pluginRoot) {
   const results=[];
   const origin='http://startup.test';
