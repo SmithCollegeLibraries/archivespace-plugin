@@ -1261,6 +1261,45 @@ test('page-level source failures use active request ownership without an image',
   assert.equal(container.querySelector('.dv-tile-error-msg').getAttribute('data-page-index'), '1');
 });
 
+async function assertStalePageEventsIgnored(t, sources, staleEvents) {
+  const { viewer, container, requests, mounting } = makeSourceOpenHarness(t, sources);
+  requests[0].succeed();
+  await mounting;
+  const firstImage = viewer.world.getItemAt(0);
+  viewer.goToPage(1);
+  requests.at(-1).succeed();
+
+  for (const [name, data] of staleEvents(firstImage)) {
+    viewer.emit('tile-load-failed', data);
+    assert.equal(container.querySelector('.dv-tile-error-msg'), null, name);
+  }
+  viewer.emit('tile-load-failed', {});
+  assert.equal(container.querySelector('.dv-tile-error-msg')?.getAttribute('data-page-index'), '1');
+}
+
+test('page error events retain known tiled image, page, item and source identities', async function (t) {
+  await assertStalePageEventsIgnored(t, ['page-a', 'page-b'], function (firstImage) {
+    return [
+      ['retired tiled image', { tiledImage: firstImage }],
+      ['retired tile image', { tile: { tiledImage: firstImage } }],
+      ['unknown tiled image', { tiledImage: {} }],
+      ['page index', { page: 0 }],
+      ['source index', { source: { index: 0 } }],
+      ['item index', { item: { index: 0 } }],
+      ['item source index', { item: { source: { index: 0 } } }],
+      ['source string', { source: 'page-a' }],
+      ['source URL', { source: { url: 'page-a' } }],
+      ['tile source string', { tileSource: 'page-a' }],
+    ];
+  });
+});
+
+test('page error events match object tile sources by URL', async function (t) {
+  await assertStalePageEventsIgnored(t, [{ url: 'page-a' }, { url: 'page-b' }], function () {
+    return [['object tile source URL', { source: 'page-a' }]];
+  });
+});
+
 for (const replacementOpened of [false, true]) {
   test(`same-source retired failures are ignored ${replacementOpened ? 'after' : 'before'} replacement opens`, async function (t) {
     const { viewer, container, requests, mounting } = makeSourceOpenHarness(t);
