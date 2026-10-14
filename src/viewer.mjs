@@ -1,398 +1,305 @@
 import { getLoadingTimeout } from './config.mjs';
 import { getTileSourceValue, isUnavailableTileSource, buildThumbnailUrl } from './tile-sources.mjs';
+import { createPageErrors } from './viewer-page-errors.mjs';
 
-// eslint-disable-next-line max-lines-per-function
-export function createViewer({ document, OpenSeadragon, setTimeout, clearTimeout, resetContainer,
-  showLoadingNotice, clearLoadingNotice, isAttemptActive, disposeViewer, registerAttemptCleanup,
-  addControls, addPageNav, addViewerModeActions, addThumbnailCarousel, warmSequenceCache, primeResourceUrl }) {
-  // eslint-disable-next-line max-lines-per-function
-  function mountOsdViewer(container, tileSources, options) {
-    var openPromise;
-    var mountOptions = options || {};
-    var tileTimerId = null;
-    var firstTileReady = false;
-    var attempt = mountOptions.attempt;
-    var activePageIndex = 0;
-    var pageErrorMessage = null;
-    var pageErrorState = null;
-    var imagePageOwners = [];
-    var currentTiledImage = null;
-    var activeSourceRequest = null;
-    var viewerDisposed = false;
-    resetContainer(container);
-    container.classList.add('dv-active');
+export function createViewer(dependencies) {
+  return {
+    mountOsdViewer: function (container, tileSources, options) {
+      return mountOsdViewer(dependencies, container, tileSources, options);
+    },
+  };
+}
 
-    var osdEl = document.createElement('div');
-    osdEl.className = 'dv-osd';
-    container.appendChild(osdEl);
+function createMountState(dependencies, container, tileSources, options) {
+  var mountOptions = options || {};
+  var state = {
+    container: container,
+    tileSources: tileSources,
+    mountOptions: mountOptions,
+    attempt: mountOptions.attempt,
+    activePageIndex: 0,
+    firstTileReady: false,
+    pageErrorMessage: null,
+    pageErrorState: null,
+    imagePageOwners: [],
+    currentTiledImage: null,
+    activeSourceRequest: null,
+    viewerDisposed: false,
+    tileTimerId: null,
+    settled: false,
+    timeoutId: null,
+  };
+  var osdElement;
 
-    var isSequence = Array.isArray(tileSources) && tileSources.length > 1;
-    var osdTileSources = isSequence
-      ? tileSources.map(getTileSourceValue)
-      : getTileSourceValue(tileSources);
+  dependencies.resetContainer(container);
+  container.classList.add('dv-active');
+  osdElement = dependencies.document.createElement('div');
+  osdElement.className = 'dv-osd';
+  container.appendChild(osdElement);
+  state.osdElement = osdElement;
+  state.isSequence = Array.isArray(tileSources) && tileSources.length > 1;
+  state.osdTileSources = state.isSequence
+    ? tileSources.map(getTileSourceValue)
+    : getTileSourceValue(tileSources);
+  state.viewer = dependencies.OpenSeadragon(createOpenSeadragonOptions(osdElement, state.isSequence));
+  if (state.attempt) state.attempt.viewer = state.viewer;
+  state.pageErrors = createPageErrors(state, dependencies.document);
+  return state;
+}
 
-    var viewer = OpenSeadragon({
-      element: osdEl,
-      sequenceMode: isSequence,
-      initialPage: 0,
-      showNavigationControl: false,
-      showSequenceControl: false,   // we use our own prev/next buttons
-      prefixUrl: '',                // suppress OSD's built-in image loading
-      defaultZoomLevel: 0,
-      minZoomLevel: 0.05,
-      animationTime: 0.3,
-      gestureSettingsMouse: { scrollToZoom: true, dblClickToZoom: true },
-      crossOriginPolicy: 'Anonymous',
+function createOpenSeadragonOptions(element, isSequence) {
+  return {
+    element: element,
+    sequenceMode: isSequence,
+    initialPage: 0,
+    showNavigationControl: false,
+    showSequenceControl: false,
+    prefixUrl: '',
+    defaultZoomLevel: 0,
+    minZoomLevel: 0.05,
+    animationTime: 0.3,
+    gestureSettingsMouse: { scrollToZoom: true, dblClickToZoom: true },
+    crossOriginPolicy: 'Anonymous',
+  };
+}
+
+function mountOsdViewer(dependencies, container, tileSources, options) {
+  var state = createMountState(dependencies, container, tileSources, options);
+  var openPromise = createOpenPromise(dependencies, state);
+  addMountedViewerControls(dependencies, state);
+  return openPromise;
+}
+
+function createOpenPromise(dependencies, state) {
+  return new Promise(function (resolve, reject) {
+    state.resolveOpen = resolve;
+    state.rejectOpen = reject;
+    startOpenDeadline(dependencies, state);
+    registerSourceRequestGuard(dependencies, state);
+    registerViewerEvents(dependencies, state);
+    dependencies.registerAttemptCleanup(state.attempt, function () {
+      settleOpenFailure(dependencies, state, new Error('ATTEMPT_DISPOSED'));
     });
-    if (attempt) attempt.viewer = viewer;
+    openViewer(state, dependencies);
+  });
+}
 
-    // eslint-disable-next-line max-lines-per-function
-    openPromise = new Promise(function (resolve, reject) {
-      var settled = false;
-      var timeoutId = null;
-
-      if (!attempt) {
-        timeoutId = setTimeout(function () {
-          if (settled) return;
-          if (mountOptions.allowFallbackOnTimeout) {
-            settled = true;
-            disposeViewer(viewer);
-            reject(new Error('OSD_TIMEOUT'));
-          } else {
-            showLoadingNotice(container);
-          }
-        }, getLoadingTimeout(mountOptions));
-      }
-
-      function settleOpen() {
-        if (settled) {
-          if (isUnavailableTileSource(tileSources[activePageIndex])) {
-            showPageError({ page: activePageIndex });
-          }
-          return;
-        }
-        settled = true;
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        clearLoadingNotice(container);
-        resolve(viewer);
-        // Let companion plugins attach image-coordinate overlays to the open image.
-        if (document.defaultView && document.defaultView.CustomEvent && container.dispatchEvent) {
-          container.dispatchEvent(new document.defaultView.CustomEvent('digital-viewer:open', {
-            bubbles: true, detail: { viewer: viewer }
-          }));
-        }
-        if (isUnavailableTileSource(tileSources[activePageIndex])) {
-          showPageError({ page: activePageIndex });
-        }
-        if (!firstTileReady) {
-          tileTimerId = setTimeout(function () {
-            if (!firstTileReady) showLoadingNotice(container);
-          }, getLoadingTimeout(mountOptions));
-        }
-      }
-
-      function settleOpenFailure(error) {
-        if (settled) return;
-        settled = true;
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        disposeViewer(viewer);
-        reject(error || new Error('OSD_OPEN_FAILED'));
-      }
-
-      function getCurrentTiledImage() {
-        var tiledImage;
-
-        if (!viewer.world || typeof viewer.world.getItemAt !== 'function') return null;
-        tiledImage = viewer.world.getItemAt(0) || null;
-        if (!tiledImage) currentTiledImage = null;
-        return tiledImage;
-      }
-
-      function rememberCurrentTiledImage(pageIndex) {
-        var tiledImage = getCurrentTiledImage();
-        var owner;
-        var changed;
-
-        if (!tiledImage) {
-          currentTiledImage = null;
-          return null;
-        }
-        changed = currentTiledImage !== tiledImage;
-        currentTiledImage = tiledImage;
-        owner = imagePageOwners.filter(function (entry) {
-          return entry.tiledImage === tiledImage;
-        })[0];
-        if (!owner) {
-          owner = { tiledImage: tiledImage, pageIndex: pageIndex };
-          imagePageOwners.push(owner);
-        }
-        if (changed) clearPageErrorForReload(pageIndex, tiledImage);
-        return tiledImage;
-      }
-
-      // eslint-disable-next-line complexity
-      function sourcePageIndex(source) {
-        var index;
-        var candidate;
-
-        if (!source) return null;
-        for (index = 0; index < osdTileSources.length; index += 1) {
-          candidate = osdTileSources[index];
-          if (candidate === source) return index;
-          if (typeof candidate === 'string' && typeof source === 'string' && candidate === source) return index;
-          if (candidate && source && candidate.url && source.url && candidate.url === source.url) return index;
-          if (candidate && candidate.url && typeof source === 'string' && candidate.url === source) return index;
-          if (typeof candidate === 'string' && source && source.url && candidate === source.url) return index;
-        }
-        return null;
-      }
-
-      // eslint-disable-next-line complexity, max-lines-per-function
-      function eventPageInfo(data) {
-        var tiledImage = data && (data.tiledImage || (data.tile && data.tile.tiledImage));
-        var source = data && (data.source || data.tileSource);
-        var actualCurrentTiledImage = getCurrentTiledImage();
-        var owner;
-        var index;
-
-        if (tiledImage) {
-          owner = imagePageOwners.filter(function (entry) {
-            return entry.tiledImage === tiledImage;
-          })[0];
-          if (owner) {
-            return {
-              pageIndex: owner.pageIndex,
-              current: tiledImage === actualCurrentTiledImage && owner.pageIndex === activePageIndex,
-              tiledImage: tiledImage,
-              tile: data && data.tile,
-            };
-          }
-          if (tiledImage === actualCurrentTiledImage) {
-            rememberCurrentTiledImage(activePageIndex);
-            return {
-              pageIndex: activePageIndex,
-              current: true,
-              tiledImage: tiledImage,
-              tile: data && data.tile,
-            };
-          }
-          return null;
-        }
-        if (data && typeof data.page === 'number') {
-          return {
-            pageIndex: data.page,
-            current: data.page === activePageIndex && !!actualCurrentTiledImage,
-            tiledImage: actualCurrentTiledImage,
-            tile: data.tile,
-          };
-        }
-        if (data && data.source && typeof data.source.index === 'number') {
-          return {
-            pageIndex: data.source.index,
-            current: data.source.index === activePageIndex && !!actualCurrentTiledImage,
-            tiledImage: actualCurrentTiledImage,
-            tile: data.tile,
-          };
-        }
-        if (data && data.item && typeof data.item.index === 'number') {
-          return {
-            pageIndex: data.item.index,
-            current: data.item.index === activePageIndex && !!actualCurrentTiledImage,
-            tiledImage: actualCurrentTiledImage,
-            tile: data.tile,
-          };
-        }
-        if (data && data.item && data.item.source && typeof data.item.source.index === 'number') {
-          return {
-            pageIndex: data.item.source.index,
-            current: data.item.source.index === activePageIndex && !!actualCurrentTiledImage,
-            tiledImage: actualCurrentTiledImage,
-            tile: data.tile,
-          };
-        }
-        index = sourcePageIndex(source);
-        if (index !== null) {
-          return {
-            pageIndex: index,
-            current: index === activePageIndex && !!actualCurrentTiledImage,
-            tiledImage: actualCurrentTiledImage,
-            tile: data && data.tile,
-          };
-        }
-        return {
-          pageIndex: activePageIndex,
-          current: !!actualCurrentTiledImage,
-          tiledImage: actualCurrentTiledImage,
-          tile: data && data.tile,
-        };
-      }
-
-      function removePageError() {
-        if (pageErrorMessage && pageErrorMessage.parentNode) pageErrorMessage.parentNode.removeChild(pageErrorMessage);
-        pageErrorMessage = null;
-        pageErrorState = null;
-      }
-
-      function clearPageErrorForReload(pageIndex, tiledImage) {
-        if (!pageErrorState || pageErrorState.pageIndex !== pageIndex || !tiledImage) return;
-        if (pageErrorState.tiledImage !== tiledImage) removePageError();
-      }
-
-      // eslint-disable-next-line complexity
-      function clearPageError(data, info) {
-        var failedTileIndex;
-
-        info = info || eventPageInfo(data);
-        if (!pageErrorState || !info || info.pageIndex !== pageErrorState.pageIndex || info.current === false) return;
-        if (pageErrorState.tiledImage && info.tiledImage && pageErrorState.tiledImage !== info.tiledImage) return;
-        if (pageErrorState.requiresReload) return;
-        if (info.tile) {
-          failedTileIndex = pageErrorState.tiles.indexOf(info.tile);
-          if (failedTileIndex !== -1) pageErrorState.tiles.splice(failedTileIndex, 1);
-          if (pageErrorState.tiles.length > 0) return;
-        }
-        removePageError();
-      }
-
-      // eslint-disable-next-line complexity
-      function showPageError(data, options) {
-        var info = eventPageInfo(data);
-        var message;
-
-        if (!info || info.pageIndex === null || info.pageIndex !== activePageIndex) return;
-        if (info.current === false && !(options && options.allowWithoutImage)) return;
-        if (!pageErrorState || pageErrorState.pageIndex !== info.pageIndex ||
-            (pageErrorState.tiledImage && info.tiledImage && pageErrorState.tiledImage !== info.tiledImage)) {
-          pageErrorState = {
-            pageIndex: info.pageIndex,
-            tiledImage: info.tiledImage || currentTiledImage,
-            tiles: [],
-            requiresReload: false,
-          };
-        }
-        if (info.tile && pageErrorState.tiles.indexOf(info.tile) === -1) pageErrorState.tiles.push(info.tile);
-        if (!info.tile) pageErrorState.requiresReload = true;
-        if (pageErrorMessage) return;
-        message = document.createElement('p');
-        message.className = 'dv-tile-error-msg';
-        message.setAttribute('data-page-index', String(info.pageIndex));
-        message.textContent = 'This page is unavailable.';
-        container.appendChild(message);
-        pageErrorMessage = message;
-      }
-
-      function isCurrentSourceRequest(request) {
-        return !viewerDisposed && isAttemptActive(attempt) && request &&
-          request === activeSourceRequest && request.pageIndex === activePageIndex;
-      }
-
-      // OSD 5.0.1 creates fresh addTiledImage options for every sequence open
-      // and returns that same options object in metadata error events. Guard
-      // its callbacks before they can raise open/open-failed (including OSD's
-      // own error UI); a URL or page index cannot identify a repeated request.
-      var addTiledImage = viewer.addTiledImage;
-      viewer.addTiledImage = function (options) {
-        var requestOptions = Object.assign({}, options);
-        var request = {
-          options: requestOptions,
-          pageIndex: typeof viewer.currentPage === 'function' ? viewer.currentPage() : activePageIndex,
-          completed: false,
-        };
-
-        // goToPage sets currentPage before open, but raises page afterwards.
-        activePageIndex = request.pageIndex;
-        activeSourceRequest = request;
-
-        function guardCallback(callback) {
-          return function () {
-            if (!isCurrentSourceRequest(request) || request.completed) return;
-            request.completed = true;
-            if (typeof callback === 'function') return callback.apply(this, arguments);
-          };
-        }
-
-        requestOptions.success = guardCallback(options.success);
-        requestOptions.error = guardCallback(options.error);
-        return addTiledImage.call(this, requestOptions);
-      };
-
-      viewer.addHandler('open', function () {
-        if (!isAttemptActive(attempt)) return;
-        rememberCurrentTiledImage(activePageIndex);
-        settleOpen();
-      });
-      viewer.addHandler('open-failed', function (data) {
-        if (!isCurrentSourceRequest(activeSourceRequest) || !data ||
-            data.options !== activeSourceRequest.options) return;
-        rememberCurrentTiledImage(activePageIndex);
-        if (settled) showPageError({ page: activeSourceRequest.pageIndex }, { allowWithoutImage: true });
-        else settleOpenFailure(new Error('OSD_OPEN_FAILED'));
-      });
-      viewer.addHandler('close', function () {
-        currentTiledImage = null;
-        activeSourceRequest = null;
-      });
-      viewer.addHandler('page', function (data) {
-        if (!isAttemptActive(attempt)) return;
-        if (!data || typeof data.page !== 'number') return;
-        activePageIndex = data.page;
-        rememberCurrentTiledImage(activePageIndex);
-        removePageError();
-        if (isUnavailableTileSource(tileSources[activePageIndex])) {
-          showPageError({ page: activePageIndex }, { allowWithoutImage: true });
-        }
-      });
-      viewer.addHandler('tile-ready', function (data) {
-        var info;
-
-        if (!isAttemptActive(attempt)) return;
-        info = eventPageInfo(data);
-        if (!info || info.pageIndex === null || info.current === false) return;
-        firstTileReady = true;
-        if (tileTimerId !== null) clearTimeout(tileTimerId);
-        clearLoadingNotice(container);
-        if (!isUnavailableTileSource(tileSources[info.pageIndex])) clearPageError(data, info);
-      });
-      viewer.addHandler('tile-load-failed', function (data) {
-        if (!isAttemptActive(attempt)) return;
-        showPageError(data);
-      });
-      viewer.addHandler('before-destroy', function () {
-        viewerDisposed = true;
-        activeSourceRequest = null;
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        if (!settled) {
-          settled = true;
-          reject(new Error('ATTEMPT_DISPOSED'));
-        }
-        if (tileTimerId !== null) clearTimeout(tileTimerId);
-      });
-      registerAttemptCleanup(attempt, function () {
-        settleOpenFailure(new Error('ATTEMPT_DISPOSED'));
-      });
-
-      try {
-        viewer.open(osdTileSources);
-      } catch (err) {
-        settleOpenFailure(err);
-      }
-    });
-
-    addControls(osdEl, viewer, mountOptions);
-    addViewerModeActions(container, viewer, tileSources, mountOptions);
-    if (isSequence) {
-      addPageNav(container, viewer, tileSources.length, mountOptions);
-      addThumbnailCarousel(container, viewer, tileSources, mountOptions);
-      warmSequenceCache(tileSources, 0, mountOptions);
-      viewer.addHandler('page', function (data) {
-        if (!isAttemptActive(attempt)) return;
-        warmSequenceCache(tileSources, data.page, mountOptions);
-      });
-    } else if (buildThumbnailUrl(tileSources)) {
-      primeResourceUrl(buildThumbnailUrl(tileSources), false, mountOptions);
+function startOpenDeadline(dependencies, state) {
+  if (state.attempt) return;
+  state.timeoutId = dependencies.setTimeout(function () {
+    if (state.settled) return;
+    if (state.mountOptions.allowFallbackOnTimeout) {
+      state.settled = true;
+      dependencies.disposeViewer(state.viewer);
+      state.rejectOpen(new Error('OSD_TIMEOUT'));
+      return;
     }
-    return openPromise;
-  }
+    dependencies.showLoadingNotice(state.container);
+  }, getLoadingTimeout(state.mountOptions));
+}
 
-  return { mountOsdViewer };
+function settleOpen(dependencies, state) {
+  if (state.settled) {
+    showUnavailablePage(state, state.activePageIndex);
+    return;
+  }
+  state.settled = true;
+  clearOpenDeadline(dependencies, state);
+  dependencies.clearLoadingNotice(state.container);
+  state.resolveOpen(state.viewer);
+  dispatchViewerOpenEvent(dependencies, state);
+  showUnavailablePage(state, state.activePageIndex);
+  startTileDeadline(dependencies, state);
+}
+
+function showUnavailablePage(state, pageIndex, allowWithoutImage) {
+  if (isUnavailableTileSource(state.tileSources[pageIndex])) {
+    state.pageErrors.showPageError({ page: pageIndex }, allowWithoutImage ? { allowWithoutImage: true } : undefined);
+  }
+}
+
+function clearOpenDeadline(dependencies, state) {
+  if (state.timeoutId !== null) dependencies.clearTimeout(state.timeoutId);
+}
+
+function dispatchViewerOpenEvent(dependencies, state) {
+  var window = dependencies.document.defaultView;
+  if (!window || !window.CustomEvent || !state.container.dispatchEvent) return;
+  state.container.dispatchEvent(new window.CustomEvent('digital-viewer:open', {
+    bubbles: true,
+    detail: { viewer: state.viewer },
+  }));
+}
+
+function startTileDeadline(dependencies, state) {
+  if (state.firstTileReady) return;
+  state.tileTimerId = dependencies.setTimeout(function () {
+    if (!state.firstTileReady) dependencies.showLoadingNotice(state.container);
+  }, getLoadingTimeout(state.mountOptions));
+}
+
+function settleOpenFailure(dependencies, state, error) {
+  if (state.settled) return;
+  state.settled = true;
+  clearOpenDeadline(dependencies, state);
+  dependencies.disposeViewer(state.viewer);
+  state.rejectOpen(error || new Error('OSD_OPEN_FAILED'));
+}
+
+function openViewer(state, dependencies) {
+  try {
+    state.viewer.open(state.osdTileSources);
+  } catch (error) {
+    settleOpenFailure(dependencies, state, error);
+  }
+}
+
+function isCurrentSourceRequest(dependencies, state, request) {
+  return !state.viewerDisposed && dependencies.isAttemptActive(state.attempt) && request &&
+    request === state.activeSourceRequest && request.pageIndex === state.activePageIndex;
+}
+
+function guardSourceCallback(dependencies, state, request, callback) {
+  return function () {
+    if (!isCurrentSourceRequest(dependencies, state, request) || request.completed) return;
+    request.completed = true;
+    if (typeof callback === 'function') return callback.apply(this, arguments);
+  };
+}
+
+function wrapTiledImageRequest(dependencies, state, addTiledImage, options) {
+  var requestOptions = Object.assign({}, options);
+  var request = {
+    options: requestOptions,
+    pageIndex: typeof state.viewer.currentPage === 'function' ? state.viewer.currentPage() : state.activePageIndex,
+    completed: false,
+  };
+
+  state.activePageIndex = request.pageIndex;
+  state.activeSourceRequest = request;
+  requestOptions.success = guardSourceCallback(dependencies, state, request, options.success);
+  requestOptions.error = guardSourceCallback(dependencies, state, request, options.error);
+  return addTiledImage.call(state.viewer, requestOptions);
+}
+
+function registerSourceRequestGuard(dependencies, state) {
+  var addTiledImage = state.viewer.addTiledImage;
+  state.viewer.addTiledImage = function (options) {
+    return wrapTiledImageRequest(dependencies, state, addTiledImage, options);
+  };
+}
+
+function handleOpen(dependencies, state) {
+  if (!dependencies.isAttemptActive(state.attempt)) return;
+  state.pageErrors.rememberCurrentTiledImage(state.activePageIndex);
+  settleOpen(dependencies, state);
+}
+
+function handleOpenFailed(dependencies, state, data) {
+  if (!isCurrentSourceRequest(dependencies, state, state.activeSourceRequest) || !data ||
+      data.options !== state.activeSourceRequest.options) return;
+  state.pageErrors.rememberCurrentTiledImage(state.activePageIndex);
+  if (state.settled) {
+    state.pageErrors.showPageError({ page: state.activeSourceRequest.pageIndex }, { allowWithoutImage: true });
+  } else {
+    settleOpenFailure(dependencies, state, new Error('OSD_OPEN_FAILED'));
+  }
+}
+
+function handlePage(dependencies, state, data) {
+  if (!dependencies.isAttemptActive(state.attempt) || !data || typeof data.page !== 'number') return;
+  state.activePageIndex = data.page;
+  state.pageErrors.rememberCurrentTiledImage(state.activePageIndex);
+  state.pageErrors.removePageError();
+  showUnavailablePage(state, state.activePageIndex, true);
+}
+
+function handleTileReady(dependencies, state, data) {
+  var info;
+  if (!dependencies.isAttemptActive(state.attempt)) return;
+  info = state.pageErrors.eventPageInfo(data);
+  if (!info || info.pageIndex === null || info.current === false) return;
+  state.firstTileReady = true;
+  clearTileDeadline(dependencies, state);
+  dependencies.clearLoadingNotice(state.container);
+  if (!isUnavailableTileSource(state.tileSources[info.pageIndex])) {
+    state.pageErrors.clearPageError(data, info);
+  }
+}
+
+function clearTileDeadline(dependencies, state) {
+  if (state.tileTimerId !== null) dependencies.clearTimeout(state.tileTimerId);
+}
+
+function handleTileLoadFailed(dependencies, state, data) {
+  if (dependencies.isAttemptActive(state.attempt)) state.pageErrors.showPageError(data);
+}
+
+function handleViewerClose(state) {
+  state.currentTiledImage = null;
+  state.activeSourceRequest = null;
+}
+
+function handleBeforeDestroy(dependencies, state) {
+  state.viewerDisposed = true;
+  state.activeSourceRequest = null;
+  clearOpenDeadline(dependencies, state);
+  if (!state.settled) {
+    state.settled = true;
+    state.rejectOpen(new Error('ATTEMPT_DISPOSED'));
+  }
+  clearTileDeadline(dependencies, state);
+}
+
+function registerViewerEvents(dependencies, state) {
+  state.viewer.addHandler('open', function () {
+    handleOpen(dependencies, state);
+  });
+  state.viewer.addHandler('open-failed', function (data) {
+    handleOpenFailed(dependencies, state, data);
+  });
+  state.viewer.addHandler('close', function () {
+    handleViewerClose(state);
+  });
+  state.viewer.addHandler('page', function (data) {
+    handlePage(dependencies, state, data);
+  });
+  state.viewer.addHandler('tile-ready', function (data) {
+    handleTileReady(dependencies, state, data);
+  });
+  state.viewer.addHandler('tile-load-failed', function (data) {
+    handleTileLoadFailed(dependencies, state, data);
+  });
+  state.viewer.addHandler('before-destroy', function () {
+    handleBeforeDestroy(dependencies, state);
+  });
+}
+
+function warmSequencePage(dependencies, state, data) {
+  if (!dependencies.isAttemptActive(state.attempt)) return;
+  dependencies.warmSequenceCache(state.tileSources, data.page, state.mountOptions);
+}
+
+function addMountedViewerControls(dependencies, state) {
+  dependencies.addControls(state.osdElement, state.viewer, state.mountOptions);
+  dependencies.addViewerModeActions(state.container, state.viewer, state.tileSources, state.mountOptions);
+  if (state.isSequence) {
+    addSequenceControls(dependencies, state);
+  } else {
+    primeSingleImageThumbnail(dependencies, state);
+  }
+}
+
+function addSequenceControls(dependencies, state) {
+  dependencies.addPageNav(state.container, state.viewer, state.tileSources.length, state.mountOptions);
+  dependencies.addThumbnailCarousel(state.container, state.viewer, state.tileSources, state.mountOptions);
+  dependencies.warmSequenceCache(state.tileSources, 0, state.mountOptions);
+  state.viewer.addHandler('page', function (data) {
+    warmSequencePage(dependencies, state, data);
+  });
+}
+
+function primeSingleImageThumbnail(dependencies, state) {
+  var thumbnailUrl = buildThumbnailUrl(state.tileSources);
+  if (thumbnailUrl) dependencies.primeResourceUrl(thumbnailUrl, false, state.mountOptions);
 }
