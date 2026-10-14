@@ -58,101 +58,99 @@ function rememberCurrentTiledImage(state, pageIndex) {
   return tiledImage;
 }
 
-// eslint-disable-next-line complexity
+function tileSourceMatches(candidate, source) {
+  var candidateUrl;
+  var sourceUrl;
+
+  if (candidate === source) return true;
+  if (!candidate || !source) return false;
+  candidateUrl = candidate.url;
+  sourceUrl = source.url;
+  if (candidateUrl && typeof source === 'string') return candidateUrl === source;
+  if (typeof candidate === 'string' && sourceUrl) return candidate === sourceUrl;
+  return !!candidateUrl && !!sourceUrl && candidateUrl === sourceUrl;
+}
+
 function sourcePageIndex(state, source) {
   var index;
-  var candidate;
 
   if (!source) return null;
   for (index = 0; index < state.osdTileSources.length; index += 1) {
-    candidate = state.osdTileSources[index];
-    if (candidate === source) return index;
-    if (typeof candidate === 'string' && typeof source === 'string' && candidate === source) return index;
-    if (candidate && source && candidate.url && source.url && candidate.url === source.url) return index;
-    if (candidate && candidate.url && typeof source === 'string' && candidate.url === source) return index;
-    if (typeof candidate === 'string' && source && source.url && candidate === source.url) return index;
+    if (tileSourceMatches(state.osdTileSources[index], source)) return index;
   }
   return null;
 }
 
-// eslint-disable-next-line complexity, max-lines-per-function
-function eventPageInfo(state, data) {
-  var tiledImage = data && (data.tiledImage || (data.tile && data.tile.tiledImage));
-  var source = data && (data.source || data.tileSource);
-  var actualCurrentTiledImage = getCurrentTiledImage(state);
+function pageInfoForTiledImage(state, data, tiledImage, currentImage) {
   var owner;
-  var index;
 
-  if (tiledImage) {
-    owner = state.imagePageOwners.filter(function (entry) {
-      return entry.tiledImage === tiledImage;
-    })[0];
-    if (owner) {
-      return {
-        pageIndex: owner.pageIndex,
-        current: tiledImage === actualCurrentTiledImage && owner.pageIndex === state.activePageIndex,
-        tiledImage: tiledImage,
-        tile: data && data.tile,
-      };
-    }
-    if (tiledImage === actualCurrentTiledImage) {
-      rememberCurrentTiledImage(state, state.activePageIndex);
-      return {
-        pageIndex: state.activePageIndex,
-        current: true,
-        tiledImage: tiledImage,
-        tile: data && data.tile,
-      };
-    }
-    return null;
+  if (!tiledImage) return undefined;
+  owner = findImageOwner(state, tiledImage);
+  if (owner) {
+    return createPageInfo(state, owner.pageIndex, currentImage, tiledImage, data && data.tile,
+      tiledImage === currentImage && owner.pageIndex === state.activePageIndex);
   }
-  if (data && typeof data.page === 'number') {
-    return {
-      pageIndex: data.page,
-      current: data.page === state.activePageIndex && !!actualCurrentTiledImage,
-      tiledImage: actualCurrentTiledImage,
-      tile: data.tile,
-    };
+  if (tiledImage !== currentImage) return null;
+  rememberCurrentTiledImage(state, state.activePageIndex);
+  return createPageInfo(state, state.activePageIndex, currentImage, tiledImage, data && data.tile, true);
+}
+
+function numericPageIndex(value) {
+  return typeof value === 'number' ? value : undefined;
+}
+
+function firstPageIndex(indexes) {
+  var index;
+  for (index = 0; index < indexes.length; index += 1) {
+    if (indexes[index] !== undefined) return indexes[index];
   }
-  if (data && data.source && typeof data.source.index === 'number') {
-    return {
-      pageIndex: data.source.index,
-      current: data.source.index === state.activePageIndex && !!actualCurrentTiledImage,
-      tiledImage: actualCurrentTiledImage,
-      tile: data.tile,
-    };
-  }
-  if (data && data.item && typeof data.item.index === 'number') {
-    return {
-      pageIndex: data.item.index,
-      current: data.item.index === state.activePageIndex && !!actualCurrentTiledImage,
-      tiledImage: actualCurrentTiledImage,
-      tile: data.tile,
-    };
-  }
-  if (data && data.item && data.item.source && typeof data.item.source.index === 'number') {
-    return {
-      pageIndex: data.item.source.index,
-      current: data.item.source.index === state.activePageIndex && !!actualCurrentTiledImage,
-      tiledImage: actualCurrentTiledImage,
-      tile: data.tile,
-    };
-  }
-  index = sourcePageIndex(state, source);
-  if (index !== null) {
-    return {
-      pageIndex: index,
-      current: index === state.activePageIndex && !!actualCurrentTiledImage,
-      tiledImage: actualCurrentTiledImage,
-      tile: data && data.tile,
-    };
-  }
+  return undefined;
+}
+
+function explicitPageIndex(data) {
+  return firstPageIndex([
+    numericPageIndex(data && data.page),
+    numericPageIndex(data && data.source && data.source.index),
+    numericPageIndex(data && data.item && data.item.index),
+    numericPageIndex(data && data.item && data.item.source && data.item.source.index),
+  ]);
+}
+
+function createPageInfo(state, pageIndex, currentImage, tiledImage, tile, isCurrentImage) {
   return {
-    pageIndex: state.activePageIndex,
-    current: !!actualCurrentTiledImage,
-    tiledImage: actualCurrentTiledImage,
-    tile: data && data.tile,
+    pageIndex: pageIndex,
+    current: isCurrentImage === undefined ? pageIndex === state.activePageIndex && !!currentImage : isCurrentImage,
+    tiledImage: tiledImage || currentImage,
+    tile: tile,
   };
+}
+
+function eventTiledImage(data) {
+  return data && (data.tiledImage || (data.tile && data.tile.tiledImage));
+}
+
+function eventSource(data) {
+  return data && (data.source || data.tileSource);
+}
+
+function sourcePageInfo(state, data, currentImage) {
+  var pageIndex = sourcePageIndex(state, eventSource(data));
+  if (pageIndex === null) return null;
+  return createPageInfo(state, pageIndex, currentImage, currentImage, data && data.tile);
+}
+
+function eventPageInfo(state, data) {
+  var currentImage = getCurrentTiledImage(state);
+  var info = pageInfoForTiledImage(state, data, eventTiledImage(data), currentImage);
+  var pageIndex;
+
+  if (info !== undefined) return info;
+  pageIndex = explicitPageIndex(data);
+  if (pageIndex !== undefined) {
+    return createPageInfo(state, pageIndex, currentImage, currentImage, data && data.tile);
+  }
+  return sourcePageInfo(state, data, currentImage) ||
+    createPageInfo(state, state.activePageIndex, currentImage, currentImage, data && data.tile);
 }
 
 function removePageError(state) {
