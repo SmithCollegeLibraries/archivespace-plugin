@@ -1296,7 +1296,11 @@ test('page error events retain known tiled image, page, item and source identiti
 
 test('page error events match object tile sources by URL', async function (t) {
   await assertStalePageEventsIgnored(t, [{ url: 'page-a' }, { url: 'page-b' }], function () {
-    return [['object tile source URL', { source: 'page-a' }]];
+    return [
+      ['object tile source string', { source: 'page-a' }],
+      ['object event source URL', { source: { url: 'page-a' } }],
+      ['object tile source URL', { tileSource: { url: 'page-a' } }],
+    ];
   });
 });
 
