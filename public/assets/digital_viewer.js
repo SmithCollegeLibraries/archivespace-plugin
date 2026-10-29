@@ -258,38 +258,23 @@
   }
 
   // src/adapters/direct.mjs
-  function createDirectAdapters({
-    document: document2,
-    setTimeout,
-    clearTimeout,
-    mountOsdViewer: mountOsdViewer2,
-    showError,
-    resetContainer,
-    addViewerModeActions,
-    showLoadingNotice,
-    clearLoadingNotice,
-    registerAttemptCleanup,
-    createFallbackLink
-  }) {
-    function mountCantaloupe(container, descriptor, mountOptions) {
-      return mountOsdViewer2(container, descriptor.infoUrl, mountOptions);
-    }
+  function createImageLoadWaiter(dependencies) {
     function waitForImageLoad(image, container, options) {
       return new Promise(function(resolve, reject) {
         var settled = false;
-        var timeoutId = setTimeout(function() {
+        var timeoutId = dependencies.setTimeout(function() {
           if (settled) return;
           if (options && options.allowFallbackOnTimeout) {
             finish(new Error("STATIC_IMAGE_TIMEOUT"));
           } else {
-            showLoadingNotice(container);
+            dependencies.showLoadingNotice(container);
           }
         }, getLoadingTimeout(options || {}));
         function finish(error) {
           if (settled) return;
           settled = true;
-          clearTimeout(timeoutId);
-          if (!error) clearLoadingNotice(container);
+          dependencies.clearTimeout(timeoutId);
+          if (!error) dependencies.clearLoadingNotice(container);
           if (error) {
             reject(error);
           } else {
@@ -302,128 +287,150 @@
         image.addEventListener("error", function() {
           finish(new Error("STATIC_IMAGE_FAILED"));
         });
-        registerAttemptCleanup(options && options.attempt, function() {
+        dependencies.registerAttemptCleanup(options && options.attempt, function() {
           finish(new Error("ATTEMPT_DISPOSED"));
         });
-        if (image.complete) {
-          if (typeof image.naturalWidth === "number" && image.naturalWidth === 0) {
-            finish(new Error("STATIC_IMAGE_FAILED"));
-          } else {
-            finish();
-          }
-        }
+        settleFromCachedImage(image, finish);
       });
     }
-    function mountStaticImage(container, descriptor, mountOptions) {
+    return waitForImageLoad;
+  }
+  function settleFromCachedImage(image, finish) {
+    if (!image.complete) return;
+    if (typeof image.naturalWidth === "number" && image.naturalWidth === 0) {
+      finish(new Error("STATIC_IMAGE_FAILED"));
+    } else {
+      finish();
+    }
+  }
+  function createStaticImageAdapter(dependencies, waitForImageLoad) {
+    return function mountStaticImage(container, descriptor, mountOptions) {
       var safeImageUrl = sanitizeUrl(descriptor.imageUrl);
       if (!safeImageUrl) {
-        showError(container, "Image not available (unsupported URL)");
+        dependencies.showError(container, "Image not available (unsupported URL)");
         return;
       }
-      resetContainer(container);
+      dependencies.resetContainer(container);
       container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
+      var wrap = dependencies.document.createElement("div");
       wrap.className = "dv-static-image";
-      var image = document2.createElement("img");
-      image.src = safeImageUrl;
-      image.alt = "Digital object image";
-      image.style.display = "block";
-      image.style.width = "100%";
-      image.style.height = "auto";
+      var image = createStaticImageElement(dependencies.document, safeImageUrl);
       wrap.appendChild(image);
       container.appendChild(wrap);
-      addViewerModeActions(container, null, [{ imageUrl: safeImageUrl, pageLabel: "Image view" }], mountOptions);
+      dependencies.addViewerModeActions(
+        container,
+        null,
+        [{ imageUrl: safeImageUrl, pageLabel: "Image view" }],
+        mountOptions
+      );
       return waitForImageLoad(image, container, mountOptions);
+    };
+  }
+  function createStaticImageElement(document2, safeImageUrl) {
+    var image = document2.createElement("img");
+    image.src = safeImageUrl;
+    image.alt = "Digital object image";
+    image.style.display = "block";
+    image.style.width = "100%";
+    image.style.height = "auto";
+    return image;
+  }
+  function createNativeMediaAdapters(dependencies) {
+    return {
+      mountVideoViewer: createNativeMediaAdapter(dependencies, "video"),
+      mountAudioViewer: createNativeMediaAdapter(dependencies, "audio")
+    };
+  }
+  function getNativeMediaSettings(mediaType) {
+    if (mediaType === "video") {
+      return {
+        error: "Video not available (unsupported URL)",
+        fallback: "Your browser does not support video playback. ",
+        download: "Download the video"
+      };
     }
-    function mountVideoViewer(container, sources) {
-      var validSources = [];
+    return {
+      error: "Audio not available (unsupported URL)",
+      fallback: "Your browser does not support audio playback. ",
+      download: "Download the audio"
+    };
+  }
+  function appendNativeMediaSources(document2, media, sources) {
+    var validSources = [];
+    sources.forEach(function(src) {
+      var safeUrl = sanitizeUrl(src && src.url);
+      var source = document2.createElement("source");
+      if (!safeUrl) return;
+      source.src = safeUrl;
+      if (src.format) source.type = src.format;
+      media.appendChild(source);
+      validSources.push(src);
+    });
+    return validSources;
+  }
+  function appendNativeMediaFallback(dependencies, media, validSources, settings) {
+    var fallback = dependencies.document.createElement("p");
+    var fallbackLink = dependencies.createFallbackLink(validSources[0].url, settings.download);
+    fallback.className = "dv-fallback";
+    fallback.appendChild(dependencies.document.createTextNode(settings.fallback));
+    if (fallbackLink) {
+      fallback.appendChild(fallbackLink);
+      fallback.appendChild(dependencies.document.createTextNode("."));
+    }
+    media.appendChild(fallback);
+  }
+  function createNativeMediaAdapter(dependencies, mediaType) {
+    return function mountNativeMedia(container, sources) {
+      var settings = getNativeMediaSettings(mediaType);
       container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-video";
-      var video = document2.createElement("video");
-      video.controls = true;
-      video.preload = "metadata";
-      sources.forEach(function(src) {
-        var safeUrl = sanitizeUrl(src && src.url);
-        var source = document2.createElement("source");
-        if (!safeUrl) return;
-        source.src = safeUrl;
-        if (src.format) source.type = src.format;
-        video.appendChild(source);
-        validSources.push(src);
-      });
+      var wrap = dependencies.document.createElement("div");
+      wrap.className = "dv-" + mediaType;
+      var media = dependencies.document.createElement(mediaType);
+      media.controls = true;
+      media.preload = "metadata";
+      var validSources = appendNativeMediaSources(dependencies.document, media, sources);
       if (validSources.length === 0) {
-        showError(container, "Video not available (unsupported URL)");
+        dependencies.showError(container, settings.error);
         return;
       }
-      var fallback = document2.createElement("p");
-      var fallbackLink = createFallbackLink(validSources[0].url, "Download the video");
-      fallback.className = "dv-fallback";
-      fallback.appendChild(document2.createTextNode("Your browser does not support video playback. "));
-      if (fallbackLink) {
-        fallback.appendChild(fallbackLink);
-        fallback.appendChild(document2.createTextNode("."));
-      }
-      video.appendChild(fallback);
-      wrap.appendChild(video);
+      appendNativeMediaFallback(dependencies, media, validSources, settings);
+      wrap.appendChild(media);
       container.appendChild(wrap);
-    }
-    function mountAudioViewer(container, sources) {
-      var validSources = [];
-      container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
-      wrap.className = "dv-audio";
-      var audio = document2.createElement("audio");
-      audio.controls = true;
-      audio.preload = "metadata";
-      sources.forEach(function(src) {
-        var safeUrl = sanitizeUrl(src && src.url);
-        var source = document2.createElement("source");
-        if (!safeUrl) return;
-        source.src = safeUrl;
-        if (src.format) source.type = src.format;
-        audio.appendChild(source);
-        validSources.push(src);
-      });
-      if (validSources.length === 0) {
-        showError(container, "Audio not available (unsupported URL)");
-        return;
-      }
-      var fallback = document2.createElement("p");
-      var fallbackLink = createFallbackLink(validSources[0].url, "Download the audio");
-      fallback.className = "dv-fallback";
-      fallback.appendChild(document2.createTextNode("Your browser does not support audio playback. "));
-      if (fallbackLink) {
-        fallback.appendChild(fallbackLink);
-        fallback.appendChild(document2.createTextNode("."));
-      }
-      audio.appendChild(fallback);
-      wrap.appendChild(audio);
-      container.appendChild(wrap);
-    }
-    function mountPdfViewer(container, source) {
+    };
+  }
+  function createPdfViewerAdapter(dependencies) {
+    return function mountPdfViewer(container, source) {
       var safeUrl = sanitizeUrl(source && source.url);
-      var fallbackLink;
       if (!safeUrl) {
-        showError(container, "PDF not available (unsupported URL)");
+        dependencies.showError(container, "PDF not available (unsupported URL)");
         return;
       }
       container.classList.add("dv-active");
-      var wrap = document2.createElement("div");
+      var wrap = dependencies.document.createElement("div");
       wrap.className = "dv-pdf";
-      var iframe = document2.createElement("iframe");
+      var iframe = dependencies.document.createElement("iframe");
       iframe.src = safeUrl;
       iframe.title = "PDF viewer";
       iframe.setAttribute("allow", "fullscreen");
-      var fallback = document2.createElement("p");
+      var fallback = dependencies.document.createElement("p");
       fallback.className = "dv-fallback";
-      fallbackLink = createFallbackLink(safeUrl, "Open PDF");
+      var fallbackLink = dependencies.createFallbackLink(safeUrl, "Open PDF");
       if (fallbackLink) fallback.appendChild(fallbackLink);
       wrap.appendChild(iframe);
       wrap.appendChild(fallback);
       container.appendChild(wrap);
-    }
-    return { mountCantaloupe, mountStaticImage, mountVideoViewer, mountAudioViewer, mountPdfViewer };
+    };
+  }
+  function createDirectAdapters(dependencies) {
+    var waitForImageLoad = createImageLoadWaiter(dependencies);
+    return __spreadProps(__spreadValues({
+      mountCantaloupe: function(container, descriptor, mountOptions) {
+        return dependencies.mountOsdViewer(container, descriptor.infoUrl, mountOptions);
+      },
+      mountStaticImage: createStaticImageAdapter(dependencies, waitForImageLoad)
+    }, createNativeMediaAdapters(dependencies)), {
+      mountPdfViewer: createPdfViewerAdapter(dependencies)
+    });
   }
 
   // src/adapters/manifest.mjs
@@ -2894,4 +2901,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=fe453491a33952905f7b5802e6f2f91bad9b34f8e312a09d3d877d60e8250a12
+//# sourceMappingURL=digital_viewer.js.map?v=8d0a03d61ba5845634e63c1da4591fd0af8eb5f235457b2f58f9f46d2c16d613
