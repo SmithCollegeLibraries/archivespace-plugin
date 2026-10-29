@@ -40,6 +40,60 @@ test('source contract distinguishes absent sources from missing explicit hints w
   assert.deepEqual(warnings,[]);
 });
 
+test('leaf digital object sources group in the notes pane and mark it for the current render', async function () {
+  const { createPageSources } = await module('page-sources');
+  const pane = {
+    attributes: {},
+    setAttribute(name, value) { this.attributes[name] = value; },
+    getAttribute(name) { return this.attributes[name]; },
+  };
+  const anchor = {
+    href: 'https://example.org/item.jpg',
+    parentNode: {},
+    closest(selector) {
+      if (selector === '[data-dv-browse-only]') return null;
+      throw new Error('notes pane should be selected first');
+    },
+  };
+  const document = {
+    querySelector(selector) {
+      return selector === '#notes_row > .resizable-content-pane' ? pane : null;
+    },
+    querySelectorAll(selector) { return selector === '[data-file-uri]' ? [anchor] : []; },
+  };
+  const sources = createPageSources({
+    document,
+    getPageContext: () => ({ recordType: 'DigitalObject', hasChildren: false, paneExists: true }),
+  });
+
+  const groups = sources.collectGroups();
+
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].root, pane);
+  assert.equal(pane.getAttribute('data-dv-source-group'), 'render-1');
+});
+
+test('page source discovery reports an ancestor lookup failure and skips that source', async function () {
+  const { createPageSources } = await module('page-sources');
+  const anchor = {
+    href: 'https://example.org/item.jpg',
+    parentNode: {},
+    closest(selector) {
+      if (selector === '[data-dv-browse-only]') return null;
+      throw new Error('lookup failed');
+    },
+  };
+  let failures = 0;
+  const sources = createPageSources({
+    document: { querySelectorAll: selector => selector === '[data-file-uri]' ? [anchor] : [] },
+    getPageContext: () => ({ recordType: 'ArchivalObject' }),
+    onDiscoveryError: () => { failures += 1; },
+  });
+
+  assert.deepEqual(sources.collectGroups(), []);
+  assert.equal(failures, 1);
+});
+
 for (const recordType of ['ArchivalObject', 'DigitalObject']) {
   test(recordType + ' representative anchor and file hint share their explicit outer group', async function () {
     const { createPageSources } = await module('page-sources');
