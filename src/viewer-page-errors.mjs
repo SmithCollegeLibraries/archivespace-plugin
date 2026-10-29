@@ -166,31 +166,40 @@ function clearPageErrorForReload(state, pageIndex, tiledImage) {
   if (state.pageErrorState.tiledImage !== tiledImage) removePageError(state);
 }
 
-// eslint-disable-next-line complexity
-function clearPageError(state, data, info) {
-  var failedTileIndex;
+function matchesCurrentPageError(state, info) {
+  var errorState = state.pageErrorState;
+  if (!errorState || !info || info.pageIndex !== errorState.pageIndex || info.current === false) return false;
+  if (errorState.tiledImage && info.tiledImage && errorState.tiledImage !== info.tiledImage) return false;
+  return !errorState.requiresReload;
+}
 
+function clearFailedTile(state, tile) {
+  var tileIndex;
+  if (!tile) return true;
+  tileIndex = state.pageErrorState.tiles.indexOf(tile);
+  if (tileIndex !== -1) state.pageErrorState.tiles.splice(tileIndex, 1);
+  return state.pageErrorState.tiles.length === 0;
+}
+
+function clearPageError(state, data, info) {
   info = info || eventPageInfo(state, data);
-  if (!state.pageErrorState || !info || info.pageIndex !== state.pageErrorState.pageIndex || info.current === false) return;
-  if (state.pageErrorState.tiledImage && info.tiledImage && state.pageErrorState.tiledImage !== info.tiledImage) return;
-  if (state.pageErrorState.requiresReload) return;
-  if (info.tile) {
-    failedTileIndex = state.pageErrorState.tiles.indexOf(info.tile);
-    if (failedTileIndex !== -1) state.pageErrorState.tiles.splice(failedTileIndex, 1);
-    if (state.pageErrorState.tiles.length > 0) return;
-  }
+  if (!matchesCurrentPageError(state, info) || !clearFailedTile(state, info.tile)) return;
   removePageError(state);
 }
 
-// eslint-disable-next-line complexity
-function showPageError(state, document, data, options) {
-  var info = eventPageInfo(state, data);
-  var message;
+function isCurrentPageError(state, info, options) {
+  return info && info.pageIndex !== null && info.pageIndex === state.activePageIndex &&
+    (info.current !== false || (options && options.allowWithoutImage));
+}
 
-  if (!info || info.pageIndex === null || info.pageIndex !== state.activePageIndex) return;
-  if (info.current === false && !(options && options.allowWithoutImage)) return;
-  if (!state.pageErrorState || state.pageErrorState.pageIndex !== info.pageIndex ||
-      (state.pageErrorState.tiledImage && info.tiledImage && state.pageErrorState.tiledImage !== info.tiledImage)) {
+function needsNewPageErrorState(state, info) {
+  var errorState = state.pageErrorState;
+  return !errorState || errorState.pageIndex !== info.pageIndex ||
+    (errorState.tiledImage && info.tiledImage && errorState.tiledImage !== info.tiledImage);
+}
+
+function rememberPageError(state, info) {
+  if (needsNewPageErrorState(state, info)) {
     state.pageErrorState = {
       pageIndex: info.pageIndex,
       tiledImage: info.tiledImage || state.currentTiledImage,
@@ -198,13 +207,26 @@ function showPageError(state, document, data, options) {
       requiresReload: false,
     };
   }
-  if (info.tile && state.pageErrorState.tiles.indexOf(info.tile) === -1) state.pageErrorState.tiles.push(info.tile);
+  if (info.tile && state.pageErrorState.tiles.indexOf(info.tile) === -1) {
+    state.pageErrorState.tiles.push(info.tile);
+  }
   if (!info.tile) state.pageErrorState.requiresReload = true;
-  if (state.pageErrorMessage) return;
-  message = document.createElement('p');
+}
+
+function createPageErrorMessage(state, document, pageIndex) {
+  var message = document.createElement('p');
   message.className = 'dv-tile-error-msg';
-  message.setAttribute('data-page-index', String(info.pageIndex));
+  message.setAttribute('data-page-index', String(pageIndex));
   message.textContent = 'This page is unavailable.';
   state.container.appendChild(message);
-  state.pageErrorMessage = message;
+  return message;
+}
+
+function showPageError(state, document, data, options) {
+  var info = eventPageInfo(state, data);
+  if (!isCurrentPageError(state, info, options)) return;
+  rememberPageError(state, info);
+  if (!state.pageErrorMessage) {
+    state.pageErrorMessage = createPageErrorMessage(state, document, info.pageIndex);
+  }
 }

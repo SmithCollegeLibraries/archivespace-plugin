@@ -1764,25 +1764,33 @@
     if (!state.pageErrorState || state.pageErrorState.pageIndex !== pageIndex || !tiledImage) return;
     if (state.pageErrorState.tiledImage !== tiledImage) removePageError(state);
   }
+  function matchesCurrentPageError(state, info) {
+    var errorState = state.pageErrorState;
+    if (!errorState || !info || info.pageIndex !== errorState.pageIndex || info.current === false) return false;
+    if (errorState.tiledImage && info.tiledImage && errorState.tiledImage !== info.tiledImage) return false;
+    return !errorState.requiresReload;
+  }
+  function clearFailedTile(state, tile) {
+    var tileIndex;
+    if (!tile) return true;
+    tileIndex = state.pageErrorState.tiles.indexOf(tile);
+    if (tileIndex !== -1) state.pageErrorState.tiles.splice(tileIndex, 1);
+    return state.pageErrorState.tiles.length === 0;
+  }
   function clearPageError(state, data, info) {
-    var failedTileIndex;
     info = info || eventPageInfo(state, data);
-    if (!state.pageErrorState || !info || info.pageIndex !== state.pageErrorState.pageIndex || info.current === false) return;
-    if (state.pageErrorState.tiledImage && info.tiledImage && state.pageErrorState.tiledImage !== info.tiledImage) return;
-    if (state.pageErrorState.requiresReload) return;
-    if (info.tile) {
-      failedTileIndex = state.pageErrorState.tiles.indexOf(info.tile);
-      if (failedTileIndex !== -1) state.pageErrorState.tiles.splice(failedTileIndex, 1);
-      if (state.pageErrorState.tiles.length > 0) return;
-    }
+    if (!matchesCurrentPageError(state, info) || !clearFailedTile(state, info.tile)) return;
     removePageError(state);
   }
-  function showPageError(state, document2, data, options) {
-    var info = eventPageInfo(state, data);
-    var message;
-    if (!info || info.pageIndex === null || info.pageIndex !== state.activePageIndex) return;
-    if (info.current === false && !(options && options.allowWithoutImage)) return;
-    if (!state.pageErrorState || state.pageErrorState.pageIndex !== info.pageIndex || state.pageErrorState.tiledImage && info.tiledImage && state.pageErrorState.tiledImage !== info.tiledImage) {
+  function isCurrentPageError(state, info, options) {
+    return info && info.pageIndex !== null && info.pageIndex === state.activePageIndex && (info.current !== false || options && options.allowWithoutImage);
+  }
+  function needsNewPageErrorState(state, info) {
+    var errorState = state.pageErrorState;
+    return !errorState || errorState.pageIndex !== info.pageIndex || errorState.tiledImage && info.tiledImage && errorState.tiledImage !== info.tiledImage;
+  }
+  function rememberPageError(state, info) {
+    if (needsNewPageErrorState(state, info)) {
       state.pageErrorState = {
         pageIndex: info.pageIndex,
         tiledImage: info.tiledImage || state.currentTiledImage,
@@ -1790,15 +1798,26 @@
         requiresReload: false
       };
     }
-    if (info.tile && state.pageErrorState.tiles.indexOf(info.tile) === -1) state.pageErrorState.tiles.push(info.tile);
+    if (info.tile && state.pageErrorState.tiles.indexOf(info.tile) === -1) {
+      state.pageErrorState.tiles.push(info.tile);
+    }
     if (!info.tile) state.pageErrorState.requiresReload = true;
-    if (state.pageErrorMessage) return;
-    message = document2.createElement("p");
+  }
+  function createPageErrorMessage(state, document2, pageIndex) {
+    var message = document2.createElement("p");
     message.className = "dv-tile-error-msg";
-    message.setAttribute("data-page-index", String(info.pageIndex));
+    message.setAttribute("data-page-index", String(pageIndex));
     message.textContent = "This page is unavailable.";
     state.container.appendChild(message);
-    state.pageErrorMessage = message;
+    return message;
+  }
+  function showPageError(state, document2, data, options) {
+    var info = eventPageInfo(state, data);
+    if (!isCurrentPageError(state, info, options)) return;
+    rememberPageError(state, info);
+    if (!state.pageErrorMessage) {
+      state.pageErrorMessage = createPageErrorMessage(state, document2, info.pageIndex);
+    }
   }
 
   // src/viewer.mjs
@@ -2748,4 +2767,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=48d7402d2ecddac6da2f87bf5ddb172d80570908266b4b07f083bcef461b51ff
+//# sourceMappingURL=digital_viewer.js.map?v=8bbabd40320777b76cff7da8e0f1ff6864fced0729f1ddb4af6feb82d016c5e3
