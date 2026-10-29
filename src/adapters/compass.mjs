@@ -37,70 +37,87 @@ export function toLocalCantaloupeInfoUrl(serviceId, cfg) {
   return cfg.cantaloupeBaseUrl + '/' + encodeURIComponent(s3Key) + '/info.json';
 }
 
-// eslint-disable-next-line max-lines-per-function
-export function createCompassAdapter({ config: cfg, fetch, isAttemptActive, mountOsdViewer, reportFailure }) {
-  function parsePages(manifest) {
-    return extractManifestPages(manifest, function (serviceId) {
-      return toLocalCantaloupeInfoUrl(serviceId, cfg);
-    });
-  }
+function parsePages(manifest, config) {
+  return extractManifestPages(manifest, function (serviceId) {
+    return toLocalCantaloupeInfoUrl(serviceId, config);
+  });
+}
 
-  function fetchManifestUrl(url, mountOptions) {
-    var isCompassManifest = new URL(url).hostname === cfg.compassHost;
-    var useProxy = cfg.compassProxyUrl && isCompassManifest;
-    var requestUrl = useProxy ? cfg.compassProxyUrl + '?url=' + encodeURIComponent(url) : url;
-    return fetch(requestUrl, { signal: mountOptions.signal }).then(function (res) {
+function fetchManifestUrl(dependencies, url, mountOptions) {
+  const { config, fetch, isAttemptActive } = dependencies;
+  const isCompassManifest = new URL(url).hostname === config.compassHost;
+  const useProxy = config.compassProxyUrl && isCompassManifest;
+  const requestUrl = useProxy ? config.compassProxyUrl + '?url=' + encodeURIComponent(url) : url;
+  return fetch(requestUrl, { signal: mountOptions.signal }).then(function (res) {
+    if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+    if (!res.ok) throw new Error((useProxy ? 'Proxy HTTP ' : 'Manifest HTTP ') + res.status);
+    return res.json();
+  });
+}
+
+function fetchProxyManifest(dependencies, descriptor, mountOptions) {
+  const { config, fetch, isAttemptActive } = dependencies;
+  const requestUrl = config.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.compassUrl);
+  return fetch(requestUrl, { signal: mountOptions.signal }).then(function (res) {
+    if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+    if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
+    return res.json();
+  });
+}
+
+function fetchRedirectedManifest(dependencies, descriptor, mountOptions, compassBase) {
+  const { fetch, isAttemptActive } = dependencies;
+  return fetch(descriptor.compassUrl, { redirect: 'follow', signal: mountOptions.signal })
+    .then(function (res) {
       if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-      if (!res.ok) throw new Error((useProxy ? 'Proxy HTTP ' : 'Manifest HTTP ') + res.status);
+      const nodeMatch = res.url.match(/\/node\/(\d+)/);
+      if (!nodeMatch) throw new Error('Could not resolve Compass node from: ' + res.url);
+      return fetch(compassBase + '/node/' + nodeMatch[1] + '/manifest', { signal: mountOptions.signal });
+    })
+    .then(function (res) {
+      if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+      if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
       return res.json();
     });
+}
+
+function fetchCompassManifest(dependencies, descriptor, mountOptions, compassBase) {
+  if (dependencies.config.compassProxyUrl) {
+    return fetchProxyManifest(dependencies, descriptor, mountOptions);
   }
+  return fetchRedirectedManifest(dependencies, descriptor, mountOptions, compassBase);
+}
 
-  function mountCompass(container, descriptor, mountOptions) {
-    var compassBase = cfg.compassBaseUrl || ('https://' + cfg.compassHost);
+function mountManifestPages(dependencies, container, manifest, mountOptions) {
+  const { isAttemptActive, mountOsdViewer } = dependencies;
+  if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+  const tileSources = parsePages(manifest, dependencies.config);
+  if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
+  return mountOsdViewer(container, tileSources, mountOptions);
+}
 
-    // Use a server-side proxy when configured (required in browsers due to CORS
-    // on the Islandora → Drupal redirect).  The proxy follows the redirect and
-    // returns the full IIIF manifest JSON in a single response.
-    var fetchManifest;
-    if (cfg.compassProxyUrl) {
-      fetchManifest = fetch(
-        cfg.compassProxyUrl + '?url=' + encodeURIComponent(descriptor.compassUrl),
-        { signal: mountOptions.signal }
-      ).then(function (res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        if (!res.ok) throw new Error('Proxy HTTP ' + res.status);
-        return res.json();
-      });
-    } else {
-      // Fallback: direct fetch (only works if Islandora endpoint allows CORS)
-      fetchManifest = fetch(descriptor.compassUrl, { redirect: 'follow', signal: mountOptions.signal })
-        .then(function (res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-          var nodeMatch = res.url.match(/\/node\/(\d+)/);
-          if (!nodeMatch) throw new Error('Could not resolve Compass node from: ' + res.url);
-          return fetch(compassBase + '/node/' + nodeMatch[1] + '/manifest', { signal: mountOptions.signal });
-        })
-        .then(function (res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-          if (!res.ok) throw new Error('Manifest HTTP ' + res.status);
-          return res.json();
-        });
-    }
+function mountCompass(dependencies, container, descriptor, mountOptions) {
+  const { config, isAttemptActive, reportFailure } = dependencies;
+  const compassBase = config.compassBaseUrl || ('https://' + config.compassHost);
+  return fetchCompassManifest(dependencies, descriptor, mountOptions, compassBase)
+    .then(function (manifest) {
+      return mountManifestPages(dependencies, container, manifest, mountOptions);
+    })
+    .catch(function (error) {
+      if (!isAttemptActive(mountOptions.attempt)) throw error;
+      reportFailure(container, 'compass', 'content-unavailable');
+      throw error;
+    });
+}
 
-    return fetchManifest
-      .then(function (manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        var tileSources = parsePages(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error('No renderable image services in manifest');
-        return mountOsdViewer(container, tileSources, mountOptions);
-      })
-      .catch(function (err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, 'compass', 'content-unavailable');
-        throw err;
-      });
-  }
-
-  return { mountCompass, fetchManifestUrl, parsePages };
+export function createCompassAdapter(dependencies) {
+  return {
+    mountCompass: function (container, descriptor, options) {
+      return mountCompass(dependencies, container, descriptor, options);
+    },
+    fetchManifestUrl: function (url, options) {
+      return fetchManifestUrl(dependencies, url, options);
+    },
+    parsePages: function (manifest) { return parsePages(manifest, dependencies.config); },
+  };
 }

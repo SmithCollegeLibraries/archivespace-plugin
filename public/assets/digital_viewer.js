@@ -194,58 +194,80 @@
     }
     return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
   }
-  function createCompassAdapter({ config: cfg, fetch, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure: reportFailure2 }) {
-    function parsePages(manifest) {
-      return extractManifestPages(manifest, function(serviceId) {
-        return toLocalCantaloupeInfoUrl(serviceId, cfg);
-      });
+  function parsePages(manifest, config) {
+    return extractManifestPages(manifest, function(serviceId) {
+      return toLocalCantaloupeInfoUrl(serviceId, config);
+    });
+  }
+  function fetchManifestUrl(dependencies, url, mountOptions) {
+    const { config, fetch, isAttemptActive: isAttemptActive2 } = dependencies;
+    const isCompassManifest = new URL(url).hostname === config.compassHost;
+    const useProxy = config.compassProxyUrl && isCompassManifest;
+    const requestUrl = useProxy ? config.compassProxyUrl + "?url=" + encodeURIComponent(url) : url;
+    return fetch(requestUrl, { signal: mountOptions.signal }).then(function(res) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+      if (!res.ok) throw new Error((useProxy ? "Proxy HTTP " : "Manifest HTTP ") + res.status);
+      return res.json();
+    });
+  }
+  function fetchProxyManifest(dependencies, descriptor, mountOptions) {
+    const { config, fetch, isAttemptActive: isAttemptActive2 } = dependencies;
+    const requestUrl = config.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.compassUrl);
+    return fetch(requestUrl, { signal: mountOptions.signal }).then(function(res) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+      if (!res.ok) throw new Error("Proxy HTTP " + res.status);
+      return res.json();
+    });
+  }
+  function fetchRedirectedManifest(dependencies, descriptor, mountOptions, compassBase) {
+    const { fetch, isAttemptActive: isAttemptActive2 } = dependencies;
+    return fetch(descriptor.compassUrl, { redirect: "follow", signal: mountOptions.signal }).then(function(res) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+      const nodeMatch = res.url.match(/\/node\/(\d+)/);
+      if (!nodeMatch) throw new Error("Could not resolve Compass node from: " + res.url);
+      return fetch(compassBase + "/node/" + nodeMatch[1] + "/manifest", { signal: mountOptions.signal });
+    }).then(function(res) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+      if (!res.ok) throw new Error("Manifest HTTP " + res.status);
+      return res.json();
+    });
+  }
+  function fetchCompassManifest(dependencies, descriptor, mountOptions, compassBase) {
+    if (dependencies.config.compassProxyUrl) {
+      return fetchProxyManifest(dependencies, descriptor, mountOptions);
     }
-    function fetchManifestUrl(url, mountOptions) {
-      var isCompassManifest = new URL(url).hostname === cfg.compassHost;
-      var useProxy = cfg.compassProxyUrl && isCompassManifest;
-      var requestUrl = useProxy ? cfg.compassProxyUrl + "?url=" + encodeURIComponent(url) : url;
-      return fetch(requestUrl, { signal: mountOptions.signal }).then(function(res) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        if (!res.ok) throw new Error((useProxy ? "Proxy HTTP " : "Manifest HTTP ") + res.status);
-        return res.json();
-      });
-    }
-    function mountCompass(container, descriptor, mountOptions) {
-      var compassBase = cfg.compassBaseUrl || "https://" + cfg.compassHost;
-      var fetchManifest;
-      if (cfg.compassProxyUrl) {
-        fetchManifest = fetch(
-          cfg.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.compassUrl),
-          { signal: mountOptions.signal }
-        ).then(function(res) {
-          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Proxy HTTP " + res.status);
-          return res.json();
-        });
-      } else {
-        fetchManifest = fetch(descriptor.compassUrl, { redirect: "follow", signal: mountOptions.signal }).then(function(res) {
-          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          var nodeMatch = res.url.match(/\/node\/(\d+)/);
-          if (!nodeMatch) throw new Error("Could not resolve Compass node from: " + res.url);
-          return fetch(compassBase + "/node/" + nodeMatch[1] + "/manifest", { signal: mountOptions.signal });
-        }).then(function(res) {
-          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-          if (!res.ok) throw new Error("Manifest HTTP " + res.status);
-          return res.json();
-        });
+    return fetchRedirectedManifest(dependencies, descriptor, mountOptions, compassBase);
+  }
+  function mountManifestPages(dependencies, container, manifest, mountOptions) {
+    const { isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2 } = dependencies;
+    if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+    const tileSources = parsePages(manifest, dependencies.config);
+    if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
+    return mountOsdViewer2(container, tileSources, mountOptions);
+  }
+  function mountCompass(dependencies, container, descriptor, mountOptions) {
+    const { config, isAttemptActive: isAttemptActive2, reportFailure: reportFailure2 } = dependencies;
+    const compassBase = config.compassBaseUrl || "https://" + config.compassHost;
+    return fetchCompassManifest(dependencies, descriptor, mountOptions, compassBase).then(function(manifest) {
+      return mountManifestPages(dependencies, container, manifest, mountOptions);
+    }).catch(function(error) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw error;
+      reportFailure2(container, "compass", "content-unavailable");
+      throw error;
+    });
+  }
+  function createCompassAdapter(dependencies) {
+    return {
+      mountCompass: function(container, descriptor, options) {
+        return mountCompass(dependencies, container, descriptor, options);
+      },
+      fetchManifestUrl: function(url, options) {
+        return fetchManifestUrl(dependencies, url, options);
+      },
+      parsePages: function(manifest) {
+        return parsePages(manifest, dependencies.config);
       }
-      return fetchManifest.then(function(manifest) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var tileSources = parsePages(manifest);
-        if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
-        return mountOsdViewer2(container, tileSources, mountOptions);
-      }).catch(function(err) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw err;
-        reportFailure2(container, "compass", "content-unavailable");
-        throw err;
-      });
-    }
-    return { mountCompass, fetchManifestUrl, parsePages };
+    };
   }
 
   // src/urls.mjs
@@ -434,12 +456,12 @@
   }
 
   // src/adapters/manifest.mjs
-  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure: reportFailure2 }) {
+  function createManifestAdapter({ fetchManifestUrl: fetchManifestUrl2, parsePages: parsePages2, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure: reportFailure2 }) {
     function mountManifest(container, descriptor, mountOptions) {
-      var fetchManifest = fetchManifestUrl(descriptor.manifestUrl, mountOptions);
+      var fetchManifest = fetchManifestUrl2(descriptor.manifestUrl, mountOptions);
       return fetchManifest.then(function(manifest) {
         if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var tileSources = parsePages(manifest);
+        var tileSources = parsePages2(manifest);
         if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
         return mountOsdViewer2(container, tileSources, mountOptions);
       }).catch(function(err) {
@@ -3022,4 +3044,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=f4437203e9f28a5958966cd3c29b43de83ecd174e82f49ef6207edb3476f22c3
+//# sourceMappingURL=digital_viewer.js.map?v=7afb74bae7e3a4b3ad027adb6ff4ec5ce65f49c6ae13d6f8366f67d3d490a1e7
