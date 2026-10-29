@@ -194,7 +194,7 @@
     }
     return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
   }
-  function createCompassAdapter({ config: cfg, fetch, isAttemptActive, mountOsdViewer: mountOsdViewer2, reportFailure }) {
+  function createCompassAdapter({ config: cfg, fetch, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure }) {
     function parsePages(manifest) {
       return extractManifestPages(manifest, function(serviceId) {
         return toLocalCantaloupeInfoUrl(serviceId, cfg);
@@ -205,7 +205,7 @@
       var useProxy = cfg.compassProxyUrl && isCompassManifest;
       var requestUrl = useProxy ? cfg.compassProxyUrl + "?url=" + encodeURIComponent(url) : url;
       return fetch(requestUrl, { signal: mountOptions.signal }).then(function(res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
         if (!res.ok) throw new Error((useProxy ? "Proxy HTTP " : "Manifest HTTP ") + res.status);
         return res.json();
       });
@@ -218,29 +218,29 @@
           cfg.compassProxyUrl + "?url=" + encodeURIComponent(descriptor.compassUrl),
           { signal: mountOptions.signal }
         ).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
           if (!res.ok) throw new Error("Proxy HTTP " + res.status);
           return res.json();
         });
       } else {
         fetchManifest = fetch(descriptor.compassUrl, { redirect: "follow", signal: mountOptions.signal }).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
           var nodeMatch = res.url.match(/\/node\/(\d+)/);
           if (!nodeMatch) throw new Error("Could not resolve Compass node from: " + res.url);
           return fetch(compassBase + "/node/" + nodeMatch[1] + "/manifest", { signal: mountOptions.signal });
         }).then(function(res) {
-          if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+          if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
           if (!res.ok) throw new Error("Manifest HTTP " + res.status);
           return res.json();
         });
       }
       return fetchManifest.then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
         var tileSources = parsePages(manifest);
         if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
         return mountOsdViewer2(container, tileSources, mountOptions);
       }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        if (!isAttemptActive2(mountOptions.attempt)) throw err;
         reportFailure(container, "compass", "content-unavailable");
         throw err;
       });
@@ -434,16 +434,16 @@
   }
 
   // src/adapters/manifest.mjs
-  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive, mountOsdViewer: mountOsdViewer2, reportFailure }) {
+  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure }) {
     function mountManifest(container, descriptor, mountOptions) {
       var fetchManifest = fetchManifestUrl(descriptor.manifestUrl, mountOptions);
       return fetchManifest.then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
         var tileSources = parsePages(manifest);
         if (!hasRenderablePages(tileSources)) throw new Error("No renderable image services in manifest");
         return mountOsdViewer2(container, tileSources, mountOptions);
       }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        if (!isAttemptActive2(mountOptions.attempt)) throw err;
         reportFailure(container, "manifest", "content-unavailable");
         throw err;
       });
@@ -456,7 +456,7 @@
     config: cfg,
     fetch,
     console: console2,
-    isAttemptActive,
+    isAttemptActive: isAttemptActive2,
     reportFailure,
     clearLoadingNotice,
     mountOsdViewer: mountOsdViewer2,
@@ -471,11 +471,11 @@
       }
       var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + descriptor.uuid + "/manifest.json";
       return fetch(manifestUrl, { signal: mountOptions.signal }).then(function(res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       }).then(function(manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
         var content = extractManifestContent(manifest, function() {
           console2.warn("[digital_viewer] stage=manifest code=invalid-canvas");
         });
@@ -500,7 +500,7 @@
         }
         clearLoadingNotice(container);
       }).catch(function(err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
+        if (!isAttemptActive2(mountOptions.attempt)) throw err;
         reportFailure(container, "preservica", "manifest-unavailable");
         throw err;
       });
@@ -607,100 +607,146 @@
   }
 
   // src/lifecycle.mjs
-  function createLifecycle({
-    AbortController,
-    setTimeout,
-    clearTimeout,
-    showLoadingNotice,
-    restoreLeafLayoutIfUnused: restoreLeafLayoutIfUnused2
-  }) {
-    var activeMountStates = [];
-    function createAttempt() {
-      return {
-        active: true,
-        disposed: false,
-        viewer: null,
-        controller: typeof AbortController !== "undefined" ? new AbortController() : null,
-        timers: [],
-        cleanups: [],
-        timeoutId: null
-      };
-    }
-    function disposeViewer(viewer) {
-      if (viewer && typeof viewer.destroy === "function") viewer.destroy();
-    }
-    function isAttemptActive(attempt) {
-      return !attempt || attempt.active !== false;
-    }
-    function registerAttemptCleanup(attempt, cleanup) {
-      if (!attempt || typeof cleanup !== "function") return;
-      attempt.cleanups.push(cleanup);
-    }
-    function disposeAttempt(attempt) {
-      var cleanups;
-      if (!attempt || attempt.disposed) return;
-      attempt.disposed = true;
-      attempt.active = false;
-      clearAttemptTimeout(attempt);
-      (attempt.timers || []).forEach(function(timerId) {
-        clearTimeout(timerId);
-      });
-      attempt.timers = [];
-      if (attempt.controller && typeof attempt.controller.abort === "function") {
-        attempt.controller.abort();
-      }
+  function createAttempt({ AbortController }) {
+    return {
+      active: true,
+      disposed: false,
+      viewer: null,
+      controller: typeof AbortController !== "undefined" ? new AbortController() : null,
+      timers: [],
+      cleanups: [],
+      timeoutId: null
+    };
+  }
+  function disposeViewer(viewer) {
+    if (viewer && typeof viewer.destroy === "function") viewer.destroy();
+  }
+  function isAttemptActive(attempt) {
+    return !attempt || attempt.active !== false;
+  }
+  function registerAttemptCleanup(attempt, cleanup) {
+    if (!attempt || typeof cleanup !== "function") return;
+    attempt.cleanups.push(cleanup);
+  }
+  function clearAttemptTimeout(attempt, clearTimeout) {
+    if (!attempt || attempt.timeoutId === null || typeof attempt.timeoutId === "undefined") return;
+    clearTimeout(attempt.timeoutId);
+    attempt.timeoutId = null;
+  }
+  function runAttemptCleanups(attempt) {
+    const cleanups = (attempt.cleanups || []).slice();
+    attempt.cleanups = [];
+    cleanups.forEach(function(cleanup) {
       try {
-        if (attempt.viewer) disposeViewer(attempt.viewer);
+        cleanup();
       } catch (e) {
       }
-      cleanups = (attempt.cleanups || []).slice();
-      attempt.cleanups = [];
-      cleanups.forEach(function(cleanup) {
-        try {
-          cleanup();
-        } catch (e) {
-        }
-      });
+    });
+  }
+  function disposeAttempt(attempt, dependencies) {
+    const { clearTimeout } = dependencies;
+    if (!attempt || attempt.disposed) return;
+    attempt.disposed = true;
+    attempt.active = false;
+    clearAttemptTimeout(attempt, clearTimeout);
+    (attempt.timers || []).forEach(function(timerId) {
+      clearTimeout(timerId);
+    });
+    attempt.timers = [];
+    abortAttempt(attempt);
+    disposeAttemptViewer(attempt);
+    runAttemptCleanups(attempt);
+  }
+  function abortAttempt(attempt) {
+    if (attempt.controller && typeof attempt.controller.abort === "function") {
+      attempt.controller.abort();
     }
-    function clearAttemptTimeout(attempt) {
-      if (!attempt || attempt.timeoutId === null || typeof attempt.timeoutId === "undefined") return;
-      clearTimeout(attempt.timeoutId);
+  }
+  function disposeAttemptViewer(attempt) {
+    try {
+      if (attempt.viewer) disposeViewer(attempt.viewer);
+    } catch (e) {
+    }
+  }
+  function scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback, dependencies) {
+    const { setTimeout, showLoadingNotice } = dependencies;
+    attempt.timeoutId = setTimeout(function() {
+      if (!isAttemptActive(attempt) || attempt.completed || attempt.timedOut) return;
       attempt.timeoutId = null;
-    }
-    function scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback) {
-      attempt.timeoutId = setTimeout(function() {
-        if (!isAttemptActive(attempt) || attempt.completed || attempt.timedOut) return;
-        attempt.timeoutId = null;
-        attempt.timedOut = true;
-        if (allowFallback) {
-          disposeAttempt(attempt);
-          onFallback();
-        } else {
-          showLoadingNotice(container);
-        }
-      }, timeout);
-    }
-    function disposeMountState(state, options) {
-      var activeIndex;
-      if (!state || state.disposed) return;
-      state.disposed = true;
-      disposeAttempt(state.attempt);
-      if (state.container) {
-        state.container.__dvMountState = null;
-        if (state.container.parentNode && typeof state.container.parentNode.removeChild === "function") {
-          state.container.parentNode.removeChild(state.container);
-        }
+      attempt.timedOut = true;
+      if (allowFallback) {
+        disposeAttempt(attempt, dependencies);
+        onFallback();
+      } else {
+        showLoadingNotice(container);
       }
-      if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
-      activeIndex = activeMountStates.indexOf(state);
-      if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
-      if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused2(state.layoutPane);
+    }, timeout);
+  }
+  function detachMountContainer(container) {
+    if (!container) return;
+    container.__dvMountState = null;
+    if (container.parentNode && typeof container.parentNode.removeChild === "function") {
+      container.parentNode.removeChild(container);
     }
-    return { activeMountStates, createAttempt, disposeViewer, isAttemptActive, registerAttemptCleanup, disposeAttempt, clearAttemptTimeout, scheduleAttemptTimeout, disposeMountState };
+  }
+  function clearMountRoot(state) {
+    if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
+  }
+  function removeActiveMountState(activeMountStates, state) {
+    const activeIndex = activeMountStates.indexOf(state);
+    if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
+  }
+  function disposeMountState(state, options, activeMountStates, dependencies) {
+    const disposeAttempt2 = dependencies.disposeAttempt;
+    const restoreLeafLayoutIfUnused2 = dependencies.restoreLeafLayoutIfUnused;
+    if (!state || state.disposed) return;
+    state.disposed = true;
+    disposeAttempt2(state.attempt);
+    detachMountContainer(state.container);
+    clearMountRoot(state);
+    removeActiveMountState(activeMountStates, state);
+    if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused2(state.layoutPane);
+  }
+  function createAttemptOperations(dependencies) {
+    return {
+      createAttempt: function() {
+        return createAttempt(dependencies);
+      },
+      disposeViewer,
+      isAttemptActive,
+      registerAttemptCleanup,
+      disposeAttempt: function(attempt) {
+        disposeAttempt(attempt, dependencies);
+      },
+      clearAttemptTimeout: function(attempt) {
+        clearAttemptTimeout(attempt, dependencies.clearTimeout);
+      },
+      scheduleAttemptTimeout: function(attempt, container, timeout, allowFallback, onFallback) {
+        scheduleAttemptTimeout(attempt, container, timeout, allowFallback, onFallback, dependencies);
+      }
+    };
+  }
+  function createMountStateOperations(activeMountStates, dependencies, disposeAttemptOperation) {
+    return {
+      disposeMountState: function(state, options) {
+        const mountDependencies = {
+          disposeAttempt: disposeAttemptOperation,
+          restoreLeafLayoutIfUnused: dependencies.restoreLeafLayoutIfUnused
+        };
+        disposeMountState(state, options, activeMountStates, mountDependencies);
+      }
+    };
+  }
+  function createLifecycle(dependencies) {
+    const activeMountStates = [];
+    const attemptOperations = createAttemptOperations(dependencies);
+    return __spreadValues(__spreadValues({
+      activeMountStates
+    }, attemptOperations), createMountStateOperations(activeMountStates, dependencies, attemptOperations.disposeAttempt));
   }
 
   // src/events.mjs
-  function createViewerScope(viewer, attempt, registerAttemptCleanup) {
+  function createViewerScope(viewer, attempt, registerAttemptCleanup2) {
     let disposed = false;
     const cleanups = [];
     function listen(target, event, callback) {
@@ -722,7 +768,7 @@
       if (viewer && typeof viewer.removeHandler === "function") viewer.removeHandler("before-destroy", dispose);
     }
     if (viewer && typeof viewer.addHandler === "function") viewer.addHandler("before-destroy", dispose);
-    registerAttemptCleanup(attempt, dispose);
+    registerAttemptCleanup2(attempt, dispose);
     return { listen, dispose };
   }
 
@@ -1261,7 +1307,7 @@
   }
 
   // src/viewer-modes.mjs
-  function createViewerModes({ document: document2, isAttemptActive }) {
+  function createViewerModes({ document: document2, isAttemptActive: isAttemptActive2 }) {
     function addViewerModeActions(container, viewer, tileSources, options) {
       const pages = Array.isArray(tileSources) ? tileSources.slice() : [tileSources];
       const isSequence = pages.length > 1;
@@ -1270,7 +1316,7 @@
       const elements = createModeElements(document2);
       const state = createViewerModeState(pages, isSequence, objectDownloadPdfUrl, elements);
       bindModeButtons(elements, state);
-      bindViewerPages(viewer, options, state, isAttemptActive);
+      bindViewerPages(viewer, options, state, isAttemptActive2);
       syncViewerModeActions(state);
       container.appendChild(elements.root);
       return state;
@@ -1345,10 +1391,10 @@
       syncViewerModeActions(state);
     });
   }
-  function bindViewerPages(viewer, options, state, isAttemptActive) {
+  function bindViewerPages(viewer, options, state, isAttemptActive2) {
     if (!viewer || typeof viewer.addHandler !== "function") return;
     viewer.addHandler("page", function(data) {
-      if (!isAttemptActive(options && options.attempt)) return;
+      if (!isAttemptActive2(options && options.attempt)) return;
       if (!data || typeof data.page !== "number") return;
       state.activePageIndex = data.page;
       syncViewerModeActions(state);
@@ -1425,7 +1471,7 @@
     }
     return indexes;
   }
-  function createPrefetch({ fetch, Image, registerAttemptCleanup }) {
+  function createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 }) {
     var warmedResourceUrls = {};
     function primeResourceUrl(url, useFetch, options) {
       var attempt = options && options.attempt;
@@ -1453,7 +1499,7 @@
         var image = new Image();
         image.decoding = "async";
         image.loading = "eager";
-        if (attempt && registerAttemptCleanup) registerAttemptCleanup(attempt, function() {
+        if (attempt && registerAttemptCleanup2) registerAttemptCleanup2(attempt, function() {
           image.removeAttribute("src");
         });
         image.src = url;
@@ -1590,7 +1636,7 @@
     state,
     observer,
     enqueueThumbnail,
-    isAttemptActive,
+    isAttemptActive: isAttemptActive2,
     warmSequenceCache
   }) {
     return tileSources.map(function(tileSource, index) {
@@ -1604,7 +1650,7 @@
         state,
         observer,
         enqueueThumbnail,
-        isAttemptActive,
+        isAttemptActive: isAttemptActive2,
         warmSequenceCache
       });
     });
@@ -1619,7 +1665,7 @@
     state,
     observer,
     enqueueThumbnail,
-    isAttemptActive,
+    isAttemptActive: isAttemptActive2,
     warmSequenceCache
   }) {
     const button = document2.createElement("button");
@@ -1630,7 +1676,7 @@
     button.className = "dv-thumbnail-btn";
     button.setAttribute("aria-label", "Go to image " + (index + 1));
     button.addEventListener("click", function() {
-      if (state.disposed || !isAttemptActive(options && options.attempt)) return;
+      if (state.disposed || !isAttemptActive2(options && options.attempt)) return;
       viewer.goToPage(index);
       warmSequenceCache(tileSources, index, options);
     });
@@ -1703,12 +1749,12 @@
     if (observer) observer.disconnect();
     queue.dispose();
   }
-  function bindViewerLifecycle(viewer, buttons, options, state, observer, queue, isAttemptActive, registerAttemptCleanup, updateArrows) {
+  function bindViewerLifecycle(viewer, buttons, options, state, observer, queue, isAttemptActive2, registerAttemptCleanup2, updateArrows) {
     const updateActive = function(index) {
       updateActiveThumbnail(buttons, index, updateArrows);
     };
     const onPage = function(data) {
-      if (state.disposed || !isAttemptActive(options && options.attempt)) return;
+      if (state.disposed || !isAttemptActive2(options && options.attempt)) return;
       if (!data || typeof data.page !== "number") return;
       updateActive(data.page);
     };
@@ -1717,7 +1763,7 @@
     };
     viewer.addHandler("page", onPage);
     viewer.addHandler("before-destroy", cleanup);
-    registerAttemptCleanup(options && options.attempt, cleanup);
+    registerAttemptCleanup2(options && options.attempt, cleanup);
   }
 
   // src/viewer-page-errors.mjs
@@ -2681,21 +2727,21 @@
   function isReusableMount(existing, signature) {
     return existing && !existing.disposed && existing.signature === signature && existing.container && existing.container.parentNode;
   }
-  function mountReplacementGroup(dependencies, disposeMountState, mountRankedSources, group, selection, signature, existing, layoutKind) {
+  function mountReplacementGroup(dependencies, disposeMountState2, mountRankedSources, group, selection, signature, existing, layoutKind) {
     const viewerColumn = layoutKind === "leaf-digital-object" ? dependencies.pageLayout.prepareLeafLayout() : null;
-    if (existing) disposeMountState(existing, { preserveLayout: true });
+    if (existing) disposeMountState2(existing, { preserveLayout: true });
     const container = createContainer(dependencies, group, selection, signature, viewerColumn);
     if (!placeContainer(dependencies, container, selection, viewerColumn)) {
-      disposeMountState(container.__dvMountState);
+      disposeMountState2(container.__dvMountState);
       return;
     }
     mountRankedSources(container, selection.rankedCandidates);
   }
-  function mountGroup(dependencies, disposeMountState, mountRankedSources, group, layoutKind) {
+  function mountGroup(dependencies, disposeMountState2, mountRankedSources, group, layoutKind) {
     const { selection, signature } = selectSources(group, dependencies.config);
     const existing = group.root && group.root.__dvMountState;
     if (!selection.primaryCandidate) {
-      if (existing) disposeMountState(existing);
+      if (existing) disposeMountState2(existing);
       return;
     }
     if (isReusableMount(existing, signature)) {
@@ -2704,7 +2750,7 @@
     }
     mountReplacementGroup(
       dependencies,
-      disposeMountState,
+      disposeMountState2,
       mountRankedSources,
       group,
       selection,
@@ -2718,25 +2764,25 @@
       state.seenInInit = false;
     });
   }
-  function handleGroupMountError(dependencies, disposeMountState, group) {
+  function handleGroupMountError(dependencies, disposeMountState2, group) {
     try {
-      disposeMountState(group.root && group.root.__dvMountState);
+      disposeMountState2(group.root && group.root.__dvMountState);
     } catch (e) {
     }
     dependencies.console.warn("[digital_viewer] stage=startup code=group-unavailable");
   }
-  function mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState, mountRankedSources) {
+  function mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState2, mountRankedSources) {
     groups.forEach(function(group) {
       try {
-        mountGroup(dependencies, disposeMountState, mountRankedSources, group, layoutKind);
+        mountGroup(dependencies, disposeMountState2, mountRankedSources, group, layoutKind);
       } catch (e) {
-        handleGroupMountError(dependencies, disposeMountState, group);
+        handleGroupMountError(dependencies, disposeMountState2, group);
       }
     });
   }
-  function disposeUnseenMounts(activeMountStates, disposeMountState) {
+  function disposeUnseenMounts(activeMountStates, disposeMountState2) {
     activeMountStates.slice().forEach(function(state) {
-      if (!state.seenInInit) disposeMountState(state);
+      if (!state.seenInInit) disposeMountState2(state);
     });
   }
   function initializeViewer(dependencies) {
@@ -2746,14 +2792,14 @@
     }
     const groups = dependencies.sources.collectGroups();
     const activeMountStates = dependencies.lifecycle.activeMountStates;
-    const disposeMountState = dependencies.lifecycle.disposeMountState;
+    const disposeMountState2 = dependencies.lifecycle.disposeMountState;
     const mountRankedSources = dependencies.mountRankedSources;
     markMountsUnseen(activeMountStates);
     if (groups.length) {
       const layoutKind = classifyPageContext(dependencies.pageLayout.getPageContext());
-      mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState, mountRankedSources);
+      mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState2, mountRankedSources);
     }
-    disposeUnseenMounts(activeMountStates, disposeMountState);
+    disposeUnseenMounts(activeMountStates, disposeMountState2);
   }
 
   // src/mount-sequence.mjs
@@ -2769,18 +2815,18 @@
     };
   }
   function createMountSequence({ lifecycle, mountDescriptor, reportFailure }) {
-    const { createAttempt, disposeAttempt, isAttemptActive, scheduleAttemptTimeout, clearAttemptTimeout } = lifecycle;
+    const { createAttempt: createAttempt2, disposeAttempt: disposeAttempt2, isAttemptActive: isAttemptActive2, scheduleAttemptTimeout: scheduleAttemptTimeout2, clearAttemptTimeout: clearAttemptTimeout2 } = lifecycle;
     function mountRankedSources(container, ranked) {
       function tryMount(rankIndex) {
         var mountState = container.__dvMountState;
-        var attempt = createAttempt();
+        var attempt = createAttempt2();
         if (!mountState || mountState.disposed) return;
-        if (mountState.attempt) disposeAttempt(mountState.attempt);
+        if (mountState.attempt) disposeAttempt2(mountState.attempt);
         mountState.attempt = attempt;
         container.__dvMountAttempt = attempt;
         container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
         container.__dvMountOptions.attempt = attempt;
-        scheduleAttemptTimeout(
+        scheduleAttemptTimeout2(
           attempt,
           container,
           getLoadingTimeout(container.__dvMountOptions),
@@ -2790,15 +2836,15 @@
           }
         );
         Promise.resolve().then(function() {
-          if (!isAttemptActive(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
+          if (!isAttemptActive2(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
           return mountDescriptor(container, ranked[rankIndex].descriptor);
         }).then(function() {
-          if (!isAttemptActive(attempt)) return;
+          if (!isAttemptActive2(attempt)) return;
           attempt.completed = true;
-          clearAttemptTimeout(attempt);
+          clearAttemptTimeout2(attempt);
         }).catch(function() {
-          if (!isAttemptActive(attempt) || mountState.disposed) return;
-          disposeAttempt(attempt);
+          if (!isAttemptActive2(attempt) || mountState.disposed) return;
+          disposeAttempt2(attempt);
           if (rankIndex + 1 < ranked.length) {
             tryMount(rankIndex + 1);
           } else {
@@ -2840,17 +2886,17 @@
       showLoadingNotice,
       restoreLeafLayoutIfUnused: (pane) => pageLayout.restoreLeafLayoutIfUnused(pane, lifecycle.activeMountStates)
     });
-    const { isAttemptActive, registerAttemptCleanup, disposeMountState } = lifecycle;
-    const { addControls: addControls2, addPageNav: addPageNav2 } = createControls({ document: document2, isAttemptActive, registerAttemptCleanup });
-    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive });
-    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup });
+    const { isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2, disposeMountState: disposeMountState2 } = lifecycle;
+    const { addControls: addControls2, addPageNav: addPageNav2 } = createControls({ document: document2, isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2 });
+    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive: isAttemptActive2 });
+    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 });
     const { addThumbnailCarousel } = createThumbnails({
       document: document2,
       IntersectionObserver,
       setTimeout,
       clearTimeout,
-      isAttemptActive,
-      registerAttemptCleanup,
+      isAttemptActive: isAttemptActive2,
+      registerAttemptCleanup: registerAttemptCleanup2,
       warmSequenceCache
     });
     const { mountOsdViewer: mountOsdViewer2 } = createViewer({
@@ -2861,9 +2907,9 @@
       resetContainer,
       showLoadingNotice,
       clearLoadingNotice,
-      isAttemptActive,
+      isAttemptActive: isAttemptActive2,
       disposeViewer: lifecycle.disposeViewer,
-      registerAttemptCleanup,
+      registerAttemptCleanup: registerAttemptCleanup2,
       addControls: addControls2,
       addPageNav: addPageNav2,
       addViewerModeActions,
@@ -2880,13 +2926,13 @@
       clearTimeout,
       mountOsdViewer: mountOsdViewer2,
       reportFailure,
-      isAttemptActive,
+      isAttemptActive: isAttemptActive2,
       showError,
       resetContainer,
       addViewerModeActions,
       showLoadingNotice,
       clearLoadingNotice,
-      registerAttemptCleanup,
+      registerAttemptCleanup: registerAttemptCleanup2,
       createFallbackLink
     });
     function mountDescriptor(container, descriptor) {
@@ -2931,7 +2977,7 @@
       mountDescriptor,
       adapters,
       getContainerViewerOptions,
-      disposeMountState,
+      disposeMountState: disposeMountState2,
       init
     };
   }
@@ -2955,4 +3001,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=9225d8635d14a541a79f44ad828113e2c2d7a33544ba3fb86ceeb06279dd0f3d
+//# sourceMappingURL=digital_viewer.js.map?v=a8f6cd929f4bdc1d20710663f68473dd9b7911c548c0b1f3f70b8dc90ddaeda5
