@@ -1496,59 +1496,86 @@
     if (total <= 0) return indexes;
     indexes.push(activeIndex);
     for (offset = 1; offset <= radius; offset += 1) {
-      if (activeIndex - offset >= 0) {
-        indexes.push(activeIndex - offset);
-      }
-      if (activeIndex + offset < total) {
-        indexes.push(activeIndex + offset);
-      }
+      if (activeIndex - offset >= 0) indexes.push(activeIndex - offset);
+      if (activeIndex + offset < total) indexes.push(activeIndex + offset);
     }
     return indexes;
   }
-  function createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 }) {
-    var warmedResourceUrls = {};
-    function primeResourceUrl(url, useFetch, options) {
-      var attempt = options && options.attempt;
-      if (attempt && attempt.active === false) return;
-      var warmed = attempt ? attempt.warmedResourceUrls || (attempt.warmedResourceUrls = {}) : warmedResourceUrls;
-      if (!url || warmed[url]) return;
-      warmed[url] = true;
-      if (useFetch && typeof fetch === "function") {
-        var request;
-        try {
-          request = fetch(url, { cache: "force-cache", signal: attempt && attempt.controller ? attempt.controller.signal : void 0 });
-        } catch (e) {
-          delete warmed[url];
-          return;
-        }
-        Promise.resolve(request).then(function(res) {
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          return res.text();
-        }).catch(function() {
-          delete warmed[url];
-        });
-        return;
-      }
-      if (typeof Image !== "undefined") {
-        var image = new Image();
-        image.decoding = "async";
-        image.loading = "eager";
-        if (attempt && registerAttemptCleanup2) registerAttemptCleanup2(attempt, function() {
-          image.removeAttribute("src");
-        });
-        image.src = url;
-      }
+  function getAttemptResources(attempt, sharedResources) {
+    if (attempt && attempt.active === false) return null;
+    if (!attempt) return sharedResources;
+    return attempt.warmedResourceUrls || (attempt.warmedResourceUrls = {});
+  }
+  function markResourceWarmed(warmedResources, url) {
+    if (!url || warmedResources[url]) return false;
+    warmedResources[url] = true;
+    return true;
+  }
+  function clearWarmedResource(warmedResources, url) {
+    delete warmedResources[url];
+  }
+  function fetchResource(fetch, url, attempt, warmedResources) {
+    let request;
+    try {
+      request = fetch(url, {
+        cache: "force-cache",
+        signal: attempt && attempt.controller ? attempt.controller.signal : void 0
+      });
+    } catch (e) {
+      clearWarmedResource(warmedResources, url);
+      return;
     }
-    function warmSequenceCache(tileSources, activeIndex, options) {
-      getPreloadPageIndexes(activeIndex, tileSources.length, SEQUENCE_PRELOAD_DISTANCE).forEach(function(index) {
-        var tileSource = tileSources[index];
-        var osdTileSource = getTileSourceValue(tileSource);
-        if (typeof osdTileSource === "string" && /\/info\.json(?:\?.*)?$/i.test(osdTileSource)) {
-          primeResourceUrl(osdTileSource, true, options);
-        }
+    Promise.resolve(request).then(function(response) {
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      return response.text();
+    }).catch(function() {
+      clearWarmedResource(warmedResources, url);
+    });
+  }
+  function warmWithImage(Image, registerAttemptCleanup2, attempt, url) {
+    if (typeof Image === "undefined") return;
+    const image = new Image();
+    image.decoding = "async";
+    image.loading = "eager";
+    if (attempt && registerAttemptCleanup2) {
+      registerAttemptCleanup2(attempt, function() {
+        image.removeAttribute("src");
       });
     }
-    return { primeResourceUrl, warmSequenceCache };
+    image.src = url;
+  }
+  function primeResourceUrl(dependencies, sharedResources, url, useFetch, options) {
+    const { fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 } = dependencies;
+    const attempt = options && options.attempt;
+    const warmedResources = getAttemptResources(attempt, sharedResources);
+    if (!warmedResources || !markResourceWarmed(warmedResources, url)) return;
+    if (useFetch && typeof fetch === "function") {
+      fetchResource(fetch, url, attempt, warmedResources);
+      return;
+    }
+    warmWithImage(Image, registerAttemptCleanup2, attempt, url);
+  }
+  function isIiifInfoUrl(tileSource) {
+    return typeof tileSource === "string" && /\/info\.json(?:\?.*)?$/i.test(tileSource);
+  }
+  function warmSequenceCache(dependencies, sharedResources, tileSources, activeIndex, options) {
+    getPreloadPageIndexes(activeIndex, tileSources.length, SEQUENCE_PRELOAD_DISTANCE).forEach(function(index) {
+      const tileSource = getTileSourceValue(tileSources[index]);
+      if (isIiifInfoUrl(tileSource)) {
+        primeResourceUrl(dependencies, sharedResources, tileSource, true, options);
+      }
+    });
+  }
+  function createPrefetch(dependencies) {
+    const warmedResourceUrls = {};
+    return {
+      primeResourceUrl: function(url, useFetch, options) {
+        primeResourceUrl(dependencies, warmedResourceUrls, url, useFetch, options);
+      },
+      warmSequenceCache: function(tileSources, activeIndex, options) {
+        warmSequenceCache(dependencies, warmedResourceUrls, tileSources, activeIndex, options);
+      }
+    };
   }
 
   // src/thumbnails.mjs
@@ -1671,7 +1698,7 @@
     observer,
     enqueueThumbnail,
     isAttemptActive: isAttemptActive2,
-    warmSequenceCache
+    warmSequenceCache: warmSequenceCache2
   }) {
     return tileSources.map(function(tileSource, index) {
       return createPageButton2({
@@ -1685,7 +1712,7 @@
         observer,
         enqueueThumbnail,
         isAttemptActive: isAttemptActive2,
-        warmSequenceCache
+        warmSequenceCache: warmSequenceCache2
       });
     });
   }
@@ -1700,7 +1727,7 @@
     observer,
     enqueueThumbnail,
     isAttemptActive: isAttemptActive2,
-    warmSequenceCache
+    warmSequenceCache: warmSequenceCache2
   }) {
     const button = document2.createElement("button");
     const image = document2.createElement("img");
@@ -1712,7 +1739,7 @@
     button.addEventListener("click", function() {
       if (state.disposed || !isAttemptActive2(options && options.attempt)) return;
       viewer.goToPage(index);
-      warmSequenceCache(tileSources, index, options);
+      warmSequenceCache2(tileSources, index, options);
     });
     image.className = "dv-thumbnail-img";
     image.alt = "Thumbnail " + (index + 1);
@@ -2944,7 +2971,7 @@
     const { isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2, disposeMountState: disposeMountState2 } = lifecycle;
     const { addControls: addControls2, addPageNav: addPageNav2 } = createControls({ document: document2, isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2 });
     const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive: isAttemptActive2 });
-    const { primeResourceUrl, warmSequenceCache } = createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 });
+    const { primeResourceUrl: primeResourceUrl2, warmSequenceCache: warmSequenceCache2 } = createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 });
     const { addThumbnailCarousel } = createThumbnails({
       document: document2,
       IntersectionObserver,
@@ -2952,7 +2979,7 @@
       clearTimeout,
       isAttemptActive: isAttemptActive2,
       registerAttemptCleanup: registerAttemptCleanup2,
-      warmSequenceCache
+      warmSequenceCache: warmSequenceCache2
     });
     const { mountOsdViewer: mountOsdViewer2 } = createViewer({
       document: document2,
@@ -2969,8 +2996,8 @@
       addPageNav: addPageNav2,
       addViewerModeActions,
       addThumbnailCarousel,
-      warmSequenceCache,
-      primeResourceUrl
+      warmSequenceCache: warmSequenceCache2,
+      primeResourceUrl: primeResourceUrl2
     });
     const adapters = createSourceAdapters({
       config: cfg,
@@ -3025,7 +3052,7 @@
       buildThumbnailUrl,
       addControls: addControls2,
       addThumbnailCarousel,
-      warmSequenceCache,
+      warmSequenceCache: warmSequenceCache2,
       classifyPageContext,
       collectSourceAnchors: sources.collectSourceAnchors,
       mountOsdViewer: mountOsdViewer2,
@@ -3056,4 +3083,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=325514978d3ce1b330a9bdd1d42ab5eec9281feee0d29d35343bc2d5f95e365f
+//# sourceMappingURL=digital_viewer.js.map?v=cd473080a44084c772323119ea1958ad4bda1ad65922666c77957a8db879ca2f
