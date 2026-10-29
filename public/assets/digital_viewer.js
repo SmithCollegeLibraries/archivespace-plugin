@@ -2595,111 +2595,134 @@
   }
 
   // src/init.mjs
-  function createInitializer({
-    config,
-    document: document2,
-    console: console2,
-    OpenSeadragon,
-    sources,
-    pageLayout,
-    lifecycle,
-    mountRankedSources
-  }) {
-    const { activeMountStates, disposeMountState } = lifecycle;
-    function selectSources(group) {
-      const candidates = [];
-      group.items.forEach(function(item) {
-        const descriptor = detectSource(item.uri, config);
-        if (descriptor) candidates.push({ item, descriptor });
-      });
-      return {
-        selection: buildDescriptorSelection(candidates),
-        // Preserve discovery order independently of source ranking.
-        signature: candidates.map(function(candidate) {
-          return candidate.item.uri;
-        }).join("\0")
-      };
-    }
-    function createContainer(group, selection, signature, viewerColumn) {
-      const container = document2.createElement("div");
-      container.className = "digital-viewer-container";
-      container.__dvDescriptorSelection = selection;
-      container.__dvMountOptions = {
-        loadingTimeoutMs: config.loadingTimeoutMs,
-        allowFallbackOnTimeout: selection.rankedCandidates.length > 1
-      };
-      const state = {
-        root: group.root,
-        container,
-        signature,
-        attempt: null,
-        disposed: false,
-        seenInInit: true,
-        layoutPane: viewerColumn ? viewerColumn.parentNode : null
-      };
-      container.__dvMountState = state;
-      if (group.root) group.root.__dvMountState = state;
-      activeMountStates.push(state);
-      return container;
-    }
-    function placeContainer(container, selection, viewerColumn) {
-      if (viewerColumn) {
-        viewerColumn.appendChild(container);
-        return true;
-      }
-      const insertAfter = pageLayout.findInsertAfter(selection.primaryCandidate.item.anchor);
-      if (!insertAfter || !insertAfter.parentNode) return false;
-      insertAfter.parentNode.insertBefore(container, insertAfter.nextSibling);
-      return true;
-    }
-    function mountGroup(group, layoutKind) {
-      const { selection, signature } = selectSources(group);
-      const existing = group.root && group.root.__dvMountState;
-      if (!selection.primaryCandidate) {
-        if (existing) disposeMountState(existing);
-        return;
-      }
-      if (existing && !existing.disposed && existing.signature === signature && existing.container && existing.container.parentNode) {
-        existing.seenInInit = true;
-        return;
-      }
-      const viewerColumn = layoutKind === "leaf-digital-object" ? pageLayout.prepareLeafLayout() : null;
-      if (existing) disposeMountState(existing, { preserveLayout: true });
-      const container = createContainer(group, selection, signature, viewerColumn);
-      if (!placeContainer(container, selection, viewerColumn)) {
-        disposeMountState(container.__dvMountState);
-        return;
-      }
-      mountRankedSources(container, selection.rankedCandidates);
-    }
+  function createInitializer(dependencies) {
     function init() {
-      if (typeof OpenSeadragon === "undefined") {
-        console2.warn("[digital_viewer] stage=startup code=osd-unavailable (OpenSeadragon not loaded)");
-        return;
-      }
-      const groups = sources.collectGroups();
-      activeMountStates.forEach(function(state) {
-        state.seenInInit = false;
-      });
-      if (groups.length) {
-        const layoutKind = classifyPageContext(pageLayout.getPageContext());
-        groups.forEach(function(group) {
-          try {
-            mountGroup(group, layoutKind);
-          } catch (e) {
-            try {
-              disposeMountState(group.root && group.root.__dvMountState);
-            } catch (e2) {
-            }
-            console2.warn("[digital_viewer] stage=startup code=group-unavailable");
-          }
-        });
-      }
-      activeMountStates.slice().forEach(function(state) {
-        if (!state.seenInInit) disposeMountState(state);
-      });
+      initializeViewer(dependencies);
     }
     return { init };
+  }
+  function selectSources(group, config) {
+    const candidates = [];
+    group.items.forEach(function(item) {
+      const descriptor = detectSource(item.uri, config);
+      if (descriptor) candidates.push({ item, descriptor });
+    });
+    return {
+      selection: buildDescriptorSelection(candidates),
+      // Preserve discovery order independently of source ranking.
+      signature: candidates.map(function(candidate) {
+        return candidate.item.uri;
+      }).join("\0")
+    };
+  }
+  function createContainer(dependencies, group, selection, signature, viewerColumn) {
+    const container = dependencies.document.createElement("div");
+    container.className = "digital-viewer-container";
+    container.__dvDescriptorSelection = selection;
+    container.__dvMountOptions = {
+      loadingTimeoutMs: dependencies.config.loadingTimeoutMs,
+      allowFallbackOnTimeout: selection.rankedCandidates.length > 1
+    };
+    const state = {
+      root: group.root,
+      container,
+      signature,
+      attempt: null,
+      disposed: false,
+      seenInInit: true,
+      layoutPane: viewerColumn ? viewerColumn.parentNode : null
+    };
+    container.__dvMountState = state;
+    if (group.root) group.root.__dvMountState = state;
+    dependencies.lifecycle.activeMountStates.push(state);
+    return container;
+  }
+  function placeContainer(dependencies, container, selection, viewerColumn) {
+    if (viewerColumn) {
+      viewerColumn.appendChild(container);
+      return true;
+    }
+    const insertAfter = dependencies.pageLayout.findInsertAfter(selection.primaryCandidate.item.anchor);
+    if (!insertAfter || !insertAfter.parentNode) return false;
+    insertAfter.parentNode.insertBefore(container, insertAfter.nextSibling);
+    return true;
+  }
+  function isReusableMount(existing, signature) {
+    return existing && !existing.disposed && existing.signature === signature && existing.container && existing.container.parentNode;
+  }
+  function mountReplacementGroup(dependencies, disposeMountState, mountRankedSources, group, selection, signature, existing, layoutKind) {
+    const viewerColumn = layoutKind === "leaf-digital-object" ? dependencies.pageLayout.prepareLeafLayout() : null;
+    if (existing) disposeMountState(existing, { preserveLayout: true });
+    const container = createContainer(dependencies, group, selection, signature, viewerColumn);
+    if (!placeContainer(dependencies, container, selection, viewerColumn)) {
+      disposeMountState(container.__dvMountState);
+      return;
+    }
+    mountRankedSources(container, selection.rankedCandidates);
+  }
+  function mountGroup(dependencies, disposeMountState, mountRankedSources, group, layoutKind) {
+    const { selection, signature } = selectSources(group, dependencies.config);
+    const existing = group.root && group.root.__dvMountState;
+    if (!selection.primaryCandidate) {
+      if (existing) disposeMountState(existing);
+      return;
+    }
+    if (isReusableMount(existing, signature)) {
+      existing.seenInInit = true;
+      return;
+    }
+    mountReplacementGroup(
+      dependencies,
+      disposeMountState,
+      mountRankedSources,
+      group,
+      selection,
+      signature,
+      existing,
+      layoutKind
+    );
+  }
+  function markMountsUnseen(activeMountStates) {
+    activeMountStates.forEach(function(state) {
+      state.seenInInit = false;
+    });
+  }
+  function handleGroupMountError(dependencies, disposeMountState, group) {
+    try {
+      disposeMountState(group.root && group.root.__dvMountState);
+    } catch (e) {
+    }
+    dependencies.console.warn("[digital_viewer] stage=startup code=group-unavailable");
+  }
+  function mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState, mountRankedSources) {
+    groups.forEach(function(group) {
+      try {
+        mountGroup(dependencies, disposeMountState, mountRankedSources, group, layoutKind);
+      } catch (e) {
+        handleGroupMountError(dependencies, disposeMountState, group);
+      }
+    });
+  }
+  function disposeUnseenMounts(activeMountStates, disposeMountState) {
+    activeMountStates.slice().forEach(function(state) {
+      if (!state.seenInInit) disposeMountState(state);
+    });
+  }
+  function initializeViewer(dependencies) {
+    if (typeof dependencies.OpenSeadragon === "undefined") {
+      dependencies.console.warn("[digital_viewer] stage=startup code=osd-unavailable (OpenSeadragon not loaded)");
+      return;
+    }
+    const groups = dependencies.sources.collectGroups();
+    const activeMountStates = dependencies.lifecycle.activeMountStates;
+    const disposeMountState = dependencies.lifecycle.disposeMountState;
+    const mountRankedSources = dependencies.mountRankedSources;
+    markMountsUnseen(activeMountStates);
+    if (groups.length) {
+      const layoutKind = classifyPageContext(dependencies.pageLayout.getPageContext());
+      mountGroupsIndependently(dependencies, groups, layoutKind, disposeMountState, mountRankedSources);
+    }
+    disposeUnseenMounts(activeMountStates, disposeMountState);
   }
 
   // src/mount-sequence.mjs
@@ -2901,4 +2924,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=8d0a03d61ba5845634e63c1da4591fd0af8eb5f235457b2f58f9f46d2c16d613
+//# sourceMappingURL=digital_viewer.js.map?v=168992fcddcd178520000a7358e4cf8ed663f854c9e04cc402d57967881e80f4
