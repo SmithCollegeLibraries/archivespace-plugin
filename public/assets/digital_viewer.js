@@ -612,7 +612,7 @@
     setTimeout,
     clearTimeout,
     showLoadingNotice,
-    restoreLeafLayoutIfUnused
+    restoreLeafLayoutIfUnused: restoreLeafLayoutIfUnused2
   }) {
     var activeMountStates = [];
     function createAttempt() {
@@ -694,7 +694,7 @@
       if (state.root && state.root.__dvMountState === state) state.root.__dvMountState = null;
       activeIndex = activeMountStates.indexOf(state);
       if (activeIndex !== -1) activeMountStates.splice(activeIndex, 1);
-      if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused(state.layoutPane);
+      if (!options || !options.preserveLayout) restoreLeafLayoutIfUnused2(state.layoutPane);
     }
     return { activeMountStates, createAttempt, disposeViewer, isAttemptActive, registerAttemptCleanup, disposeAttempt, clearAttemptTimeout, scheduleAttemptTimeout, disposeMountState };
   }
@@ -2341,8 +2341,8 @@
     sourceGroupState.count += 1;
     root.setAttribute("data-dv-source-group", "render-" + sourceGroupState.count);
   }
-  function findGroupRoot(document2, getPageContext, anchor, sourceGroupState) {
-    const pageContext = getPageContext();
+  function findGroupRoot(document2, getPageContext2, anchor, sourceGroupState) {
+    const pageContext = getPageContext2();
     const root = findLeafDigitalObjectRoot(document2, pageContext) || findClosestGroupRoot(anchor);
     assignSourceGroup(root, sourceGroupState);
     return root;
@@ -2403,83 +2403,114 @@
     }
     return "stock";
   }
+  function findSourceGroup(anchor) {
+    return anchor.closest ? anchor.closest("[data-dv-source-group]") : null;
+  }
+  function findExternalObjectBlock(anchor) {
+    if (!anchor.classList || !anchor.classList.contains("external-digital-object__link")) {
+      return { matched: false };
+    }
+    const availableBlock = anchor.closest ? anchor.closest(".available-digital-objects") : null;
+    return { matched: true, insertAfter: availableBlock || anchor.parentNode };
+  }
+  function findAdditionalVersionBlock(anchor) {
+    if (!anchor.closest || !anchor.closest("[data-additional-file-version]")) return { matched: false };
+    return { matched: true, insertAfter: anchor.closest(".panel") || anchor.parentNode };
+  }
+  function findLegacyInsertionPoint(anchor) {
+    return (anchor.closest ? anchor.closest("dl, .digital-object, .instance") : null) || anchor.parentNode;
+  }
+  function findInsertAfter(anchor) {
+    const sourceGroup = findSourceGroup(anchor);
+    if (sourceGroup) return sourceGroup;
+    const externalBlock = findExternalObjectBlock(anchor);
+    if (externalBlock.matched) return externalBlock.insertAfter;
+    const additionalBlock = findAdditionalVersionBlock(anchor);
+    if (additionalBlock.matched) return additionalBlock.insertAfter;
+    return findLegacyInsertionPoint(anchor);
+  }
+  function getPageContext(document2) {
+    const context = document2.querySelector("[data-dv-page-context]");
+    const dataset = context && context.dataset ? context.dataset : {};
+    return {
+      recordType: dataset.recordType || "",
+      hasChildren: dataset.hasChildren === "true",
+      paneExists: !!document2.querySelector("#notes_row > .resizable-content-pane")
+    };
+  }
+  function getLeafLayoutPane(document2) {
+    return document2.querySelector("#notes_row > .resizable-content-pane");
+  }
+  function existingViewerColumn(pane) {
+    const viewerColumn = pane.querySelector("#dv-viewer-column");
+    if (!viewerColumn) return null;
+    pane.classList.add("dv-enhanced-pane");
+    return viewerColumn;
+  }
+  function createLeafLayoutColumns(document2) {
+    const metadataColumn = document2.createElement("div");
+    const viewerColumn = document2.createElement("div");
+    metadataColumn.className = "dv-metadata-column";
+    viewerColumn.id = "dv-viewer-column";
+    viewerColumn.className = "dv-viewer-column";
+    return { metadataColumn, viewerColumn };
+  }
+  function movePaneChildren(pane, metadataColumn) {
+    while (pane.firstChild) metadataColumn.appendChild(pane.firstChild);
+  }
+  function prepareLeafLayout(document2) {
+    const pane = getLeafLayoutPane(document2);
+    if (!pane || !pane.children) return null;
+    const currentViewerColumn = existingViewerColumn(pane);
+    if (currentViewerColumn) return currentViewerColumn;
+    const { metadataColumn, viewerColumn } = createLeafLayoutColumns(document2);
+    movePaneChildren(pane, metadataColumn);
+    pane.appendChild(metadataColumn);
+    pane.appendChild(viewerColumn);
+    pane.classList.add("dv-enhanced-pane");
+    pane.__dvLeafLayoutState = { pane, metadataColumn, viewerColumn };
+    return viewerColumn;
+  }
+  function hasActiveMountForPane(activeMountStates, pane) {
+    return activeMountStates.some(function(state) {
+      return state && !state.disposed && state.layoutPane === pane;
+    });
+  }
+  function findLeafLayoutColumns(pane) {
+    const layoutState = pane.__dvLeafLayoutState;
+    return {
+      metadataColumn: layoutState && layoutState.metadataColumn || pane.querySelector(".dv-metadata-column"),
+      viewerColumn: layoutState && layoutState.viewerColumn || pane.querySelector("#dv-viewer-column")
+    };
+  }
+  function restoreMetadataChildren(pane, metadataColumn) {
+    if (!metadataColumn) return;
+    while (metadataColumn.firstChild) pane.appendChild(metadataColumn.firstChild);
+    if (metadataColumn.parentNode) metadataColumn.parentNode.removeChild(metadataColumn);
+  }
+  function removeViewerColumn(viewerColumn) {
+    if (viewerColumn && viewerColumn.parentNode) viewerColumn.parentNode.removeChild(viewerColumn);
+  }
+  function restoreLeafLayoutIfUnused(pane, activeMountStates) {
+    if (!pane || hasActiveMountForPane(activeMountStates, pane)) return;
+    const { metadataColumn, viewerColumn } = findLeafLayoutColumns(pane);
+    if (!metadataColumn && !viewerColumn) return;
+    restoreMetadataChildren(pane, metadataColumn);
+    removeViewerColumn(viewerColumn);
+    pane.classList.remove("dv-enhanced-pane");
+    pane.__dvLeafLayoutState = null;
+  }
   function createPageLayout({ document: document2 }) {
-    function findInsertAfter(anchor) {
-      var sourceGroup = anchor.closest ? anchor.closest("[data-dv-source-group]") : null;
-      if (sourceGroup) return sourceGroup;
-      if (anchor.classList && anchor.classList.contains("external-digital-object__link")) {
-        var availBlock = anchor.closest ? anchor.closest(".available-digital-objects") : null;
-        return availBlock || anchor.parentNode;
-      }
-      if (anchor.closest && anchor.closest("[data-additional-file-version]")) {
-        return anchor.closest(".panel") || anchor.parentNode;
-      }
-      return (anchor.closest ? anchor.closest("dl, .digital-object, .instance") : null) || anchor.parentNode;
-    }
-    function getPageContext() {
-      var context = document2.querySelector("[data-dv-page-context]");
-      var dataset = context && context.dataset ? context.dataset : {};
-      return {
-        recordType: dataset.recordType || "",
-        hasChildren: dataset.hasChildren === "true",
-        paneExists: !!document2.querySelector("#notes_row > .resizable-content-pane")
-      };
-    }
-    function prepareLeafLayout() {
-      var pane = document2.querySelector("#notes_row > .resizable-content-pane");
-      var metadataColumn;
-      var viewerColumn;
-      if (!pane || !pane.children) return null;
-      viewerColumn = pane.querySelector("#dv-viewer-column");
-      if (viewerColumn) {
-        pane.classList.add("dv-enhanced-pane");
-        return viewerColumn;
-      }
-      metadataColumn = document2.createElement("div");
-      metadataColumn.className = "dv-metadata-column";
-      viewerColumn = document2.createElement("div");
-      viewerColumn.id = "dv-viewer-column";
-      viewerColumn.className = "dv-viewer-column";
-      while (pane.firstChild) {
-        metadataColumn.appendChild(pane.firstChild);
-      }
-      pane.appendChild(metadataColumn);
-      pane.appendChild(viewerColumn);
-      pane.classList.add("dv-enhanced-pane");
-      pane.__dvLeafLayoutState = {
-        pane,
-        metadataColumn,
-        viewerColumn
-      };
-      return viewerColumn;
-    }
-    function restoreLeafLayoutIfUnused(pane, activeMountStates) {
-      var layoutState;
-      var metadataColumn;
-      var viewerColumn;
-      var hasActiveMount = false;
-      if (!pane) return;
-      activeMountStates.some(function(state) {
-        if (state && !state.disposed && state.layoutPane === pane) {
-          hasActiveMount = true;
-          return true;
-        }
-        return false;
-      });
-      if (hasActiveMount) return;
-      layoutState = pane.__dvLeafLayoutState;
-      metadataColumn = layoutState && layoutState.metadataColumn || pane.querySelector(".dv-metadata-column");
-      viewerColumn = layoutState && layoutState.viewerColumn || pane.querySelector("#dv-viewer-column");
-      if (!metadataColumn && !viewerColumn) return;
-      if (metadataColumn) {
-        while (metadataColumn.firstChild) pane.appendChild(metadataColumn.firstChild);
-        if (metadataColumn.parentNode) metadataColumn.parentNode.removeChild(metadataColumn);
-      }
-      if (viewerColumn && viewerColumn.parentNode) viewerColumn.parentNode.removeChild(viewerColumn);
-      pane.classList.remove("dv-enhanced-pane");
-      pane.__dvLeafLayoutState = null;
-    }
-    return { findInsertAfter, getPageContext, prepareLeafLayout, restoreLeafLayoutIfUnused };
+    return {
+      findInsertAfter,
+      getPageContext: function() {
+        return getPageContext(document2);
+      },
+      prepareLeafLayout: function() {
+        return prepareLeafLayout(document2);
+      },
+      restoreLeafLayoutIfUnused
+    };
   }
 
   // src/source-selection.mjs
@@ -2924,4 +2955,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=168992fcddcd178520000a7358e4cf8ed663f854c9e04cc402d57967881e80f4
+//# sourceMappingURL=digital_viewer.js.map?v=9225d8635d14a541a79f44ad828113e2c2d7a33544ba3fb86ceeb06279dd0f3d
