@@ -2672,63 +2672,76 @@
   var DEEP_ZOOM_RE = /\.(tiff?|jp2)(\?.*)?$/i;
   var STATIC_IMAGE_RE = /\.(jpe?g|png|gif|webp)(\?.*)?$/i;
   var PDF_RE = /\.pdf(\?.*)?$/i;
-  function detectSource(fileUri, cfg) {
-    var uriUrl;
-    if (!fileUri) return null;
-    var normalizedUri = fileUri.replace(/^\/\//, "https://");
+  function getUriUrl(normalizedUri) {
     try {
-      uriUrl = new URL(normalizedUri);
+      return new URL(normalizedUri);
     } catch (e) {
-      uriUrl = null;
+      return null;
     }
-    var isCompassHost = !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
+  }
+  function isCompassHost(uriUrl, cfg) {
+    return !!cfg.compassHost && !!uriUrl && uriUrl.hostname.toLowerCase() === cfg.compassHost;
+  }
+  function detectStaticPdf(normalizedUri) {
     if (/^https?:\/\//i.test(normalizedUri) && PDF_RE.test(normalizedUri)) {
       return { type: "static-pdf", url: normalizedUri };
     }
-    if (isCompassHost && cfg.cantaloupeBaseUrl && normalizedUri.indexOf("/system/files/") !== -1) {
-      var marker = "/system/files/";
-      var pos = normalizedUri.indexOf(marker);
-      if (pos !== -1) {
-        var s3Key = normalizedUri.slice(pos + marker.length);
-        if (DEEP_ZOOM_RE.test(s3Key)) {
-          var infoUrl = cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
-          return { type: "cantaloupe", infoUrl };
-        }
-        if (STATIC_IMAGE_RE.test(s3Key)) {
-          return { type: "static-image", imageUrl: normalizedUri };
-        }
-      }
+    return null;
+  }
+  function getCompassSystemFileKey(normalizedUri) {
+    var marker = "/system/files/";
+    var pos = normalizedUri.indexOf(marker);
+    if (pos === -1) return "";
+    return normalizedUri.slice(pos + marker.length);
+  }
+  function detectCompassSystemFile(normalizedUri, cfg, compassHost) {
+    if (!compassHost || !cfg.cantaloupeBaseUrl || normalizedUri.indexOf("/system/files/") === -1) return null;
+    var s3Key = getCompassSystemFileKey(normalizedUri);
+    if (DEEP_ZOOM_RE.test(s3Key)) {
+      return { type: "cantaloupe", infoUrl: cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json" };
     }
+    if (STATIC_IMAGE_RE.test(s3Key)) return { type: "static-image", imageUrl: normalizedUri };
+    return null;
+  }
+  function detectStaticImage(normalizedUri) {
     if (/^https?:\/\//i.test(normalizedUri) && STATIC_IMAGE_RE.test(normalizedUri)) {
       return { type: "static-image", imageUrl: normalizedUri };
     }
-    if (isCompassHost && (normalizedUri.indexOf("/islandora/object/") !== -1 || normalizedUri.indexOf("/object/") !== -1)) {
-      var compassObjectUrl = normalizedUri;
-      if (normalizedUri.indexOf("/islandora/object/") === -1) {
-        compassObjectUrl = normalizedUri.replace("/object/", "/islandora/object/");
-      }
-      return {
-        type: "compass",
-        compassUrl: compassObjectUrl
-      };
+    return null;
+  }
+  function detectCompassObject(normalizedUri, compassHost) {
+    if (!compassHost || normalizedUri.indexOf("/islandora/object/") === -1 && normalizedUri.indexOf("/object/") === -1) return null;
+    var compassObjectUrl = normalizedUri;
+    if (normalizedUri.indexOf("/islandora/object/") === -1) {
+      compassObjectUrl = normalizedUri.replace("/object/", "/islandora/object/");
     }
-    if (isCompassHost && normalizedUri.indexOf("/node/") !== -1 && /\/manifest(?:-single)?(?:\?.*)?$/i.test(normalizedUri)) {
-      return { type: "compass-manifest", manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://") };
-    }
-    if (isCompassHost && /\/node\/\d+(?:\?.*)?$/i.test(normalizedUri)) {
-      return {
-        type: "compass-manifest",
-        manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://").replace(/\/?(?:\?.*)?$/i, "") + "/manifest"
-      };
-    }
+    return { type: "compass", compassUrl: compassObjectUrl };
+  }
+  function detectDirectCompassManifest(normalizedUri, compassHost) {
+    if (!compassHost || normalizedUri.indexOf("/node/") === -1 || !/\/manifest(?:-single)?(?:\?.*)?$/i.test(normalizedUri)) return null;
+    return { type: "compass-manifest", manifestUrl: normalizedUri.replace(/^http:\/\//i, "https://") };
+  }
+  function detectCompassNodeManifest(normalizedUri, compassHost) {
+    if (!compassHost || !/\/node\/\d+(?:\?.*)?$/i.test(normalizedUri)) return null;
+    var manifestUrl = normalizedUri.replace(/^http:\/\//i, "https://").replace(/\/?(?:\?.*)?$/i, "") + "/manifest";
+    return { type: "compass-manifest", manifestUrl };
+  }
+  function detectHostedManifest(normalizedUri) {
     if (/^https?:\/\/.+\/manifests\/.+\.json(?:\?.*)?$/i.test(normalizedUri)) {
       return { type: "compass-manifest", manifestUrl: normalizedUri };
     }
-    var uuidMatch = normalizedUri.match(UUID_RE);
-    if (uuidMatch) {
-      return { type: "preservica", uuid: uuidMatch[0] };
-    }
     return null;
+  }
+  function detectPreservica(normalizedUri) {
+    var uuidMatch = normalizedUri.match(UUID_RE);
+    if (uuidMatch) return { type: "preservica", uuid: uuidMatch[0] };
+    return null;
+  }
+  function detectSource(fileUri, cfg) {
+    if (!fileUri) return null;
+    var normalizedUri = fileUri.replace(/^\/\//, "https://");
+    var compassHost = isCompassHost(getUriUrl(normalizedUri), cfg);
+    return detectStaticPdf(normalizedUri) || detectCompassSystemFile(normalizedUri, cfg, compassHost) || detectStaticImage(normalizedUri) || detectCompassObject(normalizedUri, compassHost) || detectDirectCompassManifest(normalizedUri, compassHost) || detectCompassNodeManifest(normalizedUri, compassHost) || detectHostedManifest(normalizedUri) || detectPreservica(normalizedUri);
   }
   function descriptorPriority(descriptor) {
     if (!descriptor) return -1;
@@ -3126,4 +3139,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=3b7f38cfb505fda9b30e635b3a7a3147d557535f3033a7745a4a4240194fa0f8
+//# sourceMappingURL=digital_viewer.js.map?v=4bee634ede9406347ce08f09ec3c1f9e719992d3cdc3b9a72632e12be78f0beb
