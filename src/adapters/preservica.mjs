@@ -1,62 +1,81 @@
-import { extractManifestContent } from '../manifest.mjs';
+import { extractManifestContent as parseManifestContent } from '../manifest.mjs';
 
 // The backend handles Preservica authentication and content delivery.
-// eslint-disable-next-line max-lines-per-function
-export function createPreservicaAdapter({ config: cfg, fetch, console, isAttemptActive, reportFailure,
-  clearLoadingNotice, mountOsdViewer, mountVideoViewer, mountAudioViewer, mountPdfViewer }) {
-  // eslint-disable-next-line max-lines-per-function
-  function mountPreservica(container, descriptor, mountOptions) {
-    if (!cfg.preservicaApiBase) {
-      reportFailure(container, 'configuration', 'preservica-unavailable');
-      return Promise.reject(new Error('PRESERVICA_UNAVAILABLE'));
-    }
+function getManifestUrl(config, uuid) {
+  return config.preservicaApiBase.replace(/\/$/, '') + '/api/iiif/' + uuid + '/manifest.json';
+}
 
-    var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, '') + '/api/iiif/' + descriptor.uuid + '/manifest.json';
+function requestManifest(dependencies, manifestUrl, mountOptions) {
+  const { fetch, isAttemptActive } = dependencies;
+  return fetch(manifestUrl, { signal: mountOptions.signal })
+    .then(function (response) {
+      if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    });
+}
 
-    return fetch(manifestUrl, { signal: mountOptions.signal })
-      .then(function (res) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (manifest) {
-        if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
-        var content = extractManifestContent(manifest, function () {
-          console.warn('[digital_viewer] stage=manifest code=invalid-canvas');
-        });
-        var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
+function extractContent(dependencies, manifest) {
+  return parseManifestContent(manifest, function () {
+    dependencies.console.warn('[digital_viewer] stage=manifest code=invalid-canvas');
+  });
+}
 
-        if (total === 0) {
-          throw new Error('No renderable content found in manifest');
-        }
+function countRenderableContent(content) {
+  return content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
+}
 
-        // Render each content type. Most Preservica objects have a single type,
-        // but the spec allows mixed manifests.
-        if (content.videos.length > 0) {
-          mountVideoViewer(container, content.videos);
-        }
-        if (content.audio.length > 0) {
-          mountAudioViewer(container, content.audio);
-        }
-        if (content.images.length > 0) {
-          // Preservica images don't have a IIIF Image API behind them, so we
-          // use OSD's simple image mode (static rendering, no deep zoom).
-          var osdSources = content.images.map(function (img) {
-            return { type: 'image', url: img.url };
-          });
-          return mountOsdViewer(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
-        }
-        if (content.pdfs.length > 0) {
-          mountPdfViewer(container, content.pdfs[0]);
-        }
-        clearLoadingNotice(container);
-      })
-      .catch(function (err) {
-        if (!isAttemptActive(mountOptions.attempt)) throw err;
-        reportFailure(container, 'preservica', 'manifest-unavailable');
-        throw err;
-      });
+function mountImageContent(dependencies, container, images, mountOptions) {
+  const { mountOsdViewer } = dependencies;
+  const osdSources = images.map(function (image) {
+    return { type: 'image', url: image.url };
+  });
+  return mountOsdViewer(
+    container,
+    osdSources.length === 1 ? osdSources[0] : osdSources,
+    mountOptions
+  );
+}
+
+function mountContent(dependencies, container, content, mountOptions) {
+  const { mountVideoViewer, mountAudioViewer, mountPdfViewer, clearLoadingNotice } = dependencies;
+  if (content.videos.length > 0) mountVideoViewer(container, content.videos);
+  if (content.audio.length > 0) mountAudioViewer(container, content.audio);
+  if (content.images.length > 0) {
+    return mountImageContent(dependencies, container, content.images, mountOptions);
   }
+  if (content.pdfs.length > 0) mountPdfViewer(container, content.pdfs[0]);
+  clearLoadingNotice(container);
+}
 
-  return mountPreservica;
+function mountManifestContent(dependencies, container, manifest, mountOptions) {
+  const { isAttemptActive } = dependencies;
+  if (!isAttemptActive(mountOptions.attempt)) throw new Error('ATTEMPT_DISPOSED');
+  const content = extractContent(dependencies, manifest);
+  if (countRenderableContent(content) === 0) throw new Error('No renderable content found in manifest');
+  return mountContent(dependencies, container, content, mountOptions);
+}
+
+function mountPreservica(dependencies, container, descriptor, mountOptions) {
+  const { config, reportFailure, isAttemptActive } = dependencies;
+  if (!config.preservicaApiBase) {
+    reportFailure(container, 'configuration', 'preservica-unavailable');
+    return Promise.reject(new Error('PRESERVICA_UNAVAILABLE'));
+  }
+  const manifestUrl = getManifestUrl(config, descriptor.uuid);
+  return requestManifest(dependencies, manifestUrl, mountOptions)
+    .then(function (manifest) {
+      return mountManifestContent(dependencies, container, manifest, mountOptions);
+    })
+    .catch(function (error) {
+      if (!isAttemptActive(mountOptions.attempt)) throw error;
+      reportFailure(container, 'preservica', 'manifest-unavailable');
+      throw error;
+    });
+}
+
+export function createPreservicaAdapter(dependencies) {
+  return function mountPreservicaAdapter(container, descriptor, mountOptions) {
+    return mountPreservica(dependencies, container, descriptor, mountOptions);
+  };
 }

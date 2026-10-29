@@ -474,60 +474,72 @@
   }
 
   // src/adapters/preservica.mjs
-  function createPreservicaAdapter({
-    config: cfg,
-    fetch,
-    console: console2,
-    isAttemptActive: isAttemptActive2,
-    reportFailure: reportFailure2,
-    clearLoadingNotice,
-    mountOsdViewer: mountOsdViewer2,
-    mountVideoViewer,
-    mountAudioViewer,
-    mountPdfViewer
-  }) {
-    function mountPreservica(container, descriptor, mountOptions) {
-      if (!cfg.preservicaApiBase) {
-        reportFailure2(container, "configuration", "preservica-unavailable");
-        return Promise.reject(new Error("PRESERVICA_UNAVAILABLE"));
-      }
-      var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + descriptor.uuid + "/manifest.json";
-      return fetch(manifestUrl, { signal: mountOptions.signal }).then(function(res) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      }).then(function(manifest) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
-        var content = extractManifestContent(manifest, function() {
-          console2.warn("[digital_viewer] stage=manifest code=invalid-canvas");
-        });
-        var total = content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
-        if (total === 0) {
-          throw new Error("No renderable content found in manifest");
-        }
-        if (content.videos.length > 0) {
-          mountVideoViewer(container, content.videos);
-        }
-        if (content.audio.length > 0) {
-          mountAudioViewer(container, content.audio);
-        }
-        if (content.images.length > 0) {
-          var osdSources = content.images.map(function(img) {
-            return { type: "image", url: img.url };
-          });
-          return mountOsdViewer2(container, osdSources.length === 1 ? osdSources[0] : osdSources, mountOptions);
-        }
-        if (content.pdfs.length > 0) {
-          mountPdfViewer(container, content.pdfs[0]);
-        }
-        clearLoadingNotice(container);
-      }).catch(function(err) {
-        if (!isAttemptActive2(mountOptions.attempt)) throw err;
-        reportFailure2(container, "preservica", "manifest-unavailable");
-        throw err;
-      });
+  function getManifestUrl(config, uuid) {
+    return config.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + uuid + "/manifest.json";
+  }
+  function requestManifest(dependencies, manifestUrl, mountOptions) {
+    const { fetch, isAttemptActive: isAttemptActive2 } = dependencies;
+    return fetch(manifestUrl, { signal: mountOptions.signal }).then(function(response) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      return response.json();
+    });
+  }
+  function extractContent(dependencies, manifest) {
+    return extractManifestContent(manifest, function() {
+      dependencies.console.warn("[digital_viewer] stage=manifest code=invalid-canvas");
+    });
+  }
+  function countRenderableContent(content) {
+    return content.images.length + content.videos.length + content.audio.length + content.pdfs.length;
+  }
+  function mountImageContent(dependencies, container, images, mountOptions) {
+    const { mountOsdViewer: mountOsdViewer2 } = dependencies;
+    const osdSources = images.map(function(image) {
+      return { type: "image", url: image.url };
+    });
+    return mountOsdViewer2(
+      container,
+      osdSources.length === 1 ? osdSources[0] : osdSources,
+      mountOptions
+    );
+  }
+  function mountContent(dependencies, container, content, mountOptions) {
+    const { mountVideoViewer, mountAudioViewer, mountPdfViewer, clearLoadingNotice } = dependencies;
+    if (content.videos.length > 0) mountVideoViewer(container, content.videos);
+    if (content.audio.length > 0) mountAudioViewer(container, content.audio);
+    if (content.images.length > 0) {
+      return mountImageContent(dependencies, container, content.images, mountOptions);
     }
-    return mountPreservica;
+    if (content.pdfs.length > 0) mountPdfViewer(container, content.pdfs[0]);
+    clearLoadingNotice(container);
+  }
+  function mountManifestContent(dependencies, container, manifest, mountOptions) {
+    const { isAttemptActive: isAttemptActive2 } = dependencies;
+    if (!isAttemptActive2(mountOptions.attempt)) throw new Error("ATTEMPT_DISPOSED");
+    const content = extractContent(dependencies, manifest);
+    if (countRenderableContent(content) === 0) throw new Error("No renderable content found in manifest");
+    return mountContent(dependencies, container, content, mountOptions);
+  }
+  function mountPreservica(dependencies, container, descriptor, mountOptions) {
+    const { config, reportFailure: reportFailure2, isAttemptActive: isAttemptActive2 } = dependencies;
+    if (!config.preservicaApiBase) {
+      reportFailure2(container, "configuration", "preservica-unavailable");
+      return Promise.reject(new Error("PRESERVICA_UNAVAILABLE"));
+    }
+    const manifestUrl = getManifestUrl(config, descriptor.uuid);
+    return requestManifest(dependencies, manifestUrl, mountOptions).then(function(manifest) {
+      return mountManifestContent(dependencies, container, manifest, mountOptions);
+    }).catch(function(error) {
+      if (!isAttemptActive2(mountOptions.attempt)) throw error;
+      reportFailure2(container, "preservica", "manifest-unavailable");
+      throw error;
+    });
+  }
+  function createPreservicaAdapter(dependencies) {
+    return function mountPreservicaAdapter(container, descriptor, mountOptions) {
+      return mountPreservica(dependencies, container, descriptor, mountOptions);
+    };
   }
 
   // src/adapters/index.mjs
@@ -3044,4 +3056,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=7afb74bae7e3a4b3ad027adb6ff4ec5ce65f49c6ae13d6f8366f67d3d490a1e7
+//# sourceMappingURL=digital_viewer.js.map?v=325514978d3ce1b330a9bdd1d42ab5eec9281feee0d29d35343bc2d5f95e365f
