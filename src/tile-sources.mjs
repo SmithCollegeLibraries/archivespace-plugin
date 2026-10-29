@@ -12,37 +12,26 @@ export function isUnavailableTileSource(tileSource) {
   return !!(tileSource && tileSource.unavailable);
 }
 
-// eslint-disable-next-line complexity
-export function buildThumbnailUrl(tileSource) {
-  var infoUrl;
-
-  if (!tileSource) return '';
-  if (tileSource.unavailable) return '';
-
-  if (tileSource.thumbnailUrl) {
-    return tileSource.thumbnailUrl;
-  }
-
-  if (tileSource.tileSource) {
-    return buildThumbnailUrl(tileSource.tileSource);
-  }
-
-  if (typeof tileSource === 'string') {
-    infoUrl = tileSource;
-  } else if (tileSource.url) {
-    return tileSource.url;
-  } else if (tileSource['@id']) {
-    infoUrl = tileSource['@id'];
-  } else if (tileSource.id) {
-    infoUrl = tileSource.id;
-  }
-
+function thumbnailFromInfoUrl(infoUrl) {
   if (!infoUrl) return '';
   if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
     return infoUrl.replace(/\/info\.json(?:\?.*)?$/i, '/full/!' + THUMBNAIL_SIZE + ',' + THUMBNAIL_SIZE + '/0/default.jpg');
   }
-
   return infoUrl;
+}
+
+function thumbnailForTileSource(tileSource) {
+  if (typeof tileSource === 'string') return thumbnailFromInfoUrl(tileSource);
+  if (tileSource.url) return tileSource.url;
+  const infoUrl = tileSource['@id'] || tileSource.id || '';
+  return thumbnailFromInfoUrl(infoUrl);
+}
+
+export function buildThumbnailUrl(tileSource) {
+  if (!tileSource || tileSource.unavailable) return '';
+  if (tileSource.thumbnailUrl) return tileSource.thumbnailUrl;
+  if (tileSource.tileSource) return buildThumbnailUrl(tileSource.tileSource);
+  return thumbnailForTileSource(tileSource);
 }
 
 export function getTileSourceImageUrl(tileSource) {

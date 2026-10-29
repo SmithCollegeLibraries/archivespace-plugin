@@ -610,30 +610,24 @@
   function isUnavailableTileSource(tileSource) {
     return !!(tileSource && tileSource.unavailable);
   }
-  function buildThumbnailUrl(tileSource) {
-    var infoUrl;
-    if (!tileSource) return "";
-    if (tileSource.unavailable) return "";
-    if (tileSource.thumbnailUrl) {
-      return tileSource.thumbnailUrl;
-    }
-    if (tileSource.tileSource) {
-      return buildThumbnailUrl(tileSource.tileSource);
-    }
-    if (typeof tileSource === "string") {
-      infoUrl = tileSource;
-    } else if (tileSource.url) {
-      return tileSource.url;
-    } else if (tileSource["@id"]) {
-      infoUrl = tileSource["@id"];
-    } else if (tileSource.id) {
-      infoUrl = tileSource.id;
-    }
+  function thumbnailFromInfoUrl(infoUrl) {
     if (!infoUrl) return "";
     if (/\/info\.json(?:\?.*)?$/i.test(infoUrl)) {
       return infoUrl.replace(/\/info\.json(?:\?.*)?$/i, "/full/!" + THUMBNAIL_SIZE + "," + THUMBNAIL_SIZE + "/0/default.jpg");
     }
     return infoUrl;
+  }
+  function thumbnailForTileSource(tileSource) {
+    if (typeof tileSource === "string") return thumbnailFromInfoUrl(tileSource);
+    if (tileSource.url) return tileSource.url;
+    const infoUrl = tileSource["@id"] || tileSource.id || "";
+    return thumbnailFromInfoUrl(infoUrl);
+  }
+  function buildThumbnailUrl(tileSource) {
+    if (!tileSource || tileSource.unavailable) return "";
+    if (tileSource.thumbnailUrl) return tileSource.thumbnailUrl;
+    if (tileSource.tileSource) return buildThumbnailUrl(tileSource.tileSource);
+    return thumbnailForTileSource(tileSource);
   }
   function getTileSourceImageUrl(tileSource) {
     var infoUrl;
@@ -3132,4 +3126,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=885720a939d3fbe770f9ee2245321fba67c3bc74f68bc2f2e400bc49e72cc927
+//# sourceMappingURL=digital_viewer.js.map?v=3b7f38cfb505fda9b30e635b3a7a3147d557535f3033a7745a4a4240194fa0f8
