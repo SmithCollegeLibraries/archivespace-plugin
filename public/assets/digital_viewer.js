@@ -2253,113 +2253,139 @@
   }
 
   // src/page-sources.mjs
-  function createPageSources({ document: document2, getPageContext, onDiscoveryError, onContractFailure }) {
-    var sourceGroupCount = 0;
-    function collectSourceAnchors(root) {
-      var selectors = [
-        "[data-additional-file-version] a[href]",
-        ".available-digital-objects a.external-digital-object__link[href]",
-        ".available-digital-objects a.thumbnail[href]",
-        "[data-rep-file-version-wrapper] > a[href]",
-        "[data-file-uri]"
-      ];
-      var results = [];
-      var seen = [];
-      if (!root || typeof root.querySelectorAll !== "function") return results;
-      selectors.forEach(function(selector) {
-        var elements = root.querySelectorAll(selector);
-        for (var i = 0; i < elements.length; i += 1) {
-          if (elements[i].closest && elements[i].closest("[data-dv-browse-only]")) continue;
-          if (seen.indexOf(elements[i]) === -1) {
-            seen.push(elements[i]);
-            results.push(elements[i]);
-          }
-        }
-      });
-      return results;
-    }
-    function collectFileUris() {
-      var results = [];
-      var anchors = collectSourceAnchors(document2);
-      anchors.forEach(function(anchor) {
-        var uri2 = anchor.dataset && anchor.dataset.fileUri ? anchor.dataset.fileUri : anchor.href;
-        if (uri2) results.push({ uri: uri2, anchor });
-      });
-      var dts = document2.querySelectorAll("dt");
-      for (var j = 0; j < dts.length; j += 1) {
-        if (/file\s+uri/i.test(dts[j].textContent)) {
-          var dd = dts[j].nextElementSibling;
-          if (dd) {
-            var a = dd.querySelector("a");
-            var uri = a ? a.href : dd.textContent.trim();
-            if (uri) results.push({ uri, anchor: a || dd });
-          }
-        }
-      }
-      return results;
-    }
-    function findGroupRoot(anchor) {
-      var root;
-      var pageContext = getPageContext();
-      if (pageContext.recordType === "DigitalObject" && pageContext.hasChildren === false && pageContext.paneExists) {
-        root = document2.querySelector("#notes_row > .resizable-content-pane");
-      }
-      if (!root && anchor.closest) {
-        root = anchor.closest("[data-dv-source-group]") || anchor.closest(
-          "[data-additional-file-version], [data-rep-file-version-wrapper], .objectimage, .record-pane, .digital-object, .instance"
-        ) || anchor.parentNode;
-      } else if (!root) {
-        root = anchor.parentNode;
-      }
-      if (root && root.setAttribute && !root.getAttribute("data-dv-source-group")) {
-        sourceGroupCount += 1;
-        root.setAttribute("data-dv-source-group", "render-" + sourceGroupCount);
-      }
-      return root;
-    }
-    function auditSourceContract() {
-      const expected = document2.querySelectorAll("[data-dv-source-expected]");
-      for (const element of expected) {
-        const uri = element.getAttribute("data-file-uri");
-        if (!uri || !uri.trim()) {
-          if (onContractFailure) onContractFailure("source-contract-missing");
-          return;
-        }
-      }
-    }
+  var SOURCE_ANCHOR_SELECTORS = [
+    "[data-additional-file-version] a[href]",
+    ".available-digital-objects a.external-digital-object__link[href]",
+    ".available-digital-objects a.thumbnail[href]",
+    "[data-rep-file-version-wrapper] > a[href]",
+    "[data-file-uri]"
+  ];
+  var GROUP_ROOT_SELECTOR = "[data-dv-source-group]";
+  var LEGACY_GROUP_ROOT_SELECTORS = [
+    "[data-additional-file-version]",
+    "[data-rep-file-version-wrapper]",
+    ".objectimage",
+    ".record-pane",
+    ".digital-object",
+    ".instance"
+  ].join(", ");
+  function createPageSources(dependencies) {
+    const sourceGroupState = { count: 0 };
     function collectGroups() {
-      auditSourceContract();
-      var fileUris = collectFileUris();
-      var groups = [];
-      fileUris.forEach(function(item) {
-        var root;
-        try {
-          root = findGroupRoot(item.anchor);
-        } catch (e) {
-          if (onDiscoveryError) onDiscoveryError();
-          return;
-        }
-        var group = null;
-        var idx;
-        for (idx = 0; idx < groups.length; idx += 1) {
-          if (groups[idx].root === root) {
-            group = groups[idx];
-            break;
-          }
-        }
-        if (!group) {
-          group = { root, items: [] };
-          groups.push(group);
-        }
-        if (!group.items.some(function(existing) {
-          return existing.uri === item.uri;
-        })) {
-          group.items.push(item);
-        }
-      });
-      return groups;
+      auditSourceContract(dependencies.document, dependencies.onContractFailure);
+      return collectPageGroups(dependencies, sourceGroupState);
     }
-    return { collectSourceAnchors, collectFileUris, collectGroups };
+    return {
+      collectSourceAnchors,
+      collectFileUris: function() {
+        return collectFileUris(dependencies.document);
+      },
+      collectGroups
+    };
+  }
+  function collectSourceAnchors(root) {
+    const results = [];
+    const seen = [];
+    if (!root || typeof root.querySelectorAll !== "function") return results;
+    SOURCE_ANCHOR_SELECTORS.forEach(function(selector) {
+      const elements = root.querySelectorAll(selector);
+      for (let index = 0; index < elements.length; index += 1) {
+        if (elements[index].closest && elements[index].closest("[data-dv-browse-only]")) continue;
+        if (seen.indexOf(elements[index]) === -1) {
+          seen.push(elements[index]);
+          results.push(elements[index]);
+        }
+      }
+    });
+    return results;
+  }
+  function collectFileUris(document2) {
+    const results = [];
+    collectSourceAnchors(document2).forEach(function(anchor) {
+      const uri = anchor.dataset && anchor.dataset.fileUri ? anchor.dataset.fileUri : anchor.href;
+      if (uri) results.push({ uri, anchor });
+    });
+    collectDescriptionUris(document2, results);
+    return results;
+  }
+  function collectDescriptionUris(document2, results) {
+    const terms = document2.querySelectorAll("dt");
+    for (let index = 0; index < terms.length; index += 1) {
+      if (!/file\s+uri/i.test(terms[index].textContent)) continue;
+      const description = terms[index].nextElementSibling;
+      if (!description) continue;
+      const anchor = description.querySelector("a");
+      const uri = anchor ? anchor.href : description.textContent.trim();
+      if (uri) results.push({ uri, anchor: anchor || description });
+    }
+  }
+  function findLeafDigitalObjectRoot(document2, pageContext) {
+    if (pageContext.recordType !== "DigitalObject" || pageContext.hasChildren !== false || !pageContext.paneExists) {
+      return null;
+    }
+    return document2.querySelector("#notes_row > .resizable-content-pane");
+  }
+  function findClosestGroupRoot(anchor) {
+    if (!anchor.closest) return anchor.parentNode;
+    return anchor.closest(GROUP_ROOT_SELECTOR) || anchor.closest(LEGACY_GROUP_ROOT_SELECTORS) || anchor.parentNode;
+  }
+  function assignSourceGroup(root, sourceGroupState) {
+    if (!root || !root.setAttribute || root.getAttribute("data-dv-source-group")) return;
+    sourceGroupState.count += 1;
+    root.setAttribute("data-dv-source-group", "render-" + sourceGroupState.count);
+  }
+  function findGroupRoot(document2, getPageContext, anchor, sourceGroupState) {
+    const pageContext = getPageContext();
+    const root = findLeafDigitalObjectRoot(document2, pageContext) || findClosestGroupRoot(anchor);
+    assignSourceGroup(root, sourceGroupState);
+    return root;
+  }
+  function auditSourceContract(document2, onContractFailure) {
+    const expected = document2.querySelectorAll("[data-dv-source-expected]");
+    for (const element of expected) {
+      const uri = element.getAttribute("data-file-uri");
+      if (!uri || !uri.trim()) {
+        if (onContractFailure) onContractFailure("source-contract-missing");
+        return;
+      }
+    }
+  }
+  function reportDiscoveryError(onDiscoveryError) {
+    if (onDiscoveryError) onDiscoveryError();
+  }
+  function findOrCreateGroup(groups, root) {
+    let group = groups.find(function(candidate) {
+      return candidate.root === root;
+    });
+    if (!group) {
+      group = { root, items: [] };
+      groups.push(group);
+    }
+    return group;
+  }
+  function addUniqueItem(group, item) {
+    if (!group.items.some(function(existing) {
+      return existing.uri === item.uri;
+    })) {
+      group.items.push(item);
+    }
+  }
+  function collectGroupItem(dependencies, sourceGroupState, groups, item) {
+    let root;
+    try {
+      root = findGroupRoot(dependencies.document, dependencies.getPageContext, item.anchor, sourceGroupState);
+    } catch (e) {
+      reportDiscoveryError(dependencies.onDiscoveryError);
+      return;
+    }
+    addUniqueItem(findOrCreateGroup(groups, root), item);
+  }
+  function collectPageGroups(dependencies, sourceGroupState) {
+    const groups = [];
+    collectFileUris(dependencies.document).forEach(function(item) {
+      collectGroupItem(dependencies, sourceGroupState, groups, item);
+    });
+    return groups;
   }
 
   // src/page-layout.mjs
@@ -2868,4 +2894,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=e970cb574397670a26115431ed5898eeecb797742d9ab34b0618e5db60eb36cd
+//# sourceMappingURL=digital_viewer.js.map?v=fe453491a33952905f7b5802e6f2f91bad9b34f8e312a09d3d877d60e8250a12
