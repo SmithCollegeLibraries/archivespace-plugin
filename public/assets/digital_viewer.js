@@ -91,73 +91,105 @@
     return match || "";
   }
   function extractManifestPages(manifest, serviceInfoUrl = defaultServiceInfoUrl) {
-    var tileSources = [];
-    var seq = manifest.sequences && manifest.sequences[0];
-    var canvases = seq && Array.isArray(seq.canvases) ? seq.canvases : [];
-    canvases.forEach(function(canvas, index) {
-      var img = canvas.images && canvas.images[0];
-      var thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
-      var thumbnailUrl = thumbnail && (thumbnail["@id"] || thumbnail.id || "");
-      var resource = img && img.resource;
-      var seeAlso = canvas && canvas.seeAlso;
-      var imageUrl = getManifestNodeId(resource);
-      var svc = resource && resource.service;
-      var serviceId = svc ? (svc["@id"] || svc.id || "").replace(/\/$/, "") : "";
-      var tileSource = serviceId ? serviceInfoUrl(serviceId) : "";
-      var page = {
-        tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
-        thumbnailUrl: thumbnailUrl || "",
-        pageIndex: index,
-        pageLabel: canvas.label || "",
-        canvasId: getManifestNodeId(canvas),
-        pageIdentifier: getCanvasMetadataValue(canvas, "Identifier"),
-        imageUrl: imageUrl || (serviceId ? serviceId + "/full/full/0/default.jpg" : ""),
-        ocrUrl: getManifestNodeId(seeAlso),
-        ocrFormat: seeAlso && seeAlso.format || ""
-      };
-      if (!img || !serviceId || !tileSource) page.unavailable = true;
-      tileSources.push(page);
+    const sequence = manifest.sequences && manifest.sequences[0];
+    const canvases = sequence && Array.isArray(sequence.canvases) ? sequence.canvases : [];
+    return canvases.map(function(canvas, index) {
+      return extractPresentation2Page(canvas, index, serviceInfoUrl);
     });
-    return tileSources;
+  }
+  function extractPresentation2Page(canvas, index, serviceInfoUrl) {
+    const image = getCanvasImage(canvas);
+    const resource = image && image.resource;
+    const serviceId = getImageServiceId(resource);
+    const tileSource = serviceId ? serviceInfoUrl(serviceId) : "";
+    const seeAlso = canvas && canvas.seeAlso;
+    const page = {
+      tileSource: tileSource || UNAVAILABLE_TILE_SOURCE,
+      thumbnailUrl: getCanvasThumbnailUrl(canvas) || "",
+      pageIndex: index,
+      pageLabel: canvas.label || "",
+      canvasId: getManifestNodeId(canvas),
+      pageIdentifier: getCanvasMetadataValue(canvas, "Identifier"),
+      imageUrl: getPageImageUrl(getManifestNodeId(resource), serviceId),
+      ocrUrl: getManifestNodeId(seeAlso),
+      ocrFormat: seeAlso && seeAlso.format || ""
+    };
+    if (isUnavailablePage(image, serviceId, tileSource)) page.unavailable = true;
+    return page;
+  }
+  function getCanvasImage(canvas) {
+    return canvas.images && canvas.images[0];
+  }
+  function getCanvasThumbnailUrl(canvas) {
+    const thumbnail = canvas.thumbnail && (Array.isArray(canvas.thumbnail) ? canvas.thumbnail[0] : canvas.thumbnail);
+    return thumbnail && (thumbnail["@id"] || thumbnail.id || "");
+  }
+  function getImageServiceId(resource) {
+    const service = resource && resource.service;
+    return service ? (service["@id"] || service.id || "").replace(/\/$/, "") : "";
+  }
+  function getPageImageUrl(imageUrl, serviceId) {
+    return imageUrl || (serviceId ? serviceId + "/full/full/0/default.jpg" : "");
+  }
+  function isUnavailablePage(image, serviceId, tileSource) {
+    return !image || !serviceId || !tileSource;
   }
   function extractManifestContent(manifest, onInvalidCanvas = function() {
   }) {
-    var result = { images: [], videos: [], audio: [], pdfs: [] };
-    var canvases = manifest.items && Array.isArray(manifest.items) ? manifest.items : [];
+    const result = { images: [], videos: [], audio: [], pdfs: [] };
+    const canvases = manifest.items && Array.isArray(manifest.items) ? manifest.items : [];
     canvases.forEach(function(canvas) {
-      try {
-        var annotPage = canvas.items && canvas.items[0];
-        var annot = annotPage && annotPage.items && annotPage.items[0];
-        var body = annot && annot.body;
-        if (!body) return;
-        var url = body.id || body["@id"] || "";
-        var format = (body.format || "").toLowerCase();
-        var type = (body.type || body["@type"] || "").toLowerCase();
-        if (!url) return;
-        if (type === "video" || format.indexOf("video/") === 0) {
-          result.videos.push({
-            url,
-            format: body.format || "video/mp4",
-            width: canvas.width || null,
-            height: canvas.height || null,
-            duration: canvas.duration || null
-          });
-        } else if (type === "sound" || format.indexOf("audio/") === 0) {
-          result.audio.push({
-            url,
-            format: body.format || "audio/mpeg",
-            duration: canvas.duration || null
-          });
-        } else if (format === "application/pdf") {
-          result.pdfs.push({ url });
-        } else {
-          result.images.push({ url, format: body.format || "image/jpeg" });
-        }
-      } catch (e) {
-        onInvalidCanvas();
-      }
+      appendCanvasContent(canvas, result, onInvalidCanvas);
     });
     return result;
+  }
+  function appendCanvasContent(canvas, result, onInvalidCanvas) {
+    try {
+      const annotationPage = canvas.items && canvas.items[0];
+      const annotation = annotationPage && annotationPage.items && annotationPage.items[0];
+      const body = annotation && annotation.body;
+      if (body) appendManifestBody(body, canvas, result);
+    } catch (e) {
+      onInvalidCanvas();
+    }
+  }
+  function appendManifestBody(body, canvas, result) {
+    const { url, format, type } = describeManifestBody(body);
+    if (!url) return;
+    if (isVideoContent(type, format)) {
+      appendVideoContent(body, canvas, url, result);
+    } else if (isAudioContent(type, format)) {
+      appendAudioContent(body, canvas, url, result);
+    } else if (format === "application/pdf") {
+      result.pdfs.push({ url });
+    } else {
+      result.images.push({ url, format: body.format || "image/jpeg" });
+    }
+  }
+  function describeManifestBody(body) {
+    return {
+      url: body.id || body["@id"] || "",
+      format: (body.format || "").toLowerCase(),
+      type: (body.type || body["@type"] || "").toLowerCase()
+    };
+  }
+  function isVideoContent(type, format) {
+    return type === "video" || format.indexOf("video/") === 0;
+  }
+  function isAudioContent(type, format) {
+    return type === "sound" || format.indexOf("audio/") === 0;
+  }
+  function appendVideoContent(body, canvas, url, result) {
+    result.videos.push({
+      url,
+      format: body.format || "video/mp4",
+      width: canvas.width || null,
+      height: canvas.height || null,
+      duration: canvas.duration || null
+    });
+  }
+  function appendAudioContent(body, canvas, url, result) {
+    result.audio.push({ url, format: body.format || "audio/mpeg", duration: canvas.duration || null });
   }
   function hasRenderablePages(tileSources) {
     return Array.isArray(tileSources) && tileSources.some(function(tileSource) {
@@ -3100,4 +3132,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=de7f5827dfcecb5c794aa5a767f0f26db62f86df2c4ac08d8328af8002af6779
+//# sourceMappingURL=digital_viewer.js.map?v=885720a939d3fbe770f9ee2245321fba67c3bc74f68bc2f2e400bc49e72cc927
