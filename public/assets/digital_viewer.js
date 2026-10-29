@@ -1255,140 +1255,149 @@
 
   // src/viewer-modes.mjs
   function createViewerModes({ document: document2, isAttemptActive }) {
-    function setElementHidden(element, hidden) {
-      if (!element) return;
-      element.setAttribute("aria-hidden", hidden ? "true" : "false");
-      if (element.classList && typeof element.classList.toggle === "function") {
-        element.classList.toggle("is-hidden", !!hidden);
-      }
-    }
-    function getViewerModeLabel(state) {
-      var currentPage = state.tileSources[state.activePageIndex] || null;
-      var pageLabel = currentPage && currentPage.pageLabel;
-      if (state.isSequence && state.mode === "object") {
-        return "Object view";
-      }
-      if (pageLabel) {
-        return pageLabel;
-      }
-      if (state.isSequence) {
-        return "Page " + (state.activePageIndex + 1);
-      }
-      return "Image view";
-    }
-    function syncViewerModeActions(state) {
-      var currentPage = state.tileSources[state.activePageIndex] || null;
-      var currentPageImageUrl = currentPage ? getTileSourceImageUrl(currentPage) : "";
-      var isPageMode = state.mode === "page";
-      state.pageDownloadImageUrl = currentPageImageUrl;
-      state.root.setAttribute("data-view-mode", state.mode);
-      state.modeLabel.textContent = getViewerModeLabel(state);
-      if (state.openPageButton) {
-        state.openPageButton.textContent = "Open page " + (state.activePageIndex + 1);
-        setElementHidden(state.openPageButton, !state.isSequence || isPageMode);
-      }
-      if (state.backToObjectButton) {
-        setElementHidden(state.backToObjectButton, !state.isSequence || !isPageMode);
-      }
-      if (state.downloadPdfLink) {
-        if (state.objectDownloadPdfUrl) {
-          state.downloadPdfLink.setAttribute("href", state.objectDownloadPdfUrl);
-        } else {
-          state.downloadPdfLink.removeAttribute("href");
-        }
-        setElementHidden(state.downloadPdfLink, !state.objectDownloadPdfUrl || isPageMode);
-      }
-      if (state.downloadImageLink) {
-        if (currentPageImageUrl) {
-          state.downloadImageLink.setAttribute("href", currentPageImageUrl);
-        } else {
-          state.downloadImageLink.removeAttribute("href");
-        }
-        setElementHidden(
-          state.downloadImageLink,
-          !currentPageImageUrl || state.isSequence && !isPageMode
-        );
-      }
-    }
     function addViewerModeActions(container, viewer, tileSources, options) {
-      var pages = Array.isArray(tileSources) ? tileSources.slice() : [tileSources];
-      var isSequence = pages.length > 1;
-      var objectDownloadPdfUrl = options && options.objectDownloadPdfUrl || "";
-      var root = document2.createElement("div");
-      var status = document2.createElement("div");
-      var modeLabel = document2.createElement("span");
-      var actions = document2.createElement("div");
-      var openPageButton = document2.createElement("button");
-      var backToObjectButton = document2.createElement("button");
-      var downloadPdfLink = document2.createElement("a");
-      var downloadImageLink = document2.createElement("a");
-      var state;
-      if (!isSequence && !objectDownloadPdfUrl && !getTileSourceImageUrl(pages[0])) {
-        return null;
-      }
-      root.className = "dv-mode-actions";
-      status.className = "dv-mode-status";
-      modeLabel.className = "dv-mode-label";
-      status.appendChild(modeLabel);
-      actions.className = "dv-mode-buttons";
-      openPageButton.type = "button";
-      openPageButton.className = "dv-mode-btn";
-      openPageButton.setAttribute("data-action", "open-page");
-      openPageButton.addEventListener("click", function() {
-        state.mode = "page";
-        syncViewerModeActions(state);
-      });
-      backToObjectButton.type = "button";
-      backToObjectButton.className = "dv-mode-btn";
-      backToObjectButton.textContent = "Back to object";
-      backToObjectButton.setAttribute("data-action", "back-to-object");
-      backToObjectButton.addEventListener("click", function() {
-        state.mode = "object";
-        syncViewerModeActions(state);
-      });
-      downloadPdfLink.className = "dv-mode-link";
-      downloadPdfLink.textContent = "Download PDF";
-      downloadPdfLink.target = "_blank";
-      downloadPdfLink.rel = "noopener";
-      downloadPdfLink.setAttribute("data-action", "download-pdf");
-      downloadImageLink.className = "dv-mode-link";
-      downloadImageLink.textContent = "Download image";
-      downloadImageLink.target = "_blank";
-      downloadImageLink.rel = "noopener";
-      downloadImageLink.setAttribute("data-action", "download-image");
-      actions.appendChild(openPageButton);
-      actions.appendChild(backToObjectButton);
-      actions.appendChild(downloadPdfLink);
-      actions.appendChild(downloadImageLink);
-      root.appendChild(status);
-      root.appendChild(actions);
-      state = {
-        root,
-        tileSources: pages,
-        isSequence,
-        mode: isSequence ? "object" : "page",
-        activePageIndex: 0,
-        objectDownloadPdfUrl: sanitizeUrl(objectDownloadPdfUrl),
-        pageDownloadImageUrl: "",
-        modeLabel,
-        openPageButton,
-        backToObjectButton,
-        downloadPdfLink,
-        downloadImageLink
-      };
-      if (viewer && typeof viewer.addHandler === "function") {
-        viewer.addHandler("page", function(data) {
-          if (!isAttemptActive(options && options.attempt)) return;
-          if (!data || typeof data.page !== "number") return;
-          state.activePageIndex = data.page;
-          syncViewerModeActions(state);
-        });
-      }
+      const pages = Array.isArray(tileSources) ? tileSources.slice() : [tileSources];
+      const isSequence = pages.length > 1;
+      const objectDownloadPdfUrl = options && options.objectDownloadPdfUrl || "";
+      if (!shouldCreateModeActions(pages, isSequence, objectDownloadPdfUrl)) return null;
+      const elements = createModeElements(document2);
+      const state = createViewerModeState(pages, isSequence, objectDownloadPdfUrl, elements);
+      bindModeButtons(elements, state);
+      bindViewerPages(viewer, options, state, isAttemptActive);
       syncViewerModeActions(state);
-      container.appendChild(root);
+      container.appendChild(elements.root);
       return state;
     }
     return { addViewerModeActions };
+  }
+  function shouldCreateModeActions(pages, isSequence, objectDownloadPdfUrl) {
+    return isSequence || objectDownloadPdfUrl || getTileSourceImageUrl(pages[0]);
+  }
+  function createModeButton(document2, action, label) {
+    const button = document2.createElement("button");
+    button.type = "button";
+    button.className = "dv-mode-btn";
+    button.textContent = label;
+    button.setAttribute("data-action", action);
+    return button;
+  }
+  function createModeLink(document2, action, label) {
+    const link = document2.createElement("a");
+    link.className = "dv-mode-link";
+    link.textContent = label;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.setAttribute("data-action", action);
+    return link;
+  }
+  function createModeElements(document2) {
+    const root = document2.createElement("div");
+    const status = document2.createElement("div");
+    const modeLabel = document2.createElement("span");
+    const actions = document2.createElement("div");
+    const openPageButton = createModeButton(document2, "open-page", "");
+    const backToObjectButton = createModeButton(document2, "back-to-object", "Back to object");
+    const downloadPdfLink = createModeLink(document2, "download-pdf", "Download PDF");
+    const downloadImageLink = createModeLink(document2, "download-image", "Download image");
+    root.className = "dv-mode-actions";
+    status.className = "dv-mode-status";
+    modeLabel.className = "dv-mode-label";
+    status.appendChild(modeLabel);
+    actions.className = "dv-mode-buttons";
+    actions.appendChild(openPageButton);
+    actions.appendChild(backToObjectButton);
+    actions.appendChild(downloadPdfLink);
+    actions.appendChild(downloadImageLink);
+    root.appendChild(status);
+    root.appendChild(actions);
+    return { root, modeLabel, openPageButton, backToObjectButton, downloadPdfLink, downloadImageLink };
+  }
+  function createViewerModeState(pages, isSequence, objectDownloadPdfUrl, elements) {
+    return {
+      root: elements.root,
+      tileSources: pages,
+      isSequence,
+      mode: isSequence ? "object" : "page",
+      activePageIndex: 0,
+      objectDownloadPdfUrl: sanitizeUrl(objectDownloadPdfUrl),
+      pageDownloadImageUrl: "",
+      modeLabel: elements.modeLabel,
+      openPageButton: elements.openPageButton,
+      backToObjectButton: elements.backToObjectButton,
+      downloadPdfLink: elements.downloadPdfLink,
+      downloadImageLink: elements.downloadImageLink
+    };
+  }
+  function bindModeButtons(elements, state) {
+    elements.openPageButton.addEventListener("click", function() {
+      state.mode = "page";
+      syncViewerModeActions(state);
+    });
+    elements.backToObjectButton.addEventListener("click", function() {
+      state.mode = "object";
+      syncViewerModeActions(state);
+    });
+  }
+  function bindViewerPages(viewer, options, state, isAttemptActive) {
+    if (!viewer || typeof viewer.addHandler !== "function") return;
+    viewer.addHandler("page", function(data) {
+      if (!isAttemptActive(options && options.attempt)) return;
+      if (!data || typeof data.page !== "number") return;
+      state.activePageIndex = data.page;
+      syncViewerModeActions(state);
+    });
+  }
+  function setElementHidden(element, hidden) {
+    if (!element) return;
+    element.setAttribute("aria-hidden", hidden ? "true" : "false");
+    if (element.classList && typeof element.classList.toggle === "function") {
+      element.classList.toggle("is-hidden", !!hidden);
+    }
+  }
+  function getViewerModeLabel(state) {
+    const currentPage = state.tileSources[state.activePageIndex] || null;
+    const pageLabel = currentPage && currentPage.pageLabel;
+    if (state.isSequence && state.mode === "object") return "Object view";
+    if (pageLabel) return pageLabel;
+    if (state.isSequence) return "Page " + (state.activePageIndex + 1);
+    return "Image view";
+  }
+  function syncOpenPageAction(state, isPageMode) {
+    state.openPageButton.textContent = "Open page " + (state.activePageIndex + 1);
+    setElementHidden(state.openPageButton, !state.isSequence || isPageMode);
+  }
+  function syncBackToObjectAction(state, isPageMode) {
+    setElementHidden(state.backToObjectButton, !state.isSequence || !isPageMode);
+  }
+  function setLinkHref(link, url) {
+    if (url) {
+      link.setAttribute("href", url);
+    } else {
+      link.removeAttribute("href");
+    }
+  }
+  function syncPdfDownloadAction(state, isPageMode) {
+    setLinkHref(state.downloadPdfLink, state.objectDownloadPdfUrl);
+    setElementHidden(state.downloadPdfLink, !state.objectDownloadPdfUrl || isPageMode);
+  }
+  function syncImageDownloadAction(state, isPageMode, currentPageImageUrl) {
+    setLinkHref(state.downloadImageLink, currentPageImageUrl);
+    setElementHidden(
+      state.downloadImageLink,
+      !currentPageImageUrl || state.isSequence && !isPageMode
+    );
+  }
+  function syncViewerModeActions(state) {
+    const currentPage = state.tileSources[state.activePageIndex] || null;
+    const currentPageImageUrl = currentPage ? getTileSourceImageUrl(currentPage) : "";
+    const isPageMode = state.mode === "page";
+    state.pageDownloadImageUrl = currentPageImageUrl;
+    state.root.setAttribute("data-view-mode", state.mode);
+    state.modeLabel.textContent = getViewerModeLabel(state);
+    syncOpenPageAction(state, isPageMode);
+    syncBackToObjectAction(state, isPageMode);
+    syncPdfDownloadAction(state, isPageMode);
+    syncImageDownloadAction(state, isPageMode, currentPageImageUrl);
   }
 
   // src/prefetch.mjs
@@ -2859,4 +2868,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=dcfd595f02b84f5ecf213c662711ef637c7c599164877723d4bc4557ff519592
+//# sourceMappingURL=digital_viewer.js.map?v=e970cb574397670a26115431ed5898eeecb797742d9ab34b0618e5db60eb36cd
