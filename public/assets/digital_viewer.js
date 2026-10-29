@@ -2940,92 +2940,75 @@
   }
 
   // src/runtime.mjs
-  function createViewerRuntime({
-    config: cfg,
-    document: document2,
-    console: console2,
-    fetch,
-    OpenSeadragon,
-    IntersectionObserver,
-    Image,
-    AbortController,
-    setTimeout,
-    clearTimeout
-  }) {
-    const {
-      createFallbackLink: createFallbackLink2,
-      showError: showError2,
-      reportFailure: reportFailure2,
-      showLoadingNotice,
-      clearLoadingNotice,
-      resetContainer: resetContainer2
-    } = createStatus({ document: document2, console: console2 });
-    const pageLayout = createPageLayout({ document: document2 });
-    const lifecycle = createLifecycle({
-      AbortController,
-      setTimeout,
-      clearTimeout,
-      showLoadingNotice,
-      restoreLeafLayoutIfUnused: (pane) => pageLayout.restoreLeafLayoutIfUnused(pane, lifecycle.activeMountStates)
-    });
-    const { isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2, disposeMountState: disposeMountState2 } = lifecycle;
-    const { addControls: addControls2, addPageNav: addPageNav2 } = createControls({ document: document2, isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2 });
-    const { addViewerModeActions } = createViewerModes({ document: document2, isAttemptActive: isAttemptActive2 });
-    const { primeResourceUrl: primeResourceUrl2, warmSequenceCache: warmSequenceCache2 } = createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 });
-    const { addThumbnailCarousel } = createThumbnails({
+  function createViewerFeatures(dependencies, lifecycle) {
+    const { document: document2, fetch, Image, IntersectionObserver, setTimeout, clearTimeout } = dependencies;
+    const { isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2 } = lifecycle;
+    const controls = createControls({ document: document2, isAttemptActive: isAttemptActive2, registerAttemptCleanup: registerAttemptCleanup2 });
+    const viewerModes = createViewerModes({ document: document2, isAttemptActive: isAttemptActive2 });
+    const prefetch = createPrefetch({ fetch, Image, registerAttemptCleanup: registerAttemptCleanup2 });
+    const thumbnails = createThumbnails({
       document: document2,
       IntersectionObserver,
       setTimeout,
       clearTimeout,
       isAttemptActive: isAttemptActive2,
       registerAttemptCleanup: registerAttemptCleanup2,
-      warmSequenceCache: warmSequenceCache2
+      warmSequenceCache: prefetch.warmSequenceCache
     });
-    const { mountOsdViewer: mountOsdViewer2 } = createViewer({
-      document: document2,
-      OpenSeadragon,
-      setTimeout,
-      clearTimeout,
-      resetContainer: resetContainer2,
-      showLoadingNotice,
-      clearLoadingNotice,
-      isAttemptActive: isAttemptActive2,
+    return { controls, viewerModes, prefetch, thumbnails };
+  }
+  function createOpenSeadragonViewer(dependencies, lifecycle, status, features) {
+    return createViewer({
+      document: dependencies.document,
+      OpenSeadragon: dependencies.OpenSeadragon,
+      setTimeout: dependencies.setTimeout,
+      clearTimeout: dependencies.clearTimeout,
+      resetContainer: status.resetContainer,
+      showLoadingNotice: status.showLoadingNotice,
+      clearLoadingNotice: status.clearLoadingNotice,
+      isAttemptActive: lifecycle.isAttemptActive,
       disposeViewer: lifecycle.disposeViewer,
-      registerAttemptCleanup: registerAttemptCleanup2,
-      addControls: addControls2,
-      addPageNav: addPageNav2,
-      addViewerModeActions,
-      addThumbnailCarousel,
-      warmSequenceCache: warmSequenceCache2,
-      primeResourceUrl: primeResourceUrl2
+      registerAttemptCleanup: lifecycle.registerAttemptCleanup,
+      addControls: features.controls.addControls,
+      addPageNav: features.controls.addPageNav,
+      addViewerModeActions: features.viewerModes.addViewerModeActions,
+      addThumbnailCarousel: features.thumbnails.addThumbnailCarousel,
+      warmSequenceCache: features.prefetch.warmSequenceCache,
+      primeResourceUrl: features.prefetch.primeResourceUrl
     });
-    const adapters = createSourceAdapters({
-      config: cfg,
-      document: document2,
-      console: console2,
-      fetch,
-      setTimeout,
-      clearTimeout,
+  }
+  function createRuntimeAdapters(dependencies, lifecycle, status, features, mountOsdViewer2) {
+    return createSourceAdapters({
+      config: dependencies.config,
+      document: dependencies.document,
+      console: dependencies.console,
+      fetch: dependencies.fetch,
+      setTimeout: dependencies.setTimeout,
+      clearTimeout: dependencies.clearTimeout,
       mountOsdViewer: mountOsdViewer2,
-      reportFailure: reportFailure2,
-      isAttemptActive: isAttemptActive2,
-      showError: showError2,
-      resetContainer: resetContainer2,
-      addViewerModeActions,
-      showLoadingNotice,
-      clearLoadingNotice,
-      registerAttemptCleanup: registerAttemptCleanup2,
-      createFallbackLink: createFallbackLink2
+      reportFailure: status.reportFailure,
+      isAttemptActive: lifecycle.isAttemptActive,
+      showError: status.showError,
+      resetContainer: status.resetContainer,
+      addViewerModeActions: features.viewerModes.addViewerModeActions,
+      showLoadingNotice: status.showLoadingNotice,
+      clearLoadingNotice: status.clearLoadingNotice,
+      registerAttemptCleanup: lifecycle.registerAttemptCleanup,
+      createFallbackLink: status.createFallbackLink
     });
-    function mountDescriptor(container, descriptor) {
+  }
+  function createDescriptorMounter(adapters, resetContainer2) {
+    return function mountDescriptor(container, descriptor) {
       resetContainer2(container);
       if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
         return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
       }
-      var adapter = adapters[descriptor.type];
+      const adapter = adapters[descriptor.type];
       return adapter(container, descriptor, getContainerViewerOptions(container));
-    }
-    const sources = createPageSources({
+    };
+  }
+  function createRuntimeSources(document2, pageLayout, console2) {
+    return createPageSources({
       document: document2,
       getPageContext: pageLayout.getPageContext,
       onContractFailure() {
@@ -3035,33 +3018,66 @@
         console2.warn("[digital_viewer] stage=startup code=source-unavailable");
       }
     });
-    const { mountRankedSources } = createMountSequence({ lifecycle, mountDescriptor, reportFailure: reportFailure2 });
-    const { init } = createInitializer({
-      config: cfg,
-      document: document2,
-      console: console2,
-      OpenSeadragon,
+  }
+  function createRuntimeServices(dependencies) {
+    const status = createStatus({ document: dependencies.document, console: dependencies.console });
+    const pageLayout = createPageLayout({ document: dependencies.document });
+    const lifecycle = createLifecycle({
+      AbortController: dependencies.AbortController,
+      setTimeout: dependencies.setTimeout,
+      clearTimeout: dependencies.clearTimeout,
+      showLoadingNotice: status.showLoadingNotice,
+      restoreLeafLayoutIfUnused: (pane) => pageLayout.restoreLeafLayoutIfUnused(
+        pane,
+        lifecycle.activeMountStates
+      )
+    });
+    const features = createViewerFeatures(dependencies, lifecycle);
+    const viewer = createOpenSeadragonViewer(dependencies, lifecycle, status, features);
+    const adapters = createRuntimeAdapters(dependencies, lifecycle, status, features, viewer.mountOsdViewer);
+    return { status, pageLayout, lifecycle, features, viewer, adapters };
+  }
+  function createRuntimeStartup(dependencies, services) {
+    const { status, pageLayout, lifecycle, adapters } = services;
+    const mountDescriptor = createDescriptorMounter(adapters, status.resetContainer);
+    const sources = createRuntimeSources(dependencies.document, pageLayout, dependencies.console);
+    const mountSequence = createMountSequence({ lifecycle, mountDescriptor, reportFailure: status.reportFailure });
+    const initializer = createInitializer({
+      config: dependencies.config,
+      document: dependencies.document,
+      console: dependencies.console,
+      OpenSeadragon: dependencies.OpenSeadragon,
       sources,
       pageLayout,
       lifecycle,
-      mountRankedSources
+      mountRankedSources: mountSequence.mountRankedSources
     });
+    return { mountDescriptor, sources, initializer };
+  }
+  function createPublicRuntimeApi(services, startup) {
+    const { features, viewer, adapters, lifecycle } = services;
+    const { mountDescriptor, sources, initializer } = startup;
     return {
-      addViewerModeActions,
+      addViewerModeActions: features.viewerModes.addViewerModeActions,
       getPreloadPageIndexes,
       buildThumbnailUrl,
-      addControls: addControls2,
-      addThumbnailCarousel,
-      warmSequenceCache: warmSequenceCache2,
+      addControls: features.controls.addControls,
+      addThumbnailCarousel: features.thumbnails.addThumbnailCarousel,
+      warmSequenceCache: features.prefetch.warmSequenceCache,
       classifyPageContext,
       collectSourceAnchors: sources.collectSourceAnchors,
-      mountOsdViewer: mountOsdViewer2,
+      mountOsdViewer: viewer.mountOsdViewer,
       mountDescriptor,
       adapters,
       getContainerViewerOptions,
-      disposeMountState: disposeMountState2,
-      init
+      disposeMountState: lifecycle.disposeMountState,
+      init: initializer.init
     };
+  }
+  function createViewerRuntime(dependencies) {
+    const services = createRuntimeServices(dependencies);
+    const startup = createRuntimeStartup(dependencies, services);
+    return createPublicRuntimeApi(services, startup);
   }
 
   // src/entry.mjs
@@ -3083,4 +3099,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=cd473080a44084c772323119ea1958ad4bda1ad65922666c77957a8db879ca2f
+//# sourceMappingURL=digital_viewer.js.map?v=c2becec9133af5cf387fcd037990d575080eae05a50821d0b89aa0e671ad2bde
