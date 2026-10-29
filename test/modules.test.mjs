@@ -29,6 +29,77 @@ test('source detection takes explicit configuration and preserves encoded identi
   assert.equal(detectSource('https://example.test/manifests/book.json', cfg).type, 'compass-manifest');
 });
 
+const supportedSourceCases = [
+    {
+      name: 'direct Compass manifest',
+      uri: 'https://compass.example.org/node/7/manifest-single?view=full',
+      expected: {
+        type: 'compass-manifest',
+        manifestUrl: 'https://compass.example.org/node/7/manifest-single?view=full',
+      },
+    },
+    {
+      name: 'Compass PDF',
+      uri: 'https://compass.example.org/system/files/item.pdf',
+      expected: { type: 'static-pdf', url: 'https://compass.example.org/system/files/item.pdf' },
+    },
+    {
+      name: 'external PDF',
+      uri: 'https://example.org/files/item.pdf',
+      expected: { type: 'static-pdf', url: 'https://example.org/files/item.pdf' },
+    },
+    {
+      name: 'Compass TIFF for Cantaloupe',
+      uri: 'https://compass.example.org/system/files/2026-01/item.tif',
+      expected: { type: 'cantaloupe', infoUrl: '/iiif/2/2026-01%2Fitem.tif/info.json' },
+    },
+    {
+      name: 'Compass-hosted image',
+      uri: 'https://compass.example.org/system/files/item.jpg',
+      expected: { type: 'static-image', imageUrl: 'https://compass.example.org/system/files/item.jpg' },
+    },
+    {
+      name: 'external image',
+      uri: 'https://example.org/images/item.png',
+      expected: { type: 'static-image', imageUrl: 'https://example.org/images/item.png' },
+    },
+    {
+      name: 'Compass object alias',
+      uri: 'https://compass.example.org/object/item:7',
+      expected: { type: 'compass', compassUrl: 'https://compass.example.org/islandora/object/item:7' },
+    },
+    {
+      name: 'Compass Islandora object',
+      uri: 'https://compass.example.org/islandora/object/item-7',
+      expected: { type: 'compass', compassUrl: 'https://compass.example.org/islandora/object/item-7' },
+    },
+    {
+      name: 'Compass node URL',
+      uri: 'https://compass.example.org/node/7',
+      expected: { type: 'compass-manifest', manifestUrl: 'https://compass.example.org/node/7/manifest' },
+    },
+    {
+      name: 'hosted manifest JSON',
+      uri: 'https://example.org/manifests/item.json',
+      expected: { type: 'compass-manifest', manifestUrl: 'https://example.org/manifests/item.json' },
+    },
+    {
+      name: 'Preservica UUID',
+      uri: 'https://example.org/assets/12345678-1234-1234-1234-123456789abc',
+      expected: { type: 'preservica', uuid: '12345678-1234-1234-1234-123456789abc' },
+    },
+];
+
+test('source detection classifies every supported source pattern', async function () {
+  const { readConfig } = await sourceModule('config');
+  const { detectSource } = await sourceModule('source-selection');
+  const cfg = readConfig({ cantaloupeBaseUrl: '/iiif/2', compassBaseUrl: 'https://compass.example.org' });
+
+  supportedSourceCases.forEach(function (example) {
+    assert.deepEqual(detectSource(example.uri, cfg), example.expected, example.name);
+  });
+});
+
 test('selection keeps manifest primary and PDF companion without changing input order', async function () {
   const { buildDescriptorSelection } = await sourceModule('source-selection');
   const pdf = { descriptor: { type: 'static-pdf', url: 'https://example.test/book.pdf' } };
