@@ -194,7 +194,7 @@
     }
     return cfg.cantaloupeBaseUrl + "/" + encodeURIComponent(s3Key) + "/info.json";
   }
-  function createCompassAdapter({ config: cfg, fetch, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure }) {
+  function createCompassAdapter({ config: cfg, fetch, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure: reportFailure2 }) {
     function parsePages(manifest) {
       return extractManifestPages(manifest, function(serviceId) {
         return toLocalCantaloupeInfoUrl(serviceId, cfg);
@@ -241,7 +241,7 @@
         return mountOsdViewer2(container, tileSources, mountOptions);
       }).catch(function(err) {
         if (!isAttemptActive2(mountOptions.attempt)) throw err;
-        reportFailure(container, "compass", "content-unavailable");
+        reportFailure2(container, "compass", "content-unavailable");
         throw err;
       });
     }
@@ -434,7 +434,7 @@
   }
 
   // src/adapters/manifest.mjs
-  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure }) {
+  function createManifestAdapter({ fetchManifestUrl, parsePages, isAttemptActive: isAttemptActive2, mountOsdViewer: mountOsdViewer2, reportFailure: reportFailure2 }) {
     function mountManifest(container, descriptor, mountOptions) {
       var fetchManifest = fetchManifestUrl(descriptor.manifestUrl, mountOptions);
       return fetchManifest.then(function(manifest) {
@@ -444,7 +444,7 @@
         return mountOsdViewer2(container, tileSources, mountOptions);
       }).catch(function(err) {
         if (!isAttemptActive2(mountOptions.attempt)) throw err;
-        reportFailure(container, "manifest", "content-unavailable");
+        reportFailure2(container, "manifest", "content-unavailable");
         throw err;
       });
     }
@@ -457,7 +457,7 @@
     fetch,
     console: console2,
     isAttemptActive: isAttemptActive2,
-    reportFailure,
+    reportFailure: reportFailure2,
     clearLoadingNotice,
     mountOsdViewer: mountOsdViewer2,
     mountVideoViewer,
@@ -466,7 +466,7 @@
   }) {
     function mountPreservica(container, descriptor, mountOptions) {
       if (!cfg.preservicaApiBase) {
-        reportFailure(container, "configuration", "preservica-unavailable");
+        reportFailure2(container, "configuration", "preservica-unavailable");
         return Promise.reject(new Error("PRESERVICA_UNAVAILABLE"));
       }
       var manifestUrl = cfg.preservicaApiBase.replace(/\/$/, "") + "/api/iiif/" + descriptor.uuid + "/manifest.json";
@@ -501,7 +501,7 @@
         clearLoadingNotice(container);
       }).catch(function(err) {
         if (!isAttemptActive2(mountOptions.attempt)) throw err;
-        reportFailure(container, "preservica", "manifest-unavailable");
+        reportFailure2(container, "preservica", "manifest-unavailable");
         throw err;
       });
     }
@@ -2243,66 +2243,87 @@
   }
 
   // src/status.mjs
+  function createFallbackLink(document2, url, label) {
+    const safeUrl = sanitizeUrl(url);
+    if (!safeUrl) return null;
+    const link = document2.createElement("a");
+    link.href = safeUrl;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = label;
+    return link;
+  }
+  function showError(document2, container, message) {
+    container.classList.add("dv-active", "dv-error");
+    container.innerHTML = "";
+    const paragraph = document2.createElement("p");
+    paragraph.className = "dv-error-msg";
+    paragraph.textContent = message;
+    container.appendChild(paragraph);
+  }
+  function safeFailureLabels(stage, code) {
+    const stages = {
+      configuration: true,
+      preservica: true,
+      compass: true,
+      manifest: true,
+      viewer: true
+    };
+    const codes = {
+      "preservica-unavailable": true,
+      "manifest-unavailable": true,
+      "content-unavailable": true
+    };
+    return {
+      stage: stages[stage] ? stage : "viewer",
+      code: codes[code] ? code : "content-unavailable"
+    };
+  }
+  function reportFailure(document2, console2, container, stage, code) {
+    const safeLabels = safeFailureLabels(stage, code);
+    console2.warn("[digital_viewer] stage=" + safeLabels.stage + " code=" + safeLabels.code);
+    showError(document2, container, "Digital content unavailable.");
+  }
+  function appendLoadingNotice(document2, container) {
+    if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = true;
+    if (!container || container.querySelector(".dv-loading-msg")) return;
+    const notice = document2.createElement("p");
+    notice.className = "dv-loading-msg";
+    notice.textContent = "Still loading";
+    container.appendChild(notice);
+  }
+  function removeLoadingNotice(container) {
+    const notice = container && container.querySelector(".dv-loading-msg");
+    if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = false;
+    if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
+  }
+  function resetContainer(container, showLoadingNotice) {
+    const hasLoadingNotice = !!(container && container.querySelector && container.querySelector(".dv-loading-msg"));
+    const loadingWasShown = !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
+    container.className = "digital-viewer-container";
+    container.innerHTML = "";
+    if (hasLoadingNotice || loadingWasShown) showLoadingNotice(container);
+  }
   function createStatus({ document: document2, console: console2 }) {
-    function createFallbackLink(url, label) {
-      var safeUrl = sanitizeUrl(url);
-      var link;
-      if (!safeUrl) return null;
-      link = document2.createElement("a");
-      link.href = safeUrl;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = label;
-      return link;
-    }
-    function showError(container, message) {
-      var paragraph;
-      container.classList.add("dv-active", "dv-error");
-      container.innerHTML = "";
-      paragraph = document2.createElement("p");
-      paragraph.className = "dv-error-msg";
-      paragraph.textContent = message;
-      container.appendChild(paragraph);
-    }
-    function reportFailure(container, stage, code) {
-      var stages = {
-        configuration: true,
-        preservica: true,
-        compass: true,
-        manifest: true,
-        viewer: true
-      };
-      var codes = {
-        "preservica-unavailable": true,
-        "manifest-unavailable": true,
-        "content-unavailable": true
-      };
-      var safeStage = stages[stage] ? stage : "viewer";
-      var safeCode = codes[code] ? code : "content-unavailable";
-      console2.warn("[digital_viewer] stage=" + safeStage + " code=" + safeCode);
-      showError(container, "Digital content unavailable.");
-    }
     function showLoadingNotice(container) {
-      var notice;
-      if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = true;
-      if (!container || container.querySelector(".dv-loading-msg")) return;
-      notice = document2.createElement("p");
-      notice.className = "dv-loading-msg";
-      notice.textContent = "Still loading";
-      container.appendChild(notice);
+      appendLoadingNotice(document2, container);
     }
-    function clearLoadingNotice(container) {
-      var notice = container && container.querySelector(".dv-loading-msg");
-      if (container && container.__dvMountAttempt) container.__dvMountAttempt.loadingShown = false;
-      if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
-    }
-    function resetContainer(container) {
-      var preserveLoading = !!(container && container.querySelector && container.querySelector(".dv-loading-msg")) || !!(container && container.__dvMountAttempt && container.__dvMountAttempt.loadingShown);
-      container.className = "digital-viewer-container";
-      container.innerHTML = "";
-      if (preserveLoading) showLoadingNotice(container);
-    }
-    return { createFallbackLink, showError, reportFailure, showLoadingNotice, clearLoadingNotice, resetContainer };
+    return {
+      createFallbackLink: function(url, label) {
+        return createFallbackLink(document2, url, label);
+      },
+      showError: function(container, message) {
+        showError(document2, container, message);
+      },
+      reportFailure: function(container, stage, code) {
+        reportFailure(document2, console2, container, stage, code);
+      },
+      showLoadingNotice,
+      clearLoadingNotice: removeLoadingNotice,
+      resetContainer: function(container) {
+        resetContainer(container, showLoadingNotice);
+      }
+    };
   }
 
   // src/page-sources.mjs
@@ -2814,7 +2835,7 @@
       signal: attempt && attempt.controller ? attempt.controller.signal : void 0
     };
   }
-  function createMountSequence({ lifecycle, mountDescriptor, reportFailure }) {
+  function createMountSequence({ lifecycle, mountDescriptor, reportFailure: reportFailure2 }) {
     const { createAttempt: createAttempt2, disposeAttempt: disposeAttempt2, isAttemptActive: isAttemptActive2, scheduleAttemptTimeout: scheduleAttemptTimeout2, clearAttemptTimeout: clearAttemptTimeout2 } = lifecycle;
     function mountRankedSources(container, ranked) {
       function tryMount(rankIndex) {
@@ -2848,7 +2869,7 @@
           if (rankIndex + 1 < ranked.length) {
             tryMount(rankIndex + 1);
           } else {
-            reportFailure(container, "viewer", "content-unavailable");
+            reportFailure2(container, "viewer", "content-unavailable");
           }
         });
       }
@@ -2871,12 +2892,12 @@
     clearTimeout
   }) {
     const {
-      createFallbackLink,
-      showError,
-      reportFailure,
+      createFallbackLink: createFallbackLink2,
+      showError: showError2,
+      reportFailure: reportFailure2,
       showLoadingNotice,
       clearLoadingNotice,
-      resetContainer
+      resetContainer: resetContainer2
     } = createStatus({ document: document2, console: console2 });
     const pageLayout = createPageLayout({ document: document2 });
     const lifecycle = createLifecycle({
@@ -2904,7 +2925,7 @@
       OpenSeadragon,
       setTimeout,
       clearTimeout,
-      resetContainer,
+      resetContainer: resetContainer2,
       showLoadingNotice,
       clearLoadingNotice,
       isAttemptActive: isAttemptActive2,
@@ -2925,18 +2946,18 @@
       setTimeout,
       clearTimeout,
       mountOsdViewer: mountOsdViewer2,
-      reportFailure,
+      reportFailure: reportFailure2,
       isAttemptActive: isAttemptActive2,
-      showError,
-      resetContainer,
+      showError: showError2,
+      resetContainer: resetContainer2,
       addViewerModeActions,
       showLoadingNotice,
       clearLoadingNotice,
       registerAttemptCleanup: registerAttemptCleanup2,
-      createFallbackLink
+      createFallbackLink: createFallbackLink2
     });
     function mountDescriptor(container, descriptor) {
-      resetContainer(container);
+      resetContainer2(container);
       if (!Object.prototype.hasOwnProperty.call(adapters, descriptor.type)) {
         return Promise.reject(new Error("UNSUPPORTED_DESCRIPTOR"));
       }
@@ -2953,7 +2974,7 @@
         console2.warn("[digital_viewer] stage=startup code=source-unavailable");
       }
     });
-    const { mountRankedSources } = createMountSequence({ lifecycle, mountDescriptor, reportFailure });
+    const { mountRankedSources } = createMountSequence({ lifecycle, mountDescriptor, reportFailure: reportFailure2 });
     const { init } = createInitializer({
       config: cfg,
       document: document2,
@@ -3001,4 +3022,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=a8f6cd929f4bdc1d20710663f68473dd9b7911c548c0b1f3f70b8dc90ddaeda5
+//# sourceMappingURL=digital_viewer.js.map?v=f4437203e9f28a5958966cd3c29b43de83ecd174e82f49ef6207edb3476f22c3
