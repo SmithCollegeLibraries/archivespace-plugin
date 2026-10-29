@@ -2896,47 +2896,48 @@
       signal: attempt && attempt.controller ? attempt.controller.signal : void 0
     };
   }
-  function createMountSequence({ lifecycle, mountDescriptor, reportFailure: reportFailure2 }) {
-    const { createAttempt: createAttempt2, disposeAttempt: disposeAttempt2, isAttemptActive: isAttemptActive2, scheduleAttemptTimeout: scheduleAttemptTimeout2, clearAttemptTimeout: clearAttemptTimeout2 } = lifecycle;
+  function createMountSequence(dependencies) {
     function mountRankedSources(container, ranked) {
-      function tryMount(rankIndex) {
-        var mountState = container.__dvMountState;
-        var attempt = createAttempt2();
-        if (!mountState || mountState.disposed) return;
-        if (mountState.attempt) disposeAttempt2(mountState.attempt);
-        mountState.attempt = attempt;
-        container.__dvMountAttempt = attempt;
-        container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
-        container.__dvMountOptions.attempt = attempt;
-        scheduleAttemptTimeout2(
-          attempt,
-          container,
-          getLoadingTimeout(container.__dvMountOptions),
-          rankIndex + 1 < ranked.length,
-          function() {
-            if (!mountState.disposed) tryMount(rankIndex + 1);
-          }
-        );
-        Promise.resolve().then(function() {
-          if (!isAttemptActive2(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
-          return mountDescriptor(container, ranked[rankIndex].descriptor);
-        }).then(function() {
-          if (!isAttemptActive2(attempt)) return;
-          attempt.completed = true;
-          clearAttemptTimeout2(attempt);
-        }).catch(function() {
-          if (!isAttemptActive2(attempt) || mountState.disposed) return;
-          disposeAttempt2(attempt);
-          if (rankIndex + 1 < ranked.length) {
-            tryMount(rankIndex + 1);
-          } else {
-            reportFailure2(container, "viewer", "content-unavailable");
-          }
-        });
-      }
-      tryMount(0);
+      tryMountRankedSource(container, ranked, 0, dependencies);
     }
     return { mountRankedSources };
+  }
+  function tryMountRankedSource(container, ranked, rankIndex, dependencies) {
+    const { lifecycle, mountDescriptor, reportFailure: reportFailure2 } = dependencies;
+    const { createAttempt: createAttempt2, disposeAttempt: disposeAttempt2, isAttemptActive: isAttemptActive2, scheduleAttemptTimeout: scheduleAttemptTimeout2, clearAttemptTimeout: clearAttemptTimeout2 } = lifecycle;
+    const mountState = container.__dvMountState;
+    const attempt = createAttempt2();
+    if (!mountState || mountState.disposed) return;
+    if (mountState.attempt) disposeAttempt2(mountState.attempt);
+    mountState.attempt = attempt;
+    container.__dvMountAttempt = attempt;
+    container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
+    container.__dvMountOptions.attempt = attempt;
+    scheduleAttemptTimeout2(
+      attempt,
+      container,
+      getLoadingTimeout(container.__dvMountOptions),
+      rankIndex + 1 < ranked.length,
+      function() {
+        if (!mountState.disposed) tryMountRankedSource(container, ranked, rankIndex + 1, dependencies);
+      }
+    );
+    Promise.resolve().then(function() {
+      if (!isAttemptActive2(attempt)) return Promise.reject(new Error("ATTEMPT_DISPOSED"));
+      return mountDescriptor(container, ranked[rankIndex].descriptor);
+    }).then(function() {
+      if (!isAttemptActive2(attempt)) return;
+      attempt.completed = true;
+      clearAttemptTimeout2(attempt);
+    }).catch(function() {
+      if (!isAttemptActive2(attempt) || mountState.disposed) return;
+      disposeAttempt2(attempt);
+      if (rankIndex + 1 < ranked.length) {
+        tryMountRankedSource(container, ranked, rankIndex + 1, dependencies);
+      } else {
+        reportFailure2(container, "viewer", "content-unavailable");
+      }
+    });
   }
 
   // src/runtime.mjs
@@ -3099,4 +3100,4 @@
     runtime.init();
   }
 })();
-//# sourceMappingURL=digital_viewer.js.map?v=c2becec9133af5cf387fcd037990d575080eae05a50821d0b89aa0e671ad2bde
+//# sourceMappingURL=digital_viewer.js.map?v=de7f5827dfcecb5c794aa5a767f0f26db62f86df2c4ac08d8328af8002af6779

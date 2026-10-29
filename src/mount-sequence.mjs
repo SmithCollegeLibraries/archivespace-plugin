@@ -14,51 +14,50 @@ export function getContainerViewerOptions(container) {
   };
 }
 
-// eslint-disable-next-line max-lines-per-function
-export function createMountSequence({ lifecycle, mountDescriptor, reportFailure }) {
-  const { createAttempt, disposeAttempt, isAttemptActive, scheduleAttemptTimeout, clearAttemptTimeout } = lifecycle;
-
+export function createMountSequence(dependencies) {
   function mountRankedSources(container, ranked) {
-    function tryMount(rankIndex) {
-      var mountState = container.__dvMountState;
-      var attempt = createAttempt();
-
-      if (!mountState || mountState.disposed) return;
-      if (mountState.attempt) disposeAttempt(mountState.attempt);
-      mountState.attempt = attempt;
-      container.__dvMountAttempt = attempt;
-      container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
-      container.__dvMountOptions.attempt = attempt;
-      scheduleAttemptTimeout(
-        attempt,
-        container,
-        getLoadingTimeout(container.__dvMountOptions),
-        rankIndex + 1 < ranked.length,
-        function () {
-          if (!mountState.disposed) tryMount(rankIndex + 1);
-        }
-      );
-      Promise.resolve().then(function () {
-        if (!isAttemptActive(attempt)) return Promise.reject(new Error('ATTEMPT_DISPOSED'));
-        return mountDescriptor(container, ranked[rankIndex].descriptor);
-      })
-        .then(function () {
-          if (!isAttemptActive(attempt)) return;
-          attempt.completed = true;
-          clearAttemptTimeout(attempt);
-        })
-        .catch(function () {
-          if (!isAttemptActive(attempt) || mountState.disposed) return;
-          disposeAttempt(attempt);
-          if (rankIndex + 1 < ranked.length) {
-            tryMount(rankIndex + 1);
-          } else {
-            reportFailure(container, 'viewer', 'content-unavailable');
-          }
-        });
-    }
-    tryMount(0);
+    tryMountRankedSource(container, ranked, 0, dependencies);
   }
-
   return { mountRankedSources };
+}
+
+function tryMountRankedSource(container, ranked, rankIndex, dependencies) {
+  const { lifecycle, mountDescriptor, reportFailure } = dependencies;
+  const { createAttempt, disposeAttempt, isAttemptActive, scheduleAttemptTimeout, clearAttemptTimeout } = lifecycle;
+  const mountState = container.__dvMountState;
+  const attempt = createAttempt();
+
+  if (!mountState || mountState.disposed) return;
+  if (mountState.attempt) disposeAttempt(mountState.attempt);
+  mountState.attempt = attempt;
+  container.__dvMountAttempt = attempt;
+  container.__dvMountOptions.allowFallbackOnTimeout = rankIndex + 1 < ranked.length;
+  container.__dvMountOptions.attempt = attempt;
+  scheduleAttemptTimeout(
+    attempt,
+    container,
+    getLoadingTimeout(container.__dvMountOptions),
+    rankIndex + 1 < ranked.length,
+    function () {
+      if (!mountState.disposed) tryMountRankedSource(container, ranked, rankIndex + 1, dependencies);
+    }
+  );
+  Promise.resolve().then(function () {
+    if (!isAttemptActive(attempt)) return Promise.reject(new Error('ATTEMPT_DISPOSED'));
+    return mountDescriptor(container, ranked[rankIndex].descriptor);
+  })
+    .then(function () {
+      if (!isAttemptActive(attempt)) return;
+      attempt.completed = true;
+      clearAttemptTimeout(attempt);
+    })
+    .catch(function () {
+      if (!isAttemptActive(attempt) || mountState.disposed) return;
+      disposeAttempt(attempt);
+      if (rankIndex + 1 < ranked.length) {
+        tryMountRankedSource(container, ranked, rankIndex + 1, dependencies);
+      } else {
+        reportFailure(container, 'viewer', 'content-unavailable');
+      }
+    });
 }
