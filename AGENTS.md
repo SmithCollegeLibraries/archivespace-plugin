@@ -62,8 +62,9 @@ This repository is public and dedicated to the public domain under CC0 1.0.
 - Keep project-management material out: no tickets, backlogs, review logs, evidence files,
   staff or vendor names, or internal hostnames. Use `example.org` in tests.
 - Tests use synthetic records and URLs only.
-- `public/assets/openseadragon.min.js` and `public/images/` are third-party (BSD-3-Clause). Do not
-  modify them; keep `THIRD_PARTY_NOTICES.md` accurate if you update OpenSeadragon.
+- `public/assets/openseadragon.min.js`, `public/digital-viewer/openseadragon.min.js`, and
+  `public/images/` are third-party (BSD-3-Clause). Do not modify them; keep
+  `THIRD_PARTY_NOTICES.md` accurate if you update OpenSeadragon.
 - Never add credentials or `.env` files.
 
 ## Working rules

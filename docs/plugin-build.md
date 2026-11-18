@@ -23,6 +23,7 @@ step is needed on its host. CSS, Ruby templates and OpenSeadragon remain separat
 | `src/controls.mjs`, `src/viewer-modes.mjs` | Navigation/adjustments and object/page/download actions. |
 | `src/thumbnails.mjs`, `src/prefetch.mjs` | Bounded preview loading and owned speculative requests. |
 | `src/events.mjs`, `src/tile-sources.mjs` | Disposable external listeners and pure tile/download helpers. |
+| `src/page-entry.mjs` | Standalone page URL policy, manifest loading, safe page destinations and status announcements. |
 | `scripts/build.mjs` | Reproducible bundle/map generation, watch mode and stale-output check. |
 
 The runtime factory returns an explicit capability object for source tests and
@@ -30,6 +31,18 @@ later module extraction. Entry uses only `init`; no test hooks are attached to
 `window`. DV-M07 reduces the composition root to 66 lines. Follow [page startup](plugin-startup.md) and the [viewer ownership guide](plugin-viewer-lifecycle.md). Current function names remain searchable in the modules above. Generic manifest
 functions are now `extractManifestPages` and `mountManifest`; the historical
 `compass-manifest` descriptor value is preserved for compatibility.
+
+## Standalone page output
+
+`npm run build` also builds `src/page-entry.mjs` into the self-contained
+`public/digital-viewer/` folder: `index.html`, `viewer.css`, `viewer.js`, its
+source map, and a byte-for-byte copy of the vendored OpenSeadragon script. The
+page stylesheet combines `public/assets/digital_viewer.css` with its own scoped
+layout rules. This output does not alter the plugin bundle or map. The
+`data-allowed-origins` attribute on the page bundle script is deployment-owned;
+it defaults empty and accepts only space-separated HTTPS origins. The page
+fetches one explicitly supplied Presentation 2 manifest and calls the shared
+parser and renderer directly. `npm run check:generated` checks both outputs.
 
 ## Development and verification
 

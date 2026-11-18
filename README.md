@@ -47,6 +47,12 @@ The template emits an escaped `window.DigitalViewer` object before the viewer lo
 
 Direct converted manifests from the hosted IIIF manifest service are fetched by the browser; they do not need the Compass resolver or Preservica backend. Legacy Compass records and Preservica records require their respective companion services. Manifests point to public image-service URLs and stored thumbnail URLs; their browser origins require suitable CORS and host CSP settings.
 
+## Standalone manifest page
+
+The complete static page is `public/digital-viewer/`. Deploy that folder at any path and open its directory URL with one URL-encoded `manifest` query value, for example `/digital/viewer/?manifest=https%3A%2F%2Fmanifests.example.org%2Fbook%2Fmanifest`. Set `data-allowed-origins` on the page bundle's script tag to the space-separated HTTPS origins allowed to provide manifests. The generated page leaves this value empty, which disables manifest requests until deployment configures it. The manifest and image hosts must allow browser CORS requests from the page origin.
+
+The page shows the manifest title, image sequence, thumbnails, page view and current-page image download. It does not provide a PDF action. Build and check the page with the same `npm run build` and `npm run check:generated` commands as the plugin assets.
+
 ## Source and tests
 
 The authoritative JavaScript source is `src/`; `public/assets/digital_viewer.js` and its map are generated and committed. Asset injection remains `public/views/layout_head.html.erb`. See [build, source map and test instructions](docs/plugin-build.md). The installed plugin directory must still be named `digital_viewer`.

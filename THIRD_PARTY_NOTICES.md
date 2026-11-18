@@ -2,10 +2,10 @@
 
 The files below are third-party material and are not licensed under this repository's CC0 dedication:
 
-- `public/assets/openseadragon.min.js` — OpenSeadragon 5.0.1.
+- `public/assets/openseadragon.min.js` and `public/digital-viewer/openseadragon.min.js` — OpenSeadragon 5.0.1.
 - The OpenSeadragon button images in `public/images/`.
 
-Both are distributed under the OpenSeadragon project's BSD-3-Clause license. Its license text, copied from the OpenSeadragon 5.0.1 source release, follows:
+All are distributed under the OpenSeadragon project's BSD-3-Clause license. Its license text, copied from the OpenSeadragon 5.0.1 source release, follows:
 
 ```text
 Copyright (C) 2009 CodePlex Foundation
@@ -36,4 +36,4 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
 
-No other bundled third-party files were found in the tracked plugin tree. The viewer JavaScript and source map are generated from this repository's `src/`; CSS, templates, Ruby code and test files are project materials. `esbuild` is a development dependency and is not included in the deployed plugin assets.
+The tracked plugin tree contains no other third-party files beyond the OpenSeadragon files listed above. The viewer JavaScript and source map are generated from this repository's `src/`; CSS, templates, Ruby code and test files are project materials. `esbuild` is a development dependency and is not included in the deployed plugin assets.
