@@ -36,12 +36,14 @@ function closePageServer(server) {
 }
 
 function pageData(prefix, index) {
+  const serviceUrl = 'https://info.example.org/iiif/' + prefix + '/page-' + index;
   return {
     '@id': 'https://manifest.example.org/canvases/' + prefix + '-' + index,
     label: 'Page ' + index + ' — ' + 'A very long archival page label '.repeat(4),
     images: [{ resource: {
-      '@id': 'https://images.example.org/' + prefix + '/page-' + index + '/download.jpg',
-      service: { '@id': 'https://info.example.org/iiif/' + prefix + '/page-' + index },
+      '@id': index === 2 ? serviceUrl + '/full/full/0/default.jpg' :
+        'https://images.example.org/' + prefix + '/page-' + index + '/download.jpg',
+      service: { '@id': serviceUrl },
     } }],
     thumbnail: { '@id': 'https://thumbs.example.org/stored/' + prefix + '/page-' + index + '.png' },
   };
@@ -127,6 +129,7 @@ async function routeContent(route, state) {
   state.contentRequests.push(url.href);
   if (url.hostname === 'manifest.example.org') return routeManifest(route, url, state);
   if (url.hostname === 'info.example.org') {
+    if (url.pathname.endsWith('/full/max/0/default.jpg')) return fulfill(route, PNG, 'image/png');
     state.infoRequests.push(url.href);
     if (url.pathname.includes('/slow-info/page-1/')) {
       await new Promise(function (resolveDelay) { setTimeout(resolveDelay, 40000); });
@@ -271,10 +274,10 @@ async function runPrimaryViewerCheck(browser, base, pageRoot) {
     await page.getByRole('button', { name: 'Open page 2', exact: true }).click();
     const imageLink = page.getByRole('link', { name: 'Download image', exact: true });
     await imageLink.waitFor({ state: 'visible' });
-    assert.equal(await imageLink.getAttribute('href'), 'https://images.example.org/book/page-2/download.jpg');
+    assert.equal(await imageLink.getAttribute('href'), 'https://info.example.org/iiif/book/page-2/full/max/0/default.jpg');
     await assertPdfUnavailable(page);
     const [popup] = await Promise.all([page.waitForEvent('popup'), imageLink.click()]);
-    const downloadUrl = 'https://images.example.org/book/page-2/download.jpg';
+    const downloadUrl = 'https://info.example.org/iiif/book/page-2/full/max/0/default.jpg';
     await popup.waitForURL(downloadUrl);
     assert.equal(popup.url(), downloadUrl);
     await popup.close();

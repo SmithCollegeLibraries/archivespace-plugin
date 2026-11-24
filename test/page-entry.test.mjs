@@ -5,7 +5,7 @@ import {
   getManifestUrl,
   validateManifestPages,
 } from '../src/page-entry.mjs';
-import { UNAVAILABLE_TILE_SOURCE } from '../src/manifest.mjs';
+import { extractManifestPages, UNAVAILABLE_TILE_SOURCE } from '../src/manifest.mjs';
 
 const allowedOrigin = 'https://manifest.example.org';
 
@@ -75,5 +75,38 @@ test('marks pages unavailable for unsafe service, thumbnail, and page image dest
       assert.equal(validated.thumbnailUrl, '', field + ' ' + value);
       assert.equal(validated.imageUrl, '', field + ' ' + value);
     }
+  }
+});
+
+test('uses max image size only for the page service full image URL', function () {
+  const serviceUrl = 'https://images.example.org/book/page-1';
+  const makePage = function (tileSource, imageUrl) {
+    return {
+      tileSource,
+      thumbnailUrl: 'https://thumbs.example.org/book/page-1.jpg',
+      imageUrl,
+      pageIndex: 0,
+    };
+  };
+  const cases = [
+    ['manifest image URL', makePage(serviceUrl + '/info.json', serviceUrl + '/full/full/0/default.jpg'),
+      serviceUrl + '/full/max/0/default.jpg'],
+    ['service fallback image URL', extractManifestPages({ sequences: [{ canvases: [{
+      images: [{ resource: { service: { '@id': serviceUrl } } }],
+    }] }] })[0], serviceUrl + '/full/max/0/default.jpg'],
+    ['different service', makePage(serviceUrl + '/info.json', 'https://images.example.org/other/page-1/full/full/0/default.jpg'),
+      'https://images.example.org/other/page-1/full/full/0/default.jpg'],
+    ['different host', makePage(serviceUrl + '/info.json', 'https://files.example.org/book/page-1/full/full/0/default.jpg'),
+      'https://files.example.org/book/page-1/full/full/0/default.jpg'],
+    ['different size', makePage(serviceUrl + '/info.json', serviceUrl + '/full/1200,/0/default.jpg'),
+      serviceUrl + '/full/1200,/0/default.jpg'],
+    ['stored file', makePage(serviceUrl + '/info.json', 'https://images.example.org/book/page-1/download.jpg'),
+      'https://images.example.org/book/page-1/download.jpg'],
+    ['page without an image service', makePage('', 'https://images.example.org/book/page-1/download.jpg'),
+      'https://images.example.org/book/page-1/download.jpg'],
+  ];
+
+  for (const [name, page, expected] of cases) {
+    assert.equal(validateManifestPages([page])[0].imageUrl, expected, name);
   }
 });

@@ -3172,6 +3172,10 @@
   function validateManifestPages(pages) {
     return pages.map(function(page) {
       if ([page.tileSource, page.thumbnailUrl, page.imageUrl].every(isSafeDestination)) {
+        const serviceUrl = typeof page.tileSource === "string" && page.tileSource.endsWith("/info.json") ? page.tileSource.slice(0, -"/info.json".length) : "";
+        if (serviceUrl && page.imageUrl === serviceUrl + "/full/full/0/default.jpg") {
+          return Object.assign({}, page, { imageUrl: serviceUrl + "/full/max/0/default.jpg" });
+        }
         return page;
       }
       return Object.assign({}, page, {
