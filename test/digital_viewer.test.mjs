@@ -2269,10 +2269,15 @@ function makeThumbnailFixture(options = {}) {
   const handlers = {};
   const navigated = [];
   const viewer = { addHandler(name, handler) { handlers[name] = handler; }, goToPage(index) { navigated.push(index); } };
-  const pages = Array.from({ length: options.pageCount || 77 }, (_, i) => ({
-    tileSource: 'https://digital.smith.edu/iiif/2/page' + i + '/info.json',
-    thumbnailUrl: 'https://digital.smith.edu/iiif/2/page' + i + '/full/150,/0/default.jpg',
-  }));
+  const pages = Array.from({ length: options.pageCount || 77 }, (_, i) => {
+    const iiifUrl = (i % 2 ? 'https://delivery.example.org' : 'https://images.example.org') + '/iiif/2/page' + i;
+    return {
+      tileSource: iiifUrl + '/info.json',
+      thumbnailUrl: options.storedPages && options.storedPages.includes(i)
+        ? 'https://files.example.org/thumbs/' + (i + 1) + '.jpg'
+        : iiifUrl + '/full/150,/0/default.jpg',
+    };
+  });
   hooks.addThumbnailCarousel(container, viewer, pages);
   return { hooks, container, handlers, pages, navigated, timers, advance, images: container.querySelectorAll('img') };
 }
@@ -2302,13 +2307,13 @@ for (const withObserver of [false, true]) {
       assert.equal(stalled.src, undefined, 'retire stalled request before starting another');
       assert.equal(stalled.onload, undefined);
       assert.equal(stalled.onerror, undefined);
-      assert.equal(timers.size, 1);
+      assert.equal(timers.size, 1, 'the active request has one timer while the timed-out image waits at the queue end');
       lateLoad();
       lateError();
       lateTimeout();
       assert.equal(images[stalledIndex + 2].src, undefined, 'late callbacks must not release the replacement slot');
       if (observer) observer.callback([{ target: stalled, isIntersecting: true }]);
-      assert.equal(stalled.src, undefined, 'duplicate observer entries must not retry retired work');
+      assert.equal(stalled.src, undefined, 'the single timeout retry stays behind queued work');
       const buttons = container.querySelectorAll('.dv-thumbnail-btn');
       assert.equal(buttons.length, 77);
       assert.deepEqual(buttons.map(button => button.children[1].textContent), Array.from({ length: 77 }, (_, i) => String(i + 1)));
@@ -2341,14 +2346,18 @@ test('thumbnail completion clears both listeners and timer and gives the next re
   handlers['before-destroy']();
 });
 
-test('all stalled thumbnails drain once, including the last entry, with no leftover timer', function () {
+test('all stalled thumbnails retry once, including the last entry, then drain with no leftover timer', function () {
   const { images, timers, advance } = makeThumbnailFixture({ pageCount: 3 });
   advance(30000);
   assert.equal(images.filter(image => image.dataset.thumbnailQueued).length, 3);
-  assert.equal(images.filter(image => image.src).length, 0, 'even the final stalled request is retired');
-  assert.equal(timers.size, 0);
+  assert.equal(images[0].src, 'https://images.example.org/iiif/2/page0/full/150,/0/default.jpg',
+    'timed-out thumbnails return after the initial queue');
+  assert.equal(timers.size, 1, 'the first retry owns one fresh timeout');
   advance(30000);
-  assert.equal(images.filter(image => image.src).length, 0);
+  assert.equal(images.filter(image => image.src).length, 0, 'second timeouts leave every preview blank');
+  assert.equal(timers.size, 0, 'second timeouts leave no active timer');
+  advance(30000);
+  assert.equal(images.filter(image => image.src).length, 0, 'timed-out previews are not retried again');
 });
 
 test('thumbnail disposal cancels active work and ignores saved events, timer and observer callbacks', function () {
@@ -2359,20 +2368,23 @@ test('thumbnail disposal cancels active work and ignores saved events, timer and
     unobserve() {}
     disconnect() { this.disconnected = true; }
   }
-  const { images, timers, advance, handlers } = makeThumbnailFixture({ IntersectionObserver: Observer });
-  observer.callback(images.slice(0, 3).map(target => ({ target, isIntersecting: true })));
-  const lateLoad = images[0].onload;
-  const lateError = images[0].onerror;
+  const { images, timers, advance, handlers } = makeThumbnailFixture({
+    IntersectionObserver: Observer,
+    pageCount: 8,
+    storedPages: [1, 2, 4, 5, 6],
+  });
+  observer.callback(images.map(target => ({ target, isIntersecting: true })));
+  const active = images.filter(image => image.src);
+  assert.equal(active.length, 5, 'both lanes have active requests before disposal');
+  const lateCallbacks = active.map(image => [image.onload, image.onerror]);
   const lateTimeout = [...timers.values()][0]?.callback;
   handlers['before-destroy']();
-  assert.equal(images[0].src, undefined, 'disposal retires the in-flight image');
-  assert.equal(images[0].onload, undefined);
-  assert.equal(images[0].onerror, undefined);
+  assert.equal(active.every(image => image.src === undefined), true, 'disposal retires every in-flight image');
+  assert.equal(active.every(image => !image.onload && !image.onerror), true);
   assert.equal(timers.size, 0);
   assert.equal(observer.disconnected, true);
   assert.equal(typeof lateTimeout, 'function', 'active request owned a timeout');
-  lateLoad();
-  lateError();
+  lateCallbacks.forEach(([load, error]) => { load(); error(); });
   lateTimeout();
   observer.callback(images.map(target => ({ target, isIntersecting: true })));
   advance(30000);
@@ -2381,7 +2393,7 @@ test('thumbnail disposal cancels active work and ignores saved events, timer and
   assert.equal(timers.size, 0);
 });
 
-test('multipage thumbnails wait for visibility and load one at a time', function () {
+test('multipage thumbnails wait for visibility and use independent IIIF and stored lanes', function () {
   let observer;
   class Observer {
     constructor(callback, options) { this.callback = callback; this.options = options; this.observed = []; observer = this; }
@@ -2389,26 +2401,65 @@ test('multipage thumbnails wait for visibility and load one at a time', function
     unobserve() {}
     disconnect() {}
   }
-  const fixture = makeThumbnailFixture({ IntersectionObserver: Observer });
+  const fixture = makeThumbnailFixture({
+    IntersectionObserver: Observer,
+    pageCount: 8,
+    storedPages: [1, 2, 4, 5, 6],
+  });
   assert.equal(fixture.images.filter(image => image.src).length, 0);
-  assert.equal(observer.observed.length, 77);
+  assert.equal(observer.observed.length, 8);
   assert.equal(observer.options.root, fixture.container.querySelector('.dv-thumbnail-viewport'));
-  observer.callback(fixture.images.slice(0, 3).map(target => ({ target, isIntersecting: true })));
-  assert.equal(fixture.images.filter(image => image.src).length, 1);
+  observer.callback(fixture.images.map(target => ({ target, isIntersecting: true })));
+  assert.equal(fixture.images.filter(image => image.src).length, 5, 'one IIIF and four stored requests run together');
+  assert.equal(fixture.images[3].src, undefined, 'the second IIIF request waits for the first');
+  assert.equal(fixture.images[6].src, undefined, 'the fifth stored request waits for a stored slot');
+  fixture.images[1].onload();
+  assert.equal(fixture.images[6].src, fixture.pages[6].thumbnailUrl, 'stored lane refills independently');
   fixture.images[0].onload();
-  assert.equal(fixture.images.filter(image => image.src).length, 2);
-  fixture.images[1].onerror();
-  assert.equal(fixture.images.filter(image => image.src).length, 3);
-  observer.callback([{ target: fixture.images[3], isIntersecting: false }]);
-  fixture.images[2].onload();
-  assert.equal(fixture.images[3].src, undefined);
+  assert.equal(fixture.images[3].src, fixture.pages[3].thumbnailUrl, 'IIIF lane starts its next request in order');
+  assert.equal(fixture.images[7].src, undefined, 'IIIF lane remains serial');
+});
+
+test('queued thumbnails leaving the viewport are dropped and requeued when visible again', function () {
+  let observer;
+  class Observer {
+    constructor(callback) { this.callback = callback; this.unobserved = []; observer = this; }
+    observe() {}
+    unobserve(image) { this.unobserved.push(image); }
+    disconnect() {}
+  }
+  const fixture = makeThumbnailFixture({ IntersectionObserver: Observer, pageCount: 4 });
+  const { images, pages } = fixture;
+  observer.callback(images.slice(0, 3).map(target => ({ target, isIntersecting: true })));
+  assert.equal(images[0].src, pages[0].thumbnailUrl);
+  assert.equal(images[1].src, undefined);
+  observer.callback([
+    { target: images[3], isIntersecting: true },
+    { target: images[1], isIntersecting: false },
+  ]);
+  assert.equal(observer.unobserved.includes(images[1]), false, 'queued work remains observed');
+  images[0].onload();
+  assert.equal(images[2].src, pages[2].thumbnailUrl, 'the arriving thumbnail takes the freed slot');
+  assert.equal(images[3].src, undefined, 'newly visible work stays behind the existing queue');
+  observer.callback([{ target: images[1], isIntersecting: true }]);
+  assert.equal(images[1].src, undefined, 'returned work waits behind the active request');
+  images[2].onload();
+  assert.equal(images[3].src, pages[3].thumbnailUrl, 'the batch arrival stays ahead of the returning thumbnail');
+  images[3].onload();
+  assert.equal(images[1].src, pages[1].thumbnailUrl, 'returned work is queued again');
+  assert.equal(observer.unobserved.includes(images[1]), true, 'observation ends when its request starts');
 });
 
 test('thumbnail fallback limits concurrent requests without IntersectionObserver', function () {
-  const fixture = makeThumbnailFixture();
-  assert.equal(fixture.images.filter(image => image.src).length, 1);
+  const fixture = makeThumbnailFixture({ pageCount: 6, storedPages: [0, 1, 2, 3, 4, 5] });
+  assert.equal(fixture.images.filter(image => image.src).length, 4);
+  assert.equal(fixture.images[4].src, undefined);
   fixture.images[0].onerror();
-  assert.equal(fixture.images.filter(image => image.src).length, 2);
+  assert.equal(fixture.images[0].onload, undefined, 'an error clears its listeners without a timeout retry');
+  assert.equal(fixture.images[4].src, fixture.pages[4].thumbnailUrl, 'fallback mode fills the freed stored slot');
+  fixture.images.slice(1).forEach(image => image.onload());
+  assert.equal(fixture.images[0].onload, undefined, 'draining the queue does not retry a failed image');
+  assert.equal(fixture.timers.size, 0);
 });
 
 test('sequence cache warming does not bypass the thumbnail queue', function () {

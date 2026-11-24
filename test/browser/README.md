@@ -26,8 +26,8 @@ NODE
 
 Allow about 45 seconds: four scenarios wait the actual 10-second timeout, not an
 accelerated browser clock. First/middle stalls and disposal run with native
-IntersectionObserver and with it disabled. Assertions cover serial request order,
-subsequent decoded images, browser request cancellation, page labels/navigation,
+IntersectionObserver and with it disabled. Assertions cover serial IIIF request order,
+one end-of-queue timeout retry, subsequent decoded images, browser request cancellation, page labels/navigation,
 original links and no restart after a late response. Disposal checks are immediate;
 the Node suite separately proves timer/listener cleanup and ignores saved callbacks.
 The browser fixture has three pages; Node coverage keeps the 77 numbered buttons.

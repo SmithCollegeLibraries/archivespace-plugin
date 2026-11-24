@@ -1,5 +1,19 @@
 // Real images, IntersectionObserver and vendored OSD; no ASpace or live content.
 // The supplied Page must belong to an explicit browser.newContext().
+function captureThumbnailRoute(route, index, stalledIndex, held) {
+  if (index !== stalledIndex) return false;
+  if (!held.route) {
+    held.route = route;
+    held.startedAt = Date.now();
+    return true;
+  }
+  if (!held.retry) {
+    held.retry = route;
+    return true;
+  }
+  return false;
+}
+
 // eslint-disable-next-line max-lines-per-function
 export async function runThumbnailQueueChecks(page, pluginRoot) {
   const results = [];
@@ -12,13 +26,12 @@ export async function runThumbnailQueueChecks(page, pluginRoot) {
       const stalledIndex = scenario === 'middle stall' ? 1 : 0;
       const tab = await page.context().newPage();
       const requests = [];
-      let heldRoute;
-      let heldAt;
+      const held = { route: null, retry: null, startedAt: null };
       let cancelled = false;
       try {
         await tab.setViewportSize({ width: 1280, height: 900 });
         tab.on('requestfailed', request => {
-          if (request.url() === origin + '/thumb/' + stalledIndex + '.svg') cancelled = true;
+          if (request.url() === origin + '/iiif/2/thumbnail/' + stalledIndex + '/full/150,/0/default.jpg') cancelled = true;
         });
         await tab.route('**/*', async route => {
           const path = route.request().url().slice(origin.length).split('?')[0];
@@ -29,18 +42,17 @@ export async function runThumbnailQueueChecks(page, pluginRoot) {
               </div></div>` });
           } else if (path === '/manifests/fixture.json') {
             await route.fulfill({ json: { sequences: [{ canvases: [0, 1, 2].map(index => ({
-              thumbnail: { '@id': origin + '/thumb/' + index + '.svg' },
+              thumbnail: { '@id': origin + '/iiif/2/thumbnail/' + index + '/full/150,/0/default.jpg' },
               images: [{ resource: { service: { '@id': origin + '/image/' + index } } }],
             })) }] } });
-          } else if (path.startsWith('/thumb/')) {
-            const index = Number(path.split('/')[2].split('.')[0]);
+          } else if (path.startsWith('/iiif/2/thumbnail/')) {
+            const index = Number(path.split('/')[4]);
             requests.push(index);
-            if (index === stalledIndex) {
-              heldRoute = route;
-              heldAt = Date.now();
-            }
+            const heldRequest = captureThumbnailRoute(route, index, stalledIndex, held);
             await tab.evaluate(indices => { window.__thumbnailRequests = indices; }, requests);
-            if (index !== stalledIndex) await route.fulfill({ contentType: 'image/svg+xml', body: svg });
+            if (!heldRequest) {
+              await route.fulfill({ contentType: 'image/svg+xml', body: svg });
+            }
           } else if (path.endsWith('/info.json')) {
             await route.fulfill({ json: {
               '@context': 'http://iiif.io/api/image/2/context.json',
@@ -89,9 +101,17 @@ export async function runThumbnailQueueChecks(page, pluginRoot) {
           } catch (error) {
             throw new Error(`thumbnail queue stalled beyond budget (${scenario}, observer=${withObserver}); requested=${requests.join(',')}`, { cause: error });
           }
-          assert(await tab.locator('.dv-thumbnail-img').nth(stalledIndex).getAttribute('src') === null,
-            'timed-out image still owns its request URL');
-          assert(requests.join(',') === '0,1,2', 'timeout skipped, reordered or duplicated a thumbnail');
+          const expectedOrder = stalledIndex === 0 ? '0,1,2,0' : '0,1,2,1';
+          try {
+            await tab.waitForFunction(expected => window.__thumbnailRequests?.join(',') === expected,
+            expectedOrder, { timeout: 12500 });
+          } catch (error) {
+            throw new Error(`thumbnail retry did not start (${scenario}, observer=${withObserver}); requested=${requests.join(',')}`, { cause: error });
+          }
+          assert(requests.join(',') === expectedOrder, 'timeout retry moved ahead of queued IIIF thumbnails');
+          await held.retry.fulfill({ contentType: 'image/svg+xml', body: svg });
+          await tab.waitForFunction(index => document.querySelectorAll('.dv-thumbnail-img')[index]?.naturalWidth > 0,
+            stalledIndex, { timeout: 5000 });
           assert((await tab.locator('.dv-thumbnail-label').allTextContents()).join(',') === '1,2,3', 'page labels changed');
           await tab.locator('.dv-thumbnail-btn').nth(stalledIndex).click();
           await tab.waitForFunction(index => window.__viewer.currentPage() === index &&
@@ -100,16 +120,18 @@ export async function runThumbnailQueueChecks(page, pluginRoot) {
         }
 
         // A late network response must not resurrect the retired thumbnail.
-        await heldRoute.fulfill({ contentType: 'image/svg+xml', body: svg });
+        await held.route.fulfill({ contentType: 'image/svg+xml', body: svg });
         await tab.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         assert(await tab.evaluate(index => {
           const images = window.__retiredThumbnails || document.querySelectorAll('.dv-thumbnail-img');
-          return !images[index].hasAttribute('src');
-        }, stalledIndex), 'late response resurrected a retired thumbnail');
-        assert(requests.length === (scenario === 'dispose while stalled' ? 1 : 3), 'late response restarted the queue');
+          return window.__retiredThumbnails
+            ? !images[index].hasAttribute('src')
+            : images[index].hasAttribute('src') && images[index].naturalWidth > 0;
+        }, stalledIndex), 'late response changed the retried or disposed thumbnail');
+        assert(requests.length === (scenario === 'dispose while stalled' ? 1 : 4), 'late response restarted the queue');
         assert(cancelled, 'browser did not report cancellation of the retired thumbnail request');
         results.push({ scenario, withObserver, requested: requests.slice(), cancelled,
-          elapsedMs: Date.now() - heldAt, passed: true,
+          elapsedMs: Date.now() - held.startedAt, passed: true,
           ...(await tab.evaluate(() => ({ osd: window.OpenSeadragon.version.versionStr, userAgent: navigator.userAgent }))),
         });
       } finally {

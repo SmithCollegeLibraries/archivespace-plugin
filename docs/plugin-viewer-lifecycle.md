@@ -10,7 +10,7 @@ The viewer implementation is now divided by responsibility:
 | `controls.mjs` | Zoom, rotation/flip/image adjustments, toolbar visibility and page navigation. |
 | `events.mjs` | Viewer/attempt-owned document subscriptions and their disposal guards. |
 | `viewer-modes.mjs` | Object/page modes and safe image/PDF download actions. |
-| `thumbnails.mjs` | Visibility observation, serial preview queue, preview deadlines and page buttons. |
+| `thumbnails.mjs` | Visibility observation, independent IIIF and stored preview lanes, preview deadlines and page buttons. |
 | `prefetch.mjs` | Nearby `info.json` warming and single-image preload; attempt-scoped deduplication. |
 | `tile-sources.mjs` | Pure tile-source, thumbnail and safe download URL helpers. |
 
@@ -28,7 +28,7 @@ vendored library; the modules compile to the same single served viewer script.
 | Group deadline | Lifecycle | Clears on completion/disposal; alternatives advance once. A final slow attempt stays active with a loading message. |
 | Standalone OSD open deadline | Viewer module | Clears on open, failure or viewer destruction; destruction settles the pending promise. Normal runtime mounts use the group deadline. |
 | First-tile loading timer | Viewer module | Clears on tile readiness or viewer destruction. |
-| Thumbnail deadline, active preview and queue | Carousel | At most one active preview per carousel. Completion/error/timeout releases its slot; disposal clears the timer, removes listeners/active `src`, drops queued work. |
+| Thumbnail deadlines, active previews and queues | Carousel | At most one IIIF preview and four stored previews per carousel. Completion/error/timeout releases its lane slot; disposal clears timers, removes listeners/active `src`, drops queued work. |
 | IntersectionObserver | Carousel | Disconnects on viewer destruction or attempt cleanup. Saved observer/image callbacks are inert after disposal. |
 | Document click/Escape listeners | Controls' viewer scope | Removed on `before-destroy` or attempt cleanup. Saved callbacks check the disposed scope. This closes the document-listener follow-up. |
 | OpenSeadragon event listeners/requests | OpenSeadragon viewer | Viewer destruction clears the library's handlers and requests; plugin attempt/source identity checks protect replacement mounts. |

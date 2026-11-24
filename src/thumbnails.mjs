@@ -6,11 +6,13 @@ export function createThumbnails(dependencies) {
   function addThumbnailCarousel(container, viewer, tileSources, options) {
     const elements = createCarouselElements(dependencies.document);
     const state = { disposed: false };
-    const queue = createThumbnailQueue(dependencies, state);
-    const observer = createThumbnailObserver(
+    const lifecycle = { observer: null };
+    const queue = createThumbnailQueue(dependencies, state, lifecycle);
+    lifecycle.observer = createThumbnailObserver(
       dependencies.IntersectionObserver,
       elements.viewport,
-      queue.enqueue
+      queue.enqueue,
+      queue.dropQueued
     );
     const buttons = createPageButtons({
       document: dependencies.document,
@@ -18,7 +20,7 @@ export function createThumbnails(dependencies) {
       tileSources,
       options,
       state,
-      observer,
+      observer: lifecycle.observer,
       enqueueThumbnail: queue.enqueue,
       isAttemptActive: dependencies.isAttemptActive,
       warmSequenceCache: dependencies.warmSequenceCache,
@@ -26,7 +28,7 @@ export function createThumbnails(dependencies) {
 
     appendThumbnails(elements, buttons, container);
     const updateArrows = bindCarouselNavigation(elements, buttons);
-    bindViewerLifecycle(viewer, buttons, options, state, observer, queue,
+    bindViewerLifecycle(viewer, buttons, options, state, lifecycle.observer, queue,
       dependencies.isAttemptActive, dependencies.registerAttemptCleanup, updateArrows);
   }
 
@@ -55,61 +57,104 @@ function createCarouselElements(document) {
   return { carousel, prevBtn, nextBtn, viewport, track };
 }
 
-function createThumbnailQueue({ setTimeout, clearTimeout }, state) {
-  const queue = [];
-  let cancelActive = null;
-
-  function loadNext() {
-    if (state.disposed || cancelActive || queue.length === 0) return;
-    const image = queue.shift();
-    let completed = false;
-    let timerId;
-
-    function finish(cancelRequest) {
-      if (completed) return;
-      completed = true;
-      clearTimeout(timerId);
-      image.removeEventListener('load', onComplete);
-      image.removeEventListener('error', onComplete);
-      if (cancelRequest) image.removeAttribute('src');
-      cancelActive = null;
-      loadNext();
-    }
-
-    function onComplete() { finish(false); }
-    cancelActive = function () { finish(true); };
-    image.addEventListener('load', onComplete, { once: true });
-    image.addEventListener('error', onComplete, { once: true });
-    timerId = setTimeout(cancelActive, THUMBNAIL_TIMEOUT_MS);
-    image.src = image.dataset.thumbnailUrl;
-  }
-
-  function enqueue(image) {
+function createThumbnailQueue({ setTimeout, clearTimeout }, state, lifecycle) {
+  const queue = {
+    waiting: { iiif: [], stored: [] },
+    active: { iiif: [], stored: [] },
+    retries: new WeakMap(),
+    setTimeout,
+    clearTimeout,
+    state,
+    lifecycle,
+  };
+  queue.enqueue = function (image) {
     if (state.disposed || image.dataset.thumbnailQueued) return;
     image.dataset.thumbnailQueued = 'true';
-    queue.push(image);
-    loadNext();
-  }
-
-  function dispose() {
-    queue.length = 0;
-    if (cancelActive) cancelActive();
-  }
-
-  return { enqueue, dispose };
+    const lane = thumbnailLane(image.dataset.thumbnailUrl);
+    queue.waiting[lane].push({ image, lane });
+    loadThumbnailLane(queue, lane);
+  };
+  queue.dropQueued = image => dropQueuedThumbnail(queue, image);
+  queue.dispose = () => disposeThumbnailQueue(queue);
+  return queue;
 }
 
-function createThumbnailObserver(Observer, viewport, enqueueThumbnail) {
+function loadThumbnailLane(queue, lane) {
+  const limit = lane === 'iiif' ? 1 : 4;
+  while (!queue.state.disposed && queue.active[lane].length < limit && queue.waiting[lane].length) {
+    startThumbnailRequest(queue, queue.waiting[lane].shift());
+  }
+}
+
+function loadNextThumbnail(queue) {
+  loadThumbnailLane(queue, 'iiif');
+  loadThumbnailLane(queue, 'stored');
+}
+
+function startThumbnailRequest(queue, record) {
+  const request = { image: record.image, lane: record.lane, completed: false };
+  const complete = () => finishThumbnailRequest(queue, request, false);
+  request.complete = complete;
+  request.cancel = () => finishThumbnailRequest(queue, request, true);
+  queue.active[request.lane].push(request);
+  if (queue.lifecycle.observer) queue.lifecycle.observer.unobserve(request.image);
+  request.image.addEventListener('load', complete, { once: true });
+  request.image.addEventListener('error', complete, { once: true });
+  request.timer = queue.setTimeout(
+    () => finishThumbnailRequest(queue, request, true, true),
+    THUMBNAIL_TIMEOUT_MS
+  );
+  request.image.src = request.image.dataset.thumbnailUrl;
+}
+
+function finishThumbnailRequest(queue, request, cancelRequest, timedOut = false) {
+  if (request.completed) return;
+  request.completed = true;
+  queue.clearTimeout(request.timer);
+  request.image.removeEventListener('load', request.complete);
+  request.image.removeEventListener('error', request.complete);
+  if (cancelRequest) request.image.removeAttribute('src');
+  queue.active[request.lane].splice(queue.active[request.lane].indexOf(request), 1);
+  if (timedOut) retryTimedOutThumbnail(queue, request.image);
+  loadNextThumbnail(queue);
+}
+
+function retryTimedOutThumbnail(queue, image) {
+  if (queue.state.disposed || queue.retries.has(image)) return;
+  queue.retries.set(image, true);
+  delete image.dataset.thumbnailQueued;
+  if (queue.lifecycle.observer) queue.lifecycle.observer.observe(image);
+  else queue.enqueue(image);
+}
+
+function dropQueuedThumbnail(queue, image) {
+  ['iiif', 'stored'].forEach(function (lane) {
+    const index = queue.waiting[lane].findIndex(record => record.image === image);
+    if (index === -1) return;
+    queue.waiting[lane].splice(index, 1);
+    delete image.dataset.thumbnailQueued;
+  });
+}
+
+function disposeThumbnailQueue(queue) {
+  queue.waiting.iiif.length = 0;
+  queue.waiting.stored.length = 0;
+  [...queue.active.iiif, ...queue.active.stored].forEach(request => request.cancel());
+}
+
+function thumbnailLane(url) {
+  const path = url.split(/[?#]/)[0].replace(/^[a-z][a-z\d+.-]*:\/\/[^/]*/i, '');
+  return /\/full\/[^/]+\/0\/[^/]+\.[^/]+$/.test(path) ? 'iiif' : 'stored';
+}
+
+function createThumbnailObserver(Observer, viewport, enqueueThumbnail, dropQueuedThumbnail) {
   if (typeof Observer === 'undefined') return null;
-  let observer;
-  observer = new Observer(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      enqueueThumbnail(entry.target);
-      observer.unobserve(entry.target);
-    });
+  return new Observer(function (entries) {
+    entries.filter(entry => !entry.isIntersecting)
+      .forEach(entry => dropQueuedThumbnail(entry.target));
+    entries.filter(entry => entry.isIntersecting)
+      .forEach(entry => enqueueThumbnail(entry.target));
   }, { root: viewport, rootMargin: '100px' });
-  return observer;
 }
 
 function createPageButtons({ document, viewer, tileSources, options, state, observer,
